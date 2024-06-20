@@ -37,6 +37,7 @@ div_0 = 0.002       # Initial Dividend
 dividends = zeros(N, T)         # Dividends of Risky Assets
 fund_val = zeros(N, T)          # Fundamental Values of Risky Assets
 price = zeros(N, T)             # Prices of Risky Assets
+price_returns = zeros(N, T)     # Returns of Risky Assets
 
 expRet_Fund = zeros(N, T, kFund)                    # Fundamentalists Expected Return of Risky Assets
 expRet_Chart = zeros(N, T, kChart)                  # Chartists Expected Return of Risky Assets
@@ -51,11 +52,44 @@ meanR = round.(rand(Uniform(meanR_min, meanR_max), kFund), digits = 2)
 ema_wind_Fund = rand(wind_min:wind_max, kFund)
 ema_wind_Chart = rand(wind_min:wind_max, kChart)
 
+corr_coef_Fund = round.(rand(Uniform(corr_min, corr_max), kFund, N), digits = 2)
+corr_coef_Chart = round.(rand(Uniform(corr_min, corr_max), kChart, N), digits = 2)
+
+function getCovMat(retArr, coefMat, a, t)
+    
+    index = 1
+
+    for ii in 1:N    
+
+        var_i = sqrt(retArr[ii, ii, t, a])
+
+        for ll in 1:N
+
+            var_l = sqrt(retArr[ll, ll, t, a])
+
+            if ii == ll
+                continue
+                
+            elseif ll < ii
+                continue
+
+            else
+
+                retArr[ii, ll, t, a] = coefMat[a, index] * var_i * var_l
+                retArr[ll, ii, t, a] = coefMat[a, index] * var_l * var_i
+                index = index + 1
+
+            end
+
+        end
+
+    end
+
+    return retArr
+end
+
 
 for t in 2:T
-
-    covVec_Fund = zeros(N, kFund)
-    covVec_Chart = zeros(N, kChart)
 
     for i in 1:N
 
@@ -68,8 +102,7 @@ for t in 2:T
             expRet_Fund[i, t, f] = (phi * fund_val[i, t-1] + meanR[f] * (fund_val[i, t-1] - price[i, t-1]) + (1 + phi) * dividends[i, t-1] - price[i, t-1]) / price[i, t-1]
 
             ema_f = exp(-1/ema_wind_Fund[f])
-            expRet_CovMat_Fund[i, i, t, f] = (ema_f * expRet_CovMat_Fund[i, i, t-1, f]) + (1 - ema_f) * (expRet_Fund[i, t-1, f] - ema_f)
-            
+            expRet_CovMat_Fund[i, i, t, f] = (ema_f * expRet_CovMat_Fund[i, i, t-1, f]) + ((1 - ema_f) * (expRet_Fund[i, t-1, f] - price_returns[i, t-1])^2)
 
         end
         
@@ -77,6 +110,18 @@ for t in 2:T
 
 
         end
+
+    end
+
+    for ff in 1:kFund
+
+        expRet_CovMat_Fund[1:N, 1:N, t, ff] = getCovMat(expRet_CovMat_Fund[1:N, 1:N, t, ff], corr_coef_Fund[ff, 1:N], ff, t)
+
+    end
+
+    for cc in 1:kChart
+
+        expRet_CovMat_Chart[1:N, 1:N, t, cc] = getCovMat(expRet_CovMat_Chart[1:N, 1:N, t, cc], corr_coef_Chart[cc, 1:N], cc, t)
 
     end
     
