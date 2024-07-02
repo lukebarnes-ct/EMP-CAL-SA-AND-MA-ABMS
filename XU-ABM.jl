@@ -33,6 +33,7 @@ propW_min = -0.95   # Min Wealth Investment Proportion
 
 cash_0 = 10         # Initial Cash 
 div_0 = 0.002       # Initial Dividend
+fund_0 = 10         # Initial Fundamental Value
 
 dividends = zeros(N, T)         # Dividends of Risky Assets
 fund_val = zeros(N, T)          # Fundamental Values of Risky Assets
@@ -44,8 +45,12 @@ expRet_Chart = zeros(N, T, kChart)                  # Chartists Expected Return 
 expRet_CovMat_Fund = zeros(N, N, T, kFund)          # Expected Return Covariance Array for Fundamentalists
 expRet_CovMat_Chart = zeros(N, N, T, kChart)        # Expected Return Covariance Array for Chartists
 
+expPriceChange = zeros(N, T, kChart)                # Chartists Expected Price Change of Risky Assets
+
 for i in 1:N
-    dividends[i, 1] = div_0       # Set Initial Dividend in Matrix
+    dividends[i, 1] = div_0         # Set Initial Dividend in Matrix
+    fund_val[i, 1] = fund_0         # Set Initial Fundamental Value
+    price[i, 1] = fund_0            # Set Initial Asset Price
 end
 
 meanR = round.(rand(Uniform(meanR_min, meanR_max), kFund), digits = 2)
@@ -54,6 +59,23 @@ ema_wind_Chart = rand(wind_min:wind_max, kChart)
 
 corr_coef_Fund = round.(rand(Uniform(corr_min, corr_max), kFund, N), digits = 2)
 corr_coef_Chart = round.(rand(Uniform(corr_min, corr_max), kChart, N), digits = 2)
+
+wealth_Fund  = zeros(kFund, T)              # Fundamentalists Wealth
+wealth_Chart  = zeros(kChart, T)            # Chartists Wealth
+
+for k in 1:kFund
+    wealth_Fund[k, 1] = cash_0              # Set Initial Wealth of Fundamentalists
+end
+
+for k in 1:kChart
+    wealth_Chart[k, 1] = cash_0             # Set Initial Wealth of Chartists
+end
+
+wealthProp_Fund = zeros(N, T, kFund)        # Fundamentalists Proportion of Wealth Invested in Risky Assets
+wealthProp_Chart = zeros(N, T, kChart)      # Chartists Proportion of Wealth Invested in Risky Assets
+
+demand_Fund = zeros(N, T, kFund)            # Fundamentalists Demand of Risky Assets
+demand_Chart = zeros(N, T, kChart)          # Chartists Demand of Risky Assets
 
 function getCovMat(retArr, coefMat, a, t)
     
@@ -108,6 +130,17 @@ for t in 2:T
         
         for c in 1:kChart
 
+            ema_c = exp(-1/ema_wind_Chart[c])
+
+            if t == 2
+                expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + ((1 - ema_c) * (0.5))
+            
+            else 
+                expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + ((1 - ema_c) * ((price[i, t-1] - price[i, t-2])/price[i, t-2]))
+            end
+
+            expRet_Chart[i, t, c] = expPriceChange[i, t, c] + (((1 + phi) * dividends[i, t-1])/price[i, t-1])
+            expRet_CovMat_Chart[i, i, t, c] = (ema_c * expRet_CovMat_Chart[i, i, t-1, c]) + ((1 - ema_c) * (expRet_Chart[i, t-1, c] - price_returns[i, t-1])^2)
 
         end
 
@@ -117,11 +150,19 @@ for t in 2:T
 
         expRet_CovMat_Fund[1:N, 1:N, t, ff] = getCovMat(expRet_CovMat_Fund[1:N, 1:N, t, ff], corr_coef_Fund[ff, 1:N], ff, t)
 
+        wealthProp_Fund[1:N, t, ff] = (1/lambda) * inv(expRet_CovMat_Fund[1:N, 1:N, t, ff]) * (expRet_Fund[1:N, t, ff] - r)
+
+        demand_Fund[1:N, t, ff] = (wealth_Fund[ff, t-1] * wealthProp_Fund[1:N, t, ff]) ./ price[1:N, t-1]
+
     end
 
     for cc in 1:kChart
 
         expRet_CovMat_Chart[1:N, 1:N, t, cc] = getCovMat(expRet_CovMat_Chart[1:N, 1:N, t, cc], corr_coef_Chart[cc, 1:N], cc, t)
+
+        wealthProp_Chart[1:N, t, cc] = (1/lambda) * inv(expRet_CovMat_Chart[1:N, 1:N, t, cc]) * (expRet_Chart[1:N, t, cc] - r)
+
+        demand_Chart[1:N, t, cc] = (wealth_Chart[cc, t-1] * wealthProp_Chart[1:N, t, cc]) ./ price[1:N, t-1]
 
     end
     
