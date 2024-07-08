@@ -47,8 +47,8 @@ price_returns = zeros(N, T)     # Returns of Risky Assets
 
 expRet_Fund = zeros(N, T, kFund)                    # Fundamentalists Expected Return of Risky Assets
 expRet_Chart = zeros(N, T, kChart)                  # Chartists Expected Return of Risky Assets
-expRet_CovMat_Fund = zeros(N, N, T, kFund)          # Expected Return Covariance Array for Fundamentalists
-expRet_CovMat_Chart = zeros(N, N, T, kChart)        # Expected Return Covariance Array for Chartists
+expRet_CovMat_Fund = ones(N, N, T, kFund)           # Expected Return Covariance Array for Fundamentalists
+expRet_CovMat_Chart = ones(N, N, T, kChart)         # Expected Return Covariance Array for Chartists
 
 expPriceChange = zeros(N, T, kChart)                # Chartists Expected Price Change of Risky Assets
 
@@ -94,17 +94,17 @@ for k in 1:kChart
     end
 end
 
-function getCovMat(retArr, coefMat, a, t)
-    
+function getCovMat(retArr, coefMat)
+
     index = 1
 
     for ii in 1:N    
 
-        var_i = sqrt(retArr[ii, ii, t, a])
+        var_i = sqrt(retArr[ii, ii])
 
         for ll in 1:N
 
-            var_l = sqrt(retArr[ll, ll, t, a])
+            var_l = sqrt(retArr[ll, ll])
 
             if ii == ll
                 continue
@@ -114,10 +114,10 @@ function getCovMat(retArr, coefMat, a, t)
 
             else
 
-                retArr[ii, ll, t, a] = coefMat[a, index] * var_i * var_l
-                retArr[ll, ii, t, a] = coefMat[a, index] * var_l * var_i
+                retArr[ii, ll] = coefMat[index] * var_i * var_l
+                retArr[ll, ii] = coefMat[index] * var_l * var_i
                 index = index + 1
-
+                
             end
 
         end
@@ -127,9 +127,9 @@ function getCovMat(retArr, coefMat, a, t)
     return retArr
 end
 
-
 for t in 2:T
 
+    println("Time is: ", t)
     for i in 1:N
 
         err = rand(Normal(0, 1))                                                # Standard Normal Error Term
@@ -139,7 +139,6 @@ for t in 2:T
         for f in 1:kFund
 
             expRet_Fund[i, t, f] = (phi * fund_val[i, t-1] + meanR[f] * (fund_val[i, t-1] - price[i, t-1]) + (1 + phi) * dividends[i, t-1] - price[i, t-1]) / price[i, t-1]
-
             ema_f = exp(-1/ema_wind_Fund[f])
             expRet_CovMat_Fund[i, i, t, f] = (ema_f * expRet_CovMat_Fund[i, i, t-1, f]) + ((1 - ema_f) * (expRet_Fund[i, t-1, f] - price_returns[i, t-1])^2)
 
@@ -168,11 +167,11 @@ for t in 2:T
 
     for ff in 1:kFund
 
-        expRet_CovMat_Fund[1:N, 1:N, t, ff] = getCovMat(expRet_CovMat_Fund[1:N, 1:N, t, ff], corr_coef_Fund[ff, 1:N], ff, t)
+        expRet_CovMat_Fund[:, :, t, ff] = getCovMat(expRet_CovMat_Fund[:, :, t, ff], corr_coef_Fund[ff, :])
 
-        wealthProp_Fund[1:N, t, ff] = (1/lambda) * inv(expRet_CovMat_Fund[1:N, 1:N, t, ff]) * (expRet_Fund[1:N, t, ff] - r)
+        wealthProp_Fund[:, t, ff] = (1/lambda) * inv(expRet_CovMat_Fund[:, :, t, ff]) * (expRet_Fund[:, t, ff] .- r)
 
-        totalPort_Fund[1:N, 1] = totalPort_Fund[1:N, 1] + (wealth_Fund[ff, t-1] * wealthProp_Fund[1:N, t, ff])
+        totalPort_Fund[:, 1] = totalPort_Fund[:, 1] + (wealth_Fund[ff, t-1] * wealthProp_Fund[:, t, ff])
 
         ## demand_Fund[1:N, t, ff] = (wealth_Fund[ff, t-1] * wealthProp_Fund[1:N, t, ff]) ./ price[1:N, t-1]
 
@@ -180,11 +179,11 @@ for t in 2:T
 
     for cc in 1:kChart
 
-        expRet_CovMat_Chart[1:N, 1:N, t, cc] = getCovMat(expRet_CovMat_Chart[1:N, 1:N, t, cc], corr_coef_Chart[cc, 1:N], cc, t)
+        expRet_CovMat_Chart[:, :, t, cc] = getCovMat(expRet_CovMat_Chart[:, :, t, cc], corr_coef_Chart[cc, :])
 
-        wealthProp_Chart[1:N, t, cc] = (1/lambda) * inv(expRet_CovMat_Chart[1:N, 1:N, t, cc]) * (expRet_Chart[1:N, t, cc] - r)
+        wealthProp_Chart[:, t, cc] = (1/lambda) * inv(expRet_CovMat_Chart[:, :, t, cc]) * (expRet_Chart[:, t, cc] .- r)
 
-        totalPort_Chart[1:N, 1] = totalPort_Chart[1:N, 1] + (wealth_Chart[cc, t-1] * wealthProp_Chart[1:N, t, cc])
+        totalPort_Chart[:, 1] = totalPort_Chart[:, 1] + (wealth_Chart[cc, t-1] * wealthProp_Chart[:, t, cc])
 
         ## demand_Chart[1:N, t, cc] = (wealth_Chart[cc, t-1] * wealthProp_Chart[1:N, t, cc]) ./ price[1:N, t-1]
 
@@ -192,7 +191,7 @@ for t in 2:T
 
     price[:, t] = (totalPort_Fund[:, 1] + totalPort_Chart[:, 1]) / assetSupply_max                # Determine the price that will clear each market of Risky Assets
     
-    price_returns[:, t] = ((price[:, t-1] - price[:, t-2]) ./ price[:, t-2])
+    price_returns[:, t] = ((price[:, t] - price[:, t-1]) ./ price[:, t-1])
 
     wealth_Fund[:, t] = ((ones(1, kFund) - sum(wealthProp_Fund[:, t, :], dims = 1)) .* 
                         (wealth_Fund[:, t-1] * (1 + r))') + 
@@ -205,3 +204,12 @@ for t in 2:T
                          (price[:, t] + dividends[:, t]) ./ (price[:, t-1]), dims = 1))
     
 end
+
+price[:, 400:1000]
+
+price_returns[:, 100:150]
+
+wealth_Fund[:, 1:50]
+
+expRet_Fund[:, 200:300, :]
+expRet_Chart[:, 200:300, :]
