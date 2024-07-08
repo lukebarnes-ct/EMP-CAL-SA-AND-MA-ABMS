@@ -28,12 +28,17 @@ corr_min = -0.2     # Min Expected Correlation Coefficient
 propW_max = 0.95    # Max Wealth Investment Proportion
 propW_min = -0.95   # Min Wealth Investment Proportion 
 
+stock_max = 10      # Max Stock Position
+stock_min = -5      # Min Stock Position
 
 ### Initialise Variables
 
 cash_0 = 10         # Initial Cash 
 div_0 = 0.002       # Initial Dividend
 fund_0 = 10         # Initial Fundamental Value
+asset_0 = 1         # Initial Risky Asset Positions
+
+assetSupply_max = (kFund * asset_0) + (kChart * asset_0)       # Initialise Max Supply of each Risky Asset
 
 dividends = zeros(N, T)         # Dividends of Risky Assets
 fund_val = zeros(N, T)          # Fundamental Values of Risky Assets
@@ -53,6 +58,8 @@ for i in 1:N
     price[i, 1] = fund_0            # Set Initial Asset Price
 end
 
+Random.seed!(1234)                  # Set Seed for Reproducibility
+
 meanR = round.(rand(Uniform(meanR_min, meanR_max), kFund), digits = 2)
 ema_wind_Fund = rand(wind_min:wind_max, kFund)
 ema_wind_Chart = rand(wind_min:wind_max, kChart)
@@ -63,19 +70,29 @@ corr_coef_Chart = round.(rand(Uniform(corr_min, corr_max), kChart, N), digits = 
 wealth_Fund  = zeros(kFund, T)              # Fundamentalists Wealth
 wealth_Chart  = zeros(kChart, T)            # Chartists Wealth
 
-for k in 1:kFund
-    wealth_Fund[k, 1] = cash_0              # Set Initial Wealth of Fundamentalists
-end
-
-for k in 1:kChart
-    wealth_Chart[k, 1] = cash_0             # Set Initial Wealth of Chartists
-end
-
 wealthProp_Fund = zeros(N, T, kFund)        # Fundamentalists Proportion of Wealth Invested in Risky Assets
 wealthProp_Chart = zeros(N, T, kChart)      # Chartists Proportion of Wealth Invested in Risky Assets
 
 demand_Fund = zeros(N, T, kFund)            # Fundamentalists Demand of Risky Assets
 demand_Chart = zeros(N, T, kChart)          # Chartists Demand of Risky Assets
+
+for k in 1:kFund
+    wealth_Fund[k, 1] = cash_0                      # Set Initial Wealth of Fundamentalists
+
+    for ii in 1:N
+        wealthProp_Fund[ii, 1, k] = 1/(1 + N)       # Set Initial Portfolio Weights
+        demand_Fund[ii, 1, k] = asset_0             # Set Initial Asset Demand 
+    end
+end
+
+for k in 1:kChart
+    wealth_Chart[k, 1] = cash_0                     # Set Initial Wealth of Chartists
+
+    for ii in 1:N
+        wealthProp_Chart[ii, 1, k] = 1/(1 + N)      # Set Initial Portfolio Weights
+        demand_Chart[ii, 1, k] = asset_0            # Set Initial Asset Demand 
+    end
+end
 
 function getCovMat(retArr, coefMat, a, t)
     
@@ -146,13 +163,18 @@ for t in 2:T
 
     end
 
+    totalPort_Fund = zeros(N, 1)            # Initialise vector of sums of portfolios for Fundamentalists at each time step
+    totalPort_Chart = zeros(N, 1)           # Initialise vector of sums of portfolios for Chartists at each time step
+
     for ff in 1:kFund
 
         expRet_CovMat_Fund[1:N, 1:N, t, ff] = getCovMat(expRet_CovMat_Fund[1:N, 1:N, t, ff], corr_coef_Fund[ff, 1:N], ff, t)
 
         wealthProp_Fund[1:N, t, ff] = (1/lambda) * inv(expRet_CovMat_Fund[1:N, 1:N, t, ff]) * (expRet_Fund[1:N, t, ff] - r)
 
-        demand_Fund[1:N, t, ff] = (wealth_Fund[ff, t-1] * wealthProp_Fund[1:N, t, ff]) ./ price[1:N, t-1]
+        totalPort_Fund[1:N, 1] = totalPort_Fund[1:N, 1] + (wealth_Fund[ff, t-1] * wealthProp_Fund[1:N, t, ff])
+
+        ## demand_Fund[1:N, t, ff] = (wealth_Fund[ff, t-1] * wealthProp_Fund[1:N, t, ff]) ./ price[1:N, t-1]
 
     end
 
@@ -162,8 +184,24 @@ for t in 2:T
 
         wealthProp_Chart[1:N, t, cc] = (1/lambda) * inv(expRet_CovMat_Chart[1:N, 1:N, t, cc]) * (expRet_Chart[1:N, t, cc] - r)
 
-        demand_Chart[1:N, t, cc] = (wealth_Chart[cc, t-1] * wealthProp_Chart[1:N, t, cc]) ./ price[1:N, t-1]
+        totalPort_Chart[1:N, 1] = totalPort_Chart[1:N, 1] + (wealth_Chart[cc, t-1] * wealthProp_Chart[1:N, t, cc])
+
+        ## demand_Chart[1:N, t, cc] = (wealth_Chart[cc, t-1] * wealthProp_Chart[1:N, t, cc]) ./ price[1:N, t-1]
 
     end
+
+    price[:, t] = (totalPort_Fund[:, 1] + totalPort_Chart[:, 1]) / assetSupply_max                # Determine the price that will clear each market of Risky Assets
+    
+    price_returns[:, t] = ((price[:, t-1] - price[:, t-2]) ./ price[:, t-2])
+
+    wealth_Fund[:, t] = ((ones(1, kFund) - sum(wealthProp_Fund[:, t, :], dims = 1)) .* 
+                        (wealth_Fund[:, t-1] * (1 + r))') + 
+                        (wealth_Fund[:, t-1])' .* (sum(wealthProp_Fund[:, t, :] .* 
+                        (price[:, t] + dividends[:, t]) ./ (price[:, t-1]), dims = 1))
+
+    wealth_Chart[:, t] = ((ones(1, kChart) - sum(wealthProp_Chart[:, t, :], dims = 1)) .* 
+                         (wealth_Chart[:, t-1] * (1 + r))') + 
+                         (wealth_Chart[:, t-1])' .* (sum(wealthProp_Chart[:, t, :] .* 
+                         (price[:, t] + dividends[:, t]) ./ (price[:, t-1]), dims = 1))
     
 end
