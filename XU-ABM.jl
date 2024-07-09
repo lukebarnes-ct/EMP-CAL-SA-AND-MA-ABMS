@@ -50,6 +50,9 @@ expRet_Chart = zeros(N, T, kChart)                  # Chartists Expected Return 
 expRet_CovMat_Fund = ones(N, N, T, kFund)           # Expected Return Covariance Array for Fundamentalists
 expRet_CovMat_Chart = ones(N, N, T, kChart)         # Expected Return Covariance Array for Chartists
 
+fill!(expRet_CovMat_Fund, phi)
+fill!(expRet_CovMat_Chart, phi)
+
 expPriceChange = zeros(N, T, kChart)                # Chartists Expected Price Change of Risky Assets
 
 for i in 1:N
@@ -173,8 +176,6 @@ for t in 2:T
 
         totalPort_Fund[:, 1] = totalPort_Fund[:, 1] + (wealth_Fund[ff, t-1] * wealthProp_Fund[:, t, ff])
 
-        ## demand_Fund[1:N, t, ff] = (wealth_Fund[ff, t-1] * wealthProp_Fund[1:N, t, ff]) ./ price[1:N, t-1]
-
     end
 
     for cc in 1:kChart
@@ -185,13 +186,23 @@ for t in 2:T
 
         totalPort_Chart[:, 1] = totalPort_Chart[:, 1] + (wealth_Chart[cc, t-1] * wealthProp_Chart[:, t, cc])
 
-        ## demand_Chart[1:N, t, cc] = (wealth_Chart[cc, t-1] * wealthProp_Chart[1:N, t, cc]) ./ price[1:N, t-1]
-
     end
 
-    price[:, t] = (totalPort_Fund[:, 1] + totalPort_Chart[:, 1]) / assetSupply_max                # Determine the price that will clear each market of Risky Assets
+    if t == 2
+
+        price[:, 2] = price[:, 1] * 1.1
+
+    else
+
+    # Determine the price that will clear each market of Risky Assets
+    price[:, t] = (totalPort_Fund[:, 1] + totalPort_Chart[:, 1]) / assetSupply_max                
+
+    end
     
     price_returns[:, t] = ((price[:, t] - price[:, t-1]) ./ price[:, t-1])
+
+    demand_Fund[:, t, :] = ((wealth_Fund[:, t-1])' .* wealthProp_Fund[:, t, :]) ./ price[:, t-1]
+    demand_Chart[:, t, :] = ((wealth_Chart[:, t-1])' .* wealthProp_Chart[:, t, :]) ./ price[:, t-1]
 
     wealth_Fund[:, t] = ((ones(1, kFund) - sum(wealthProp_Fund[:, t, :], dims = 1)) .* 
                         (wealth_Fund[:, t-1] * (1 + r))') + 
@@ -205,11 +216,23 @@ for t in 2:T
     
 end
 
-price[:, 400:1000]
+price[:, 1:1000]
 
 price_returns[:, 100:150]
 
 wealth_Fund[:, 1:50]
+wealth_Chart
 
 expRet_Fund[:, 200:300, :]
 expRet_Chart[:, 200:300, :]
+
+demand_Fund[:, 270:400, 15]         ### Asset 3 becomes a problem at t = 275
+demand_Fund[:, 335:350, 1:3]         ### Asset 3 becomes a problem
+demand_Fund
+demand_Chart
+
+price[:, 270: 300]
+price_returns[:, 270:300]
+price_returns
+
+wealthProp_Fund[:, 1:100, 1:3]
