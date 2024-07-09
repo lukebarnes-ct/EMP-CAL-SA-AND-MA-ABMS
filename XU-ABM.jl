@@ -63,10 +63,14 @@ end
 
 Random.seed!(1234)                  # Set Seed for Reproducibility
 
+# Fundamentalists Mean Reversion Parameter
 meanR = round.(rand(Uniform(meanR_min, meanR_max), kFund), digits = 2)
+
+# Agent's Exponential Moving Average Period
 ema_wind_Fund = rand(wind_min:wind_max, kFund)
 ema_wind_Chart = rand(wind_min:wind_max, kChart)
 
+# Agent's Expected Correlation Coefficients for the Risky Assets
 corr_coef_Fund = round.(rand(Uniform(corr_min, corr_max), kFund, N), digits = 2)
 corr_coef_Chart = round.(rand(Uniform(corr_min, corr_max), kChart, N), digits = 2)
 
@@ -80,7 +84,7 @@ demand_Fund = zeros(N, T, kFund)            # Fundamentalists Demand of Risky As
 demand_Chart = zeros(N, T, kChart)          # Chartists Demand of Risky Assets
 
 for k in 1:kFund
-    wealth_Fund[k, 1] = cash_0                      # Set Initial Wealth of Fundamentalists
+    wealth_Fund[k, 1] = cash_0 * (1 + N)           # Set Initial Wealth of Fundamentalists
 
     for ii in 1:N
         wealthProp_Fund[ii, 1, k] = 1/(1 + N)       # Set Initial Portfolio Weights
@@ -89,7 +93,7 @@ for k in 1:kFund
 end
 
 for k in 1:kChart
-    wealth_Chart[k, 1] = cash_0                     # Set Initial Wealth of Chartists
+    wealth_Chart[k, 1] = cash_0 * (1 + N)           # Set Initial Wealth of Chartists
 
     for ii in 1:N
         wealthProp_Chart[ii, 1, k] = 1/(1 + N)      # Set Initial Portfolio Weights
@@ -97,6 +101,7 @@ for k in 1:kChart
     end
 end
 
+# Retrieve the Covariance Matrix of Expected Returns for both sets of Agents
 function getCovMat(retArr, coefMat)
 
     index = 1
@@ -141,24 +146,37 @@ for t in 2:T
 
         for f in 1:kFund
 
-            expRet_Fund[i, t, f] = (phi * fund_val[i, t-1] + meanR[f] * (fund_val[i, t-1] - price[i, t-1]) + (1 + phi) * dividends[i, t-1] - price[i, t-1]) / price[i, t-1]
+            # Fundamentalists Expected Return for the i-th Asset at time t
+            expRet_Fund[i, t, f] = ((phi * fund_val[i, t-1]) + 
+                                    (meanR[f] * (fund_val[i, t-1] - price[i, t-1])) + 
+                                    ((1 + phi) * dividends[i, t-1]) - 
+                                    price[i, t-1]) / price[i, t-1]
+        
+            # Fundamentalists Exponential Moving Average Parameter
             ema_f = exp(-1/ema_wind_Fund[f])
+
+            # Diagonal of Fundamentalists Covariance Matrix of Expected Returns at time t
             expRet_CovMat_Fund[i, i, t, f] = (ema_f * expRet_CovMat_Fund[i, i, t-1, f]) + ((1 - ema_f) * (expRet_Fund[i, t-1, f] - price_returns[i, t-1])^2)
 
         end
         
         for c in 1:kChart
 
+            # Chartists Exponential Moving Average Parameter
             ema_c = exp(-1/ema_wind_Chart[c])
 
+            # Conditional to account for price two time periods ago in Expected Price Change
             if t == 2
-                expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + ((1 - ema_c) * (0.5))
+                expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + ((1 - ema_c) * (1))
             
             else 
                 expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + ((1 - ema_c) * ((price[i, t-1] - price[i, t-2])/price[i, t-2]))
             end
-
+            
+            # Chartists Expected Return for the i-th Asset at time t
             expRet_Chart[i, t, c] = expPriceChange[i, t, c] + (((1 + phi) * dividends[i, t-1])/price[i, t-1])
+            
+            # Diagonal of Chartists Covariance Matrix of Expected Returns at time t
             expRet_CovMat_Chart[i, i, t, c] = (ema_c * expRet_CovMat_Chart[i, i, t-1, c]) + ((1 - ema_c) * (expRet_Chart[i, t-1, c] - price_returns[i, t-1])^2)
 
         end
@@ -170,45 +188,77 @@ for t in 2:T
 
     for ff in 1:kFund
 
+        # Fundamentalists Covariance Matrix of Expected Returns at time t
         expRet_CovMat_Fund[:, :, t, ff] = getCovMat(expRet_CovMat_Fund[:, :, t, ff], corr_coef_Fund[ff, :])
 
+        # Fundamentalists Portfolio of Risky Assets
         wealthProp_Fund[:, t, ff] = (1/lambda) * inv(expRet_CovMat_Fund[:, :, t, ff]) * (expRet_Fund[:, t, ff] .- r)
 
-        totalPort_Fund[:, 1] = totalPort_Fund[:, 1] + (wealth_Fund[ff, t-1] * wealthProp_Fund[:, t, ff])
-
+        # Ensure Fundamentalists Portfolio does not violate max/min Conditions
+        for ii in 1:N
+            prop = wealthProp_Fund[ii, t, ff]
+            if prop > propW_max
+                wealthProp_Fund[ii, t, ff] = propW_max
+            elseif prop < propW_min
+                wealthProp_Fund[ii, t, ff] = propW_min
+            else
+                continue
+            end
+        end
     end
 
     for cc in 1:kChart
 
+        # Chartists Covariance Matrix of Expected Returns at time t
         expRet_CovMat_Chart[:, :, t, cc] = getCovMat(expRet_CovMat_Chart[:, :, t, cc], corr_coef_Chart[cc, :])
 
+        # Chartists Portfolio of Risky Assets
         wealthProp_Chart[:, t, cc] = (1/lambda) * inv(expRet_CovMat_Chart[:, :, t, cc]) * (expRet_Chart[:, t, cc] .- r)
 
-        totalPort_Chart[:, 1] = totalPort_Chart[:, 1] + (wealth_Chart[cc, t-1] * wealthProp_Chart[:, t, cc])
+        # Ensure Chartists Portfolio does not violate max/min Conditions
+        for ii in 1:N
+            prop = wealthProp_Chart[ii, t, cc]
+            if prop > propW_max
+                wealthProp_Chart[ii, t, cc] = propW_max
+            elseif prop < propW_min
+                wealthProp_Chart[ii, t, cc] = propW_min
+            else
+                continue
+            end
 
+        end
     end
 
+    # Sum over the Wealth invested in Risky Assets for all Agents at time t
+    totalPort_Fund = sum((wealth_Fund[:, t-1])' .* wealthProp_Fund[:, t, :], dims = 2)
+    totalPort_Chart = sum((wealth_Chart[:, t-1])' .* wealthProp_Chart[:, t, :], dims = 2)
+
+    # Conditional to account for drastic price changes at t == 2
     if t == 2
 
         price[:, 2] = price[:, 1] * 1.1
 
     else
 
-    # Determine the price that will clear each market of Risky Assets
-    price[:, t] = (totalPort_Fund[:, 1] + totalPort_Chart[:, 1]) / assetSupply_max                
+    # Determine the price that will Clear each market of Risky Assets
+    price[:, t] = (totalPort_Fund + totalPort_Chart) / assetSupply_max                
 
     end
     
+    # Calculate Asset Returns
     price_returns[:, t] = ((price[:, t] - price[:, t-1]) ./ price[:, t-1])
 
+    # Demand for Risky Assets at time t
     demand_Fund[:, t, :] = ((wealth_Fund[:, t-1])' .* wealthProp_Fund[:, t, :]) ./ price[:, t-1]
     demand_Chart[:, t, :] = ((wealth_Chart[:, t-1])' .* wealthProp_Chart[:, t, :]) ./ price[:, t-1]
 
+    # Update Fundamentalists Wealth at Market Clearing Prices
     wealth_Fund[:, t] = ((ones(1, kFund) - sum(wealthProp_Fund[:, t, :], dims = 1)) .* 
                         (wealth_Fund[:, t-1] * (1 + r))') + 
                         (wealth_Fund[:, t-1])' .* (sum(wealthProp_Fund[:, t, :] .* 
                         (price[:, t] + dividends[:, t]) ./ (price[:, t-1]), dims = 1))
 
+    # Update Chartists Wealth at Market Clearing Prices
     wealth_Chart[:, t] = ((ones(1, kChart) - sum(wealthProp_Chart[:, t, :], dims = 1)) .* 
                          (wealth_Chart[:, t-1] * (1 + r))') + 
                          (wealth_Chart[:, t-1])' .* (sum(wealthProp_Chart[:, t, :] .* 
@@ -220,14 +270,14 @@ price[:, 1:1000]
 
 price_returns[:, 100:150]
 
-wealth_Fund[:, 1:50]
+wealth_Fund[:, 1:10]
 wealth_Chart
 
-expRet_Fund[:, 200:300, :]
-expRet_Chart[:, 200:300, :]
+expRet_Fund[:, 1:300, :]
+expRet_Chart[:, 1:300, :]
 
 demand_Fund[:, 270:400, 15]         ### Asset 3 becomes a problem at t = 275
-demand_Fund[:, 335:350, 1:3]         ### Asset 3 becomes a problem
+demand_Fund[:, 335:350, 1:3]        ### Asset 3 becomes a problem
 demand_Fund
 demand_Chart
 
@@ -236,3 +286,10 @@ price_returns[:, 270:300]
 price_returns
 
 wealthProp_Fund[:, 1:100, 1:3]
+
+ttt = 40
+plot(1:ttt, price[2, 1:ttt], label = "Asset 1 Price", title = "Asset 1 Price", 
+     xlabel = "T", ylabel = "Price", legend = :topright)
+
+fund_val
+dividends
