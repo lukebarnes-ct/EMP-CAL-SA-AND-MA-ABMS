@@ -253,15 +253,29 @@ for t in 2:T
             
             if (all(<(asset_price), bound_Fund_min)) && (all(<(asset_price), bound_Chart_min))
                 
+                println("The Price is : ", asset_price)
                 continue
 
-            elseif (all(<(asset_price), bound_Fund_max)) && (all(<(asset_price), bound_Chart_max))
+            elseif (all(<(asset_price), bound_Fund_min)) && !(all(<(asset_price), bound_Chart_min))
+
+                price[ii, t] = price[ii, t-1] + rand(Normal(0, 1))
+
+            elseif !(all(<(asset_price), bound_Fund_min)) && (all(<(asset_price), bound_Chart_min))
+
+                price[ii, t] = price[ii, t-1] + rand(Normal(0, 1))
+            end
+
+            if (all(<(asset_price), bound_Fund_max)) && (all(<(asset_price), bound_Chart_max))
 
                 continue
 
-            else
+            elseif (all(<(asset_price), bound_Fund_max)) && !(all(<(asset_price), bound_Chart_max))
 
-                price[ii, t] = 20
+                price[ii, t] = price[ii, t-1] + rand(Normal(0, 1))
+
+            elseif !(all(<(asset_price), bound_Fund_max)) && (all(<(asset_price), bound_Chart_max))
+
+                price[ii, t] = price[ii, t-1] + rand(Normal(0, 1))
             end
         end
     end
@@ -270,7 +284,7 @@ for t in 2:T
 
     for ii in 1:N
         if price[ii, t] < 0
-            price[ii, t] = 0.01
+            price[ii, t] = price[ii, t-1] + rand(Normal(0, 1))
         end
     end
     
@@ -300,7 +314,7 @@ end
 
 iii = 3
 b_ttt = 1
-e_ttt = 100
+e_ttt = 50
 fff = 10
 ccc = 15
 
