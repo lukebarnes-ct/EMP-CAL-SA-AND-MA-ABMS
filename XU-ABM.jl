@@ -58,7 +58,7 @@ expPriceChange = zeros(N, T, kChart)                # Chartists Expected Price C
 for i in 1:N
     dividends[i, 1] = div_0         # Set Initial Dividend in Matrix
     fund_val[i, 1] = fund_0         # Set Initial Fundamental Value
-    price[i, 1] = fund_0            # Set Initial Asset Price
+    price[i, 1] = fund_0 * 1.5      # Set Initial Asset Price
 end
 
 Random.seed!(1234)                  # Set Seed for Reproducibility
@@ -167,7 +167,7 @@ for t in 2:T
 
             # Conditional to account for price two time periods ago in Expected Price Change
             if t == 2
-                expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + ((1 - ema_c) * (1))
+                expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + ((1 - ema_c) * (0.1))
             
             else 
                 expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + ((1 - ema_c) * ((price[i, t-1] - price[i, t-2])/price[i, t-2]))
@@ -182,9 +182,6 @@ for t in 2:T
         end
 
     end
-
-    totalPort_Fund = zeros(N, 1)            # Initialise vector of sums of portfolios for Fundamentalists at each time step
-    totalPort_Chart = zeros(N, 1)           # Initialise vector of sums of portfolios for Chartists at each time step
 
     for ff in 1:kFund
 
@@ -237,12 +234,44 @@ for t in 2:T
     if t == 2
 
         price[:, 2] = price[:, 1] * 1.1
-
+        println("Fund Port: ", totalPort_Fund)
+        println("Chart Port: ", totalPort_Chart)
     else
 
-    # Determine the price that will Clear each market of Risky Assets
-    price[:, t] = (totalPort_Fund + totalPort_Chart) / assetSupply_max                
+        # Determine the price that will Clear each market of Risky Assets
+        price[:, t] = (totalPort_Fund + totalPort_Chart) / assetSupply_max
 
+        for ii in 1:N
+
+            asset_price = price[ii, t]
+
+            bound_Fund_min = -((wealth_Fund[:, t-1]) .* wealthProp_Fund[ii, t, :])/5
+            bound_Chart_min = -((wealth_Chart[:, t-1]) .* wealthProp_Chart[ii, t, :])/5
+
+            bound_Fund_max = ((wealth_Fund[:, t-1]) .* wealthProp_Fund[ii, t, :])/10
+            bound_Chart_max = ((wealth_Chart[:, t-1]) .* wealthProp_Chart[ii, t, :])/10
+            
+            if (all(<(asset_price), bound_Fund_min)) && (all(<(asset_price), bound_Chart_min))
+                
+                continue
+
+            elseif (all(<(asset_price), bound_Fund_max)) && (all(<(asset_price), bound_Chart_max))
+
+                continue
+
+            else
+
+                price[ii, t] = 20
+            end
+        end
+    end
+    
+    # Condition to ensure that price does not dip below 0
+
+    for ii in 1:N
+        if price[ii, t] < 0
+            price[ii, t] = 0.01
+        end
     end
     
     # Calculate Asset Returns
@@ -264,32 +293,50 @@ for t in 2:T
                          (wealth_Chart[:, t-1])' .* (sum(wealthProp_Chart[:, t, :] .* 
                          (price[:, t] + dividends[:, t]) ./ (price[:, t-1]), dims = 1))
     
+
 end
 
-price[:, 1:1000]
+# Checks (1)
 
-price_returns[:, 100:150]
-
-wealth_Fund[:, 1:10]
-wealth_Chart
-
-expRet_Fund[:, 1:300, :]
-expRet_Chart[:, 1:300, :]
-
-demand_Fund[:, 270:400, 15]         ### Asset 3 becomes a problem at t = 275
-demand_Fund[:, 335:350, 1:3]        ### Asset 3 becomes a problem
-demand_Fund
-demand_Chart
-
-price[:, 270: 300]
-price_returns[:, 270:300]
-price_returns
-
-wealthProp_Fund[:, 1:100, 1:3]
-
-ttt = 40
-plot(1:ttt, price[2, 1:ttt], label = "Asset 1 Price", title = "Asset 1 Price", 
-     xlabel = "T", ylabel = "Price", legend = :topright)
+iii = 3
+b_ttt = 1
+e_ttt = 100
+fff = 10
+ccc = 15
 
 fund_val
 dividends
+
+# Checks (2)
+expRet_Fund[:, b_ttt:e_ttt, fff]
+expRet_Chart[:, b_ttt:e_ttt, ccc]
+
+expPriceChange[:, b_ttt:e_ttt, ccc]
+
+# Checks (3)
+
+expRet_CovMat_Fund[:, :, b_ttt:e_ttt, fff]
+wealthProp_Fund[:, b_ttt:e_ttt, fff]
+wealth_Fund[fff, b_ttt:e_ttt]
+
+# Checks (4)
+
+expRet_CovMat_Chart[:, :, b_ttt:e_ttt, ccc]
+wealthProp_Chart[:, b_ttt:e_ttt, ccc]
+wealth_Chart[ccc, b_ttt:e_ttt]
+
+# Checks (5)
+
+price[:, b_ttt:e_ttt]
+price_returns[:, b_ttt:e_ttt]
+
+# Checks (6)
+
+demand_Fund[:, b_ttt:e_ttt, fff]
+demand_Chart[:, b_ttt:e_ttt, ccc]
+
+# Plot Check
+
+plot(b_ttt:e_ttt, price[iii, b_ttt:e_ttt], label = "Asset 1 Price", title = "Asset 1 Price", 
+     xlabel = "T", ylabel = "Price", legend = :topright)
+
