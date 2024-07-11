@@ -38,7 +38,7 @@ div_0 = 0.002       # Initial Dividend
 fund_0 = 10         # Initial Fundamental Value
 asset_0 = 1         # Initial Risky Asset Positions
 
-assetSupply_max = (kFund * asset_0) + (kChart * asset_0)       # Initialise Max Supply of each Risky Asset
+assetSupply_max = (kFund * asset_0 * 100000000) + (kChart * asset_0 * 100000000)       # Initialise Max Supply of each Risky Asset
 
 dividends = zeros(N, T)         # Dividends of Risky Assets
 fund_val = zeros(N, T)          # Fundamental Values of Risky Assets
@@ -58,7 +58,7 @@ expPriceChange = zeros(N, T, kChart)                # Chartists Expected Price C
 for i in 1:N
     dividends[i, 1] = div_0         # Set Initial Dividend in Matrix
     fund_val[i, 1] = fund_0         # Set Initial Fundamental Value
-    price[i, 1] = fund_0 * 1.5      # Set Initial Asset Price
+    price[i, 1] = fund_0 * 0.5      # Set Initial Asset Price
 end
 
 Random.seed!(1234)                  # Set Seed for Reproducibility
@@ -89,6 +89,8 @@ for k in 1:kFund
     for ii in 1:N
         wealthProp_Fund[ii, 1, k] = 1/(1 + N)       # Set Initial Portfolio Weights
         demand_Fund[ii, 1, k] = asset_0             # Set Initial Asset Demand 
+
+        expRet_Fund[ii, 1, k] = (phi * fund_val[ii, 1]) + ((1 + phi) * dividends[ii, 1])
     end
 end
 
@@ -98,6 +100,8 @@ for k in 1:kChart
     for ii in 1:N
         wealthProp_Chart[ii, 1, k] = 1/(1 + N)      # Set Initial Portfolio Weights
         demand_Chart[ii, 1, k] = asset_0            # Set Initial Asset Demand 
+
+        expRet_Chart[ii, 1, k] = 0.1
     end
 end
 
@@ -149,7 +153,7 @@ for t in 2:T
             # Fundamentalists Expected Return for the i-th Asset at time t
             expRet_Fund[i, t, f] = ((phi * fund_val[i, t-1]) + 
                                     (meanR[f] * (fund_val[i, t-1] - price[i, t-1])) + 
-                                    ((1 + phi) * dividends[i, t-1]) - 
+                                    ((1 + phi) * dividends[i, t-1]) -
                                     price[i, t-1]) / price[i, t-1]
         
             # Fundamentalists Exponential Moving Average Parameter
@@ -193,7 +197,9 @@ for t in 2:T
 
         # Ensure Fundamentalists Portfolio does not violate max/min Conditions
         for ii in 1:N
+
             prop = wealthProp_Fund[ii, t, ff]
+
             if prop > propW_max
                 wealthProp_Fund[ii, t, ff] = propW_max
             elseif prop < propW_min
@@ -214,7 +220,9 @@ for t in 2:T
 
         # Ensure Chartists Portfolio does not violate max/min Conditions
         for ii in 1:N
+
             prop = wealthProp_Chart[ii, t, cc]
+
             if prop > propW_max
                 wealthProp_Chart[ii, t, cc] = propW_max
             elseif prop < propW_min
@@ -241,43 +249,6 @@ for t in 2:T
         # Determine the price that will Clear each market of Risky Assets
         price[:, t] = (totalPort_Fund + totalPort_Chart) / assetSupply_max
 
-        for ii in 1:N
-
-            asset_price = price[ii, t]
-
-            bound_Fund_min = -((wealth_Fund[:, t-1]) .* wealthProp_Fund[ii, t, :])/5
-            bound_Chart_min = -((wealth_Chart[:, t-1]) .* wealthProp_Chart[ii, t, :])/5
-
-            bound_Fund_max = ((wealth_Fund[:, t-1]) .* wealthProp_Fund[ii, t, :])/10
-            bound_Chart_max = ((wealth_Chart[:, t-1]) .* wealthProp_Chart[ii, t, :])/10
-            
-            if (all(<(asset_price), bound_Fund_min)) && (all(<(asset_price), bound_Chart_min))
-                
-                println("The Price is : ", asset_price)
-                continue
-
-            elseif (all(<(asset_price), bound_Fund_min)) && !(all(<(asset_price), bound_Chart_min))
-
-                price[ii, t] = price[ii, t-1] + rand(Normal(0, 1))
-
-            elseif !(all(<(asset_price), bound_Fund_min)) && (all(<(asset_price), bound_Chart_min))
-
-                price[ii, t] = price[ii, t-1] + rand(Normal(0, 1))
-            end
-
-            if (all(<(asset_price), bound_Fund_max)) && (all(<(asset_price), bound_Chart_max))
-
-                continue
-
-            elseif (all(<(asset_price), bound_Fund_max)) && !(all(<(asset_price), bound_Chart_max))
-
-                price[ii, t] = price[ii, t-1] + rand(Normal(0, 1))
-
-            elseif !(all(<(asset_price), bound_Fund_max)) && (all(<(asset_price), bound_Chart_max))
-
-                price[ii, t] = price[ii, t-1] + rand(Normal(0, 1))
-            end
-        end
     end
     
     # Condition to ensure that price does not dip below 0
@@ -312,11 +283,11 @@ end
 
 # Checks (1)
 
-iii = 3
-b_ttt = 1
-e_ttt = 50
-fff = 10
-ccc = 15
+iii = 1
+b_ttt = 100
+e_ttt = 1000
+fff = 2
+ccc = 2
 
 fund_val
 dividends
