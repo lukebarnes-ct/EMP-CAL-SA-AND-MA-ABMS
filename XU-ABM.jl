@@ -38,7 +38,7 @@ div_0 = 0.002       # Initial Dividend
 fund_0 = 10         # Initial Fundamental Value
 asset_0 = 1         # Initial Risky Asset Positions
 
-assetSupply_max = (kFund * asset_0 * 1) + (kChart * asset_0 * 1)       # Initialise Max Supply of each Risky Asset
+assetSupply_max = (kFund * asset_0 * 10) + (kChart * asset_0 * 10)       # Initialise Max Supply of each Risky Asset
 
 dividends = zeros(N, T)         # Dividends of Risky Assets
 fund_val = zeros(N, T)          # Fundamental Values of Risky Assets
@@ -58,7 +58,7 @@ expPriceChange = zeros(N, T, kChart)                # Chartists Expected Price C
 for i in 1:N
     dividends[i, 1] = div_0         # Set Initial Dividend in Matrix
     fund_val[i, 1] = fund_0         # Set Initial Fundamental Value
-    price[i, 1] = fund_0 * 0.5      # Set Initial Asset Price
+    price[i, 1] = fund_0 * 0.95     # Set Initial Asset Price
 end
 
 Random.seed!(1234)                  # Set Seed for Reproducibility
@@ -174,7 +174,7 @@ for t in 2:T
 
             # Conditional to account for price two time periods ago in Expected Price Change
             if t == 2
-                expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + ((1 - ema_c) * (0.001))
+                expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + ((1 - ema_c) * (0.1))
             
             else 
                 expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + ((1 - ema_c) * ((price[i, t-1] - price[i, t-2])/price[i, t-2]))
@@ -199,6 +199,7 @@ for t in 2:T
         wealthProp_Fund[:, t, ff] = (1/lambda) * inv(expRet_CovMat_Fund[:, :, t, ff]) * (expRet_Fund[:, t, ff] .- r)
 
         # Ensure Fundamentalists Portfolio does not violate max/min Conditions
+
         # Use Proportional Scaling if conditions violated
 
         propTot = sum(wealthProp_Fund[:, t, ff], dims = 1)
@@ -220,19 +221,20 @@ for t in 2:T
         for ii in 1:N
 
             dem = demand[ii]
-
+    
             if dem > stock_max
-
+    
                 wealthInvest_Fund[ii, t, ff] = price[ii, t-1] * stock_max
-
+    
             elseif dem < stock_min
-
+    
                 wealthInvest_Fund[ii, t, ff] = price[ii, t-1] * stock_min
-
+    
             else 
                 continue
             end
         end
+
     end
 
     for cc in 1:kChart
@@ -244,6 +246,7 @@ for t in 2:T
         wealthProp_Chart[:, t, cc] = (1/lambda) * inv(expRet_CovMat_Chart[:, :, t, cc]) * (expRet_Chart[:, t, cc] .- r)
 
         # Ensure Chartists Portfolio does not violate max/min Conditions
+
         # Use Proportional Scaling if conditions violated
         propTot = sum(wealthProp_Chart[:, t, cc], dims = 1)
         propTot = propTot[1]
@@ -264,19 +267,20 @@ for t in 2:T
         for ii in 1:N
 
             dem = demand[ii]
-
+    
             if dem > stock_max
-
+    
                 wealthInvest_Chart[ii, t, cc] = price[ii, t-1] * stock_max
-
+    
             elseif dem < stock_min
-
+    
                 wealthInvest_Chart[ii, t, cc] = price[ii, t-1] * stock_min
-
+    
             else 
                 continue
             end
         end
+
     end
 
     # Sum over the Wealth invested in Risky Assets for all Agents at time t
@@ -286,7 +290,7 @@ for t in 2:T
     # Conditional to account for drastic price changes at t == 2
     if t == 2
 
-        price[:, 2] = price[:, 1] * 1.1
+        price[:, 2] = price[:, 1] .+ rand(Normal(0, 1))
         println("Fund Port: ", totalPort_Fund)
         println("Chart Port: ", totalPort_Chart)
     else
@@ -300,7 +304,7 @@ for t in 2:T
 
     for ii in 1:N
         if price[ii, t] < 0
-            price[ii, t] = price[ii, t-1] + rand(Normal(0, 1))
+            price[ii, t] = fund_val[ii, t] + rand(Normal(0, 1))
         end
     end
     
@@ -328,9 +332,9 @@ end
 
 # Checks (1)
 
-iii = 1
+iii = 3
 b_ttt = 1
-e_ttt = 100
+e_ttt = 15
 fff = 2
 ccc = 2
 
@@ -348,12 +352,14 @@ expPriceChange[:, b_ttt:e_ttt, ccc]
 expRet_CovMat_Fund[:, :, b_ttt:e_ttt, fff]
 wealthProp_Fund[:, b_ttt:e_ttt, fff]
 wealth_Fund[fff, b_ttt:e_ttt]
+wealthInvest_Fund[:, b_ttt:e_ttt, fff]
 
 # Checks (4)
 
 expRet_CovMat_Chart[:, :, b_ttt:e_ttt, ccc]
 wealthProp_Chart[:, b_ttt:e_ttt, ccc]
 wealth_Chart[ccc, b_ttt:e_ttt]
+wealthInvest_Chart[:, b_ttt:e_ttt, ccc]
 
 # Checks (5)
 
@@ -367,6 +373,7 @@ demand_Chart[:, b_ttt:e_ttt, ccc]
 
 # Plot Check
 
-plot(b_ttt:e_ttt, price[iii, b_ttt:e_ttt], label = "Asset 1 Price", title = "Asset 1 Price", 
+plot(b_ttt:e_ttt, price[iii, b_ttt:e_ttt], label = "Price", title = "Asset i", 
      xlabel = "T", ylabel = "Price", legend = :topright)
 
+plot!(b_ttt:e_ttt, fund_val[iii, b_ttt:e_ttt], label = "Fundamental Value", linecolor=:red)

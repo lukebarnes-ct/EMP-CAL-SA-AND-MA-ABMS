@@ -257,3 +257,128 @@ wealth_Fund[10, 100-1] * wealthProp_Fund[:, 100, 10]
 # Sum over the Wealth invested in Risky Assets for all Agents at time t
 totalPort_Fund = sum((wealth_Fund[:, t-1])' .* wealthProp_Fund[:, t, :], dims = 2)
 totalPort_Chart = sum((wealth_Chart[:, t-1])' .* wealthProp_Chart[:, t, :], dims = 2)
+
+###########################################################################
+
+for ff in 1:kFund
+
+    # Fundamentalists Covariance Matrix of Expected Returns at time t
+    expRet_CovMat_Fund[:, :, t, ff] = getCovMat(expRet_CovMat_Fund[:, :, t, ff], corr_coef_Fund[ff, :])
+
+    # Fundamentalists Portfolio of Risky Assets
+    wealthProp_Fund[:, t, ff] = (1/lambda) * inv(expRet_CovMat_Fund[:, :, t, ff]) * (expRet_Fund[:, t, ff] .- r)
+
+    # Ensure Fundamentalists Portfolio does not violate max/min Conditions
+
+    for ii in 1:N
+
+        prop = wealthProp_Fund[ii, t, ff]
+    
+        if prop > propW_max
+            wealthProp_Fund[ii, t, ff] = propW_max
+        elseif prop < propW_min
+            wealthProp_Fund[ii, t, ff] = propW_min
+        else
+            continue
+        end
+    end
+
+    # Use Proportional Scaling if conditions violated
+
+    propTot = sum(wealthProp_Fund[:, t, ff], dims = 1)
+    propTot = propTot[1]
+
+    if propTot > propW_max
+        sf = propW_max ./ propTot
+        wealthProp_Fund[:, t, ff] = wealthProp_Fund[:, t, ff] .* sf
+    elseif propTot < propW_min
+        sf = propW_min ./ propTot
+        wealthProp_Fund[:, t, ff] = wealthProp_Fund[:, t, ff] .* sf
+    else
+        continue
+    end
+
+    wealthInvest_Fund[:, t, ff] = wealth_Fund[ff, t-1] * wealthProp_Fund[:, t, ff]
+    demand = wealthInvest_Fund[:, t, ff] ./ price[:, t-1]
+
+    for ii in 1:N
+
+        dem = demand[ii]
+
+        if dem > stock_max
+
+            wealthInvest_Fund[ii, t, ff] = price[ii, t-1] * stock_max
+
+        elseif dem < stock_min
+
+            wealthInvest_Fund[ii, t, ff] = price[ii, t-1] * stock_min
+
+        else 
+            continue
+        end
+    end
+end
+
+for cc in 1:kChart
+
+    # Chartists Covariance Matrix of Expected Returns at time t
+    expRet_CovMat_Chart[:, :, t, cc] = getCovMat(expRet_CovMat_Chart[:, :, t, cc], corr_coef_Chart[cc, :])
+
+    # Chartists Portfolio of Risky Assets
+    wealthProp_Chart[:, t, cc] = (1/lambda) * inv(expRet_CovMat_Chart[:, :, t, cc]) * (expRet_Chart[:, t, cc] .- r)
+
+    # Ensure Chartists Portfolio does not violate max/min Conditions
+
+    for ii in 1:N
+
+        prop = wealthProp_Chart[ii, t, cc]
+    
+        if prop > propW_max
+            wealthProp_Chart[ii, t, cc] = propW_max
+        elseif prop < propW_min
+            wealthProp_Chart[ii, t, cc] = propW_min
+        else
+            continue
+        end
+    end
+
+    # Use Proportional Scaling if conditions violated
+    propTot = sum(wealthProp_Chart[:, t, cc], dims = 1)
+    propTot = propTot[1]
+
+    if propTot > propW_max
+        sf = propW_max ./ propTot
+        wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* sf
+    elseif propTot < propW_min
+        sf = propW_min ./ propTot
+        wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* sf
+    else
+        continue
+    end
+
+    wealthInvest_Chart[:, t, cc] = wealth_Chart[cc, t-1] * wealthProp_Chart[:, t, cc]
+    demand = wealthInvest_Chart[:, t, cc] ./ price[:, t-1]
+
+    for ii in 1:N
+
+        dem = demand[ii]
+
+        if dem > stock_max
+
+            wealthInvest_Chart[ii, t, cc] = price[ii, t-1] * stock_max
+
+        elseif dem < stock_min
+
+            wealthInvest_Chart[ii, t, cc] = price[ii, t-1] * stock_min
+
+        else 
+            continue
+        end
+    end
+end
+
+##############################################################################
+
+wealth_Fund[fff, 2:6]
+wealthProp_Fund[:, 2:6, fff]
+wealthInvest_Fund[:, 2:6, fff]
