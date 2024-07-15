@@ -244,3 +244,16 @@ for ii in 1:N
 end
 
 #####################################################################
+
+sum(wealthProp_Fund[:, 10, :], dims = 1)
+
+# Initialise Max Supply of each Risky Asset
+assetSupply_max = (kFund * asset_0 * 100000000) + (kChart * asset_0 * 100000000)       
+
+wealth_Fund[10, 100-1] * wealthProp_Fund[:, 100, 10]
+
+########################################################################
+
+# Sum over the Wealth invested in Risky Assets for all Agents at time t
+totalPort_Fund = sum((wealth_Fund[:, t-1])' .* wealthProp_Fund[:, t, :], dims = 2)
+totalPort_Chart = sum((wealth_Chart[:, t-1])' .* wealthProp_Chart[:, t, :], dims = 2)

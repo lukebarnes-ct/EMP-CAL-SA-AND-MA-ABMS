@@ -38,7 +38,7 @@ div_0 = 0.002       # Initial Dividend
 fund_0 = 10         # Initial Fundamental Value
 asset_0 = 1         # Initial Risky Asset Positions
 
-assetSupply_max = (kFund * asset_0 * 100000000) + (kChart * asset_0 * 100000000)       # Initialise Max Supply of each Risky Asset
+assetSupply_max = (kFund * asset_0 * 1) + (kChart * asset_0 * 1)       # Initialise Max Supply of each Risky Asset
 
 dividends = zeros(N, T)         # Dividends of Risky Assets
 fund_val = zeros(N, T)          # Fundamental Values of Risky Assets
@@ -79,6 +79,9 @@ wealth_Chart  = zeros(kChart, T)            # Chartists Wealth
 
 wealthProp_Fund = zeros(N, T, kFund)        # Fundamentalists Proportion of Wealth Invested in Risky Assets
 wealthProp_Chart = zeros(N, T, kChart)      # Chartists Proportion of Wealth Invested in Risky Assets
+
+wealthInvest_Fund = zeros(N, T, kFund)      # Fundamentalists Wealth Invested in Risky Assets
+wealthInvest_Chart = zeros(N, T, kChart)    # Chartists Wealth Invested in Risky Assets
 
 demand_Fund = zeros(N, T, kFund)            # Fundamentalists Demand of Risky Assets
 demand_Chart = zeros(N, T, kChart)          # Chartists Demand of Risky Assets
@@ -171,7 +174,7 @@ for t in 2:T
 
             # Conditional to account for price two time periods ago in Expected Price Change
             if t == 2
-                expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + ((1 - ema_c) * (0.1))
+                expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + ((1 - ema_c) * (0.001))
             
             else 
                 expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + ((1 - ema_c) * ((price[i, t-1] - price[i, t-2])/price[i, t-2]))
@@ -196,15 +199,37 @@ for t in 2:T
         wealthProp_Fund[:, t, ff] = (1/lambda) * inv(expRet_CovMat_Fund[:, :, t, ff]) * (expRet_Fund[:, t, ff] .- r)
 
         # Ensure Fundamentalists Portfolio does not violate max/min Conditions
+        # Use Proportional Scaling if conditions violated
+
+        propTot = sum(wealthProp_Fund[:, t, ff], dims = 1)
+        propTot = propTot[1]
+
+        if propTot > propW_max
+            sf = propW_max ./ propTot
+            wealthProp_Fund[:, t, ff] = wealthProp_Fund[:, t, ff] .* sf
+        elseif propTot < propW_min
+            sf = propW_min ./ propTot
+            wealthProp_Fund[:, t, ff] = wealthProp_Fund[:, t, ff] .* sf
+        else
+            continue
+        end
+
+        wealthInvest_Fund[:, t, ff] = wealth_Fund[ff, t-1] * wealthProp_Fund[:, t, ff]
+        demand = wealthInvest_Fund[:, t, ff] ./ price[:, t-1]
+
         for ii in 1:N
 
-            prop = wealthProp_Fund[ii, t, ff]
+            dem = demand[ii]
 
-            if prop > propW_max
-                wealthProp_Fund[ii, t, ff] = propW_max
-            elseif prop < propW_min
-                wealthProp_Fund[ii, t, ff] = propW_min
-            else
+            if dem > stock_max
+
+                wealthInvest_Fund[ii, t, ff] = price[ii, t-1] * stock_max
+
+            elseif dem < stock_min
+
+                wealthInvest_Fund[ii, t, ff] = price[ii, t-1] * stock_min
+
+            else 
                 continue
             end
         end
@@ -219,24 +244,44 @@ for t in 2:T
         wealthProp_Chart[:, t, cc] = (1/lambda) * inv(expRet_CovMat_Chart[:, :, t, cc]) * (expRet_Chart[:, t, cc] .- r)
 
         # Ensure Chartists Portfolio does not violate max/min Conditions
+        # Use Proportional Scaling if conditions violated
+        propTot = sum(wealthProp_Chart[:, t, cc], dims = 1)
+        propTot = propTot[1]
+
+        if propTot > propW_max
+            sf = propW_max ./ propTot
+            wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* sf
+        elseif propTot < propW_min
+            sf = propW_min ./ propTot
+            wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* sf
+        else
+            continue
+        end
+
+        wealthInvest_Chart[:, t, cc] = wealth_Chart[cc, t-1] * wealthProp_Chart[:, t, cc]
+        demand = wealthInvest_Chart[:, t, cc] ./ price[:, t-1]
+
         for ii in 1:N
 
-            prop = wealthProp_Chart[ii, t, cc]
+            dem = demand[ii]
 
-            if prop > propW_max
-                wealthProp_Chart[ii, t, cc] = propW_max
-            elseif prop < propW_min
-                wealthProp_Chart[ii, t, cc] = propW_min
-            else
+            if dem > stock_max
+
+                wealthInvest_Chart[ii, t, cc] = price[ii, t-1] * stock_max
+
+            elseif dem < stock_min
+
+                wealthInvest_Chart[ii, t, cc] = price[ii, t-1] * stock_min
+
+            else 
                 continue
             end
-
         end
     end
 
     # Sum over the Wealth invested in Risky Assets for all Agents at time t
-    totalPort_Fund = sum((wealth_Fund[:, t-1])' .* wealthProp_Fund[:, t, :], dims = 2)
-    totalPort_Chart = sum((wealth_Chart[:, t-1])' .* wealthProp_Chart[:, t, :], dims = 2)
+    totalPort_Fund = sum(wealthInvest_Fund[:, t, :], dims = 2)
+    totalPort_Chart = sum(wealthInvest_Chart[:, t, :], dims = 2)
 
     # Conditional to account for drastic price changes at t == 2
     if t == 2
@@ -284,8 +329,8 @@ end
 # Checks (1)
 
 iii = 1
-b_ttt = 100
-e_ttt = 1000
+b_ttt = 1
+e_ttt = 100
 fff = 2
 ccc = 2
 
