@@ -424,4 +424,18 @@ wealth_Chart[:, t] = ((ones(1, kChart) - sum(wealthProp_Chart[:, t, :], dims = 1
 
 wealth_Chart[:, t] = round.(wealth_Chart[:, t], digits = 2)
 
-###################################################################################
+#################################################################################
+
+# Update Fundamentalists Wealth at Market Clearing Prices
+wealth_Fund[:, t] = ((wealth_Fund[:, 1] .- (sum(wealthInvest_Fund[:, 1, :], dims = 1))') .* (1 + r)) + 
+(sum(wealthInvest_Fund[:, t, :] .* 
+(price[:, t] + dividends[:, t]) ./ (price[:, t-1]), dims = 1))
+
+wealth_Fund[:, t] = round.(wealth_Fund[:, t], digits = 2)
+
+# Update Chartists Wealth at Market Clearing Prices
+wealth_Chart[:, t] = (wealth_Chart[:, t-1] .- sum(wealthInvest_Chart[:, t, :], dims = 1) .* (1 + r)) + 
+ (sum(wealthInvest_Chart[:, t, :] .* 
+ (price[:, t] + dividends[:, t]) ./ (price[:, t-1]), dims = 1))
+
+wealth_Chart[:, t] = round.(wealth_Chart[:, t], digits = 2)

@@ -58,7 +58,7 @@ expPriceChange = zeros(N, T, kChart)                # Chartists Expected Price C
 for i in 1:N
     dividends[i, 1] = div_0         # Set Initial Dividend in Matrix
     fund_val[i, 1] = fund_0         # Set Initial Fundamental Value
-    price[i, 1] = fund_0 * 0.95     # Set Initial Asset Price
+    price[i, 1] = fund_0 * 1.05     # Set Initial Asset Price
 end
 
 Random.seed!(1234)                  # Set Seed for Reproducibility
@@ -214,18 +214,8 @@ for t in 2:T
         end
 
         wealthInvest_Fund[:, t, ff] = wealth_Fund[ff, t-1] * wealthProp_Fund[:, t, ff]
-        demand = wealthInvest_Fund[:, t, ff] ./ price[:, t-1]
 
-        for ii in 1:N
 
-            dem = demand[ii]
-    
-            if dem > stock_max
-    
-                wealthInvest_Fund[ii, t, ff] = price[ii, t-1] * stock_max
-                println("Fund ", ff, ": Demand > Stock Max (10): ", dem)
-            end
-        end
 
     end
 
@@ -237,11 +227,10 @@ for t in 2:T
         # Chartists Portfolio of Risky Assets
         wealthProp_Chart[:, t, cc] = (1/lambda) * inv(expRet_CovMat_Chart[:, :, t, cc]) * (expRet_Chart[:, t, cc] .- r)
         wealthProp_Chart[:, t, cc] = round.(wealthProp_Chart[:, t, cc], digits = 3)
+        
         # Ensure Chartists Portfolio does not violate max/min Conditions
-
         # No Short Selling
         wealthProp_Chart[:, t, cc] = max.(wealthProp_Chart[:, t, cc], 0.001)
-        
 
         # Use Proportional Scaling if conditions violated
         propTot = sum(wealthProp_Chart[:, t, cc], dims = 1)
@@ -253,18 +242,8 @@ for t in 2:T
         end
 
         wealthInvest_Chart[:, t, cc] = wealth_Chart[cc, t-1] * wealthProp_Chart[:, t, cc]
-        demand = wealthInvest_Chart[:, t, cc] ./ price[:, t-1]
 
-        for ii in 1:N
 
-            dem = demand[ii]
-    
-            if dem > stock_max
-    
-                wealthInvest_Chart[ii, t, cc] = price[ii, t-1] * stock_max
-                println("Chart ", cc, ": Demand > Stock Max (10): ", dem)
-            end
-        end
 
     end
 
@@ -287,16 +266,14 @@ for t in 2:T
     demand_Chart[:, t, :] = ((wealth_Chart[:, t-1])' .* wealthProp_Chart[:, t, :]) ./ price[:, t-1]
 
     # Update Fundamentalists Wealth at Market Clearing Prices
-    wealth_Fund[:, t] = ((ones(1, kFund) - sum(wealthProp_Fund[:, t, :], dims = 1)) .* 
-                        (wealth_Fund[:, t-1] * (1 + r))') + 
+    wealth_Fund[:, t] = ((wealth_Fund[:, t-1]' .- sum(wealthInvest_Fund[:, t, :], dims = 1)) .* (1 + r)) + 
                         (sum(wealthInvest_Fund[:, t, :] .* 
                         (price[:, t] + dividends[:, t]) ./ (price[:, t-1]), dims = 1))
 
     wealth_Fund[:, t] = round.(wealth_Fund[:, t], digits = 2)
 
     # Update Chartists Wealth at Market Clearing Prices
-    wealth_Chart[:, t] = ((ones(1, kChart) - sum(wealthProp_Chart[:, t, :], dims = 1)) .* 
-                         (wealth_Chart[:, t-1] * (1 + r))') + 
+    wealth_Chart[:, t] = ((wealth_Chart[:, t-1]' .- sum(wealthInvest_Chart[:, t, :], dims = 1)) .* (1 + r)) + 
                          (sum(wealthInvest_Chart[:, t, :] .* 
                          (price[:, t] + dividends[:, t]) ./ (price[:, t-1]), dims = 1))
 
@@ -307,7 +284,7 @@ end
 # Checks (1)
 
 iii = 1
-b_ttt = 1
+b_ttt = 800
 e_ttt = 1000
 fff = 2
 ccc = 2
@@ -351,3 +328,8 @@ plot(b_ttt:e_ttt, price[iii, b_ttt:e_ttt], label = "Price", title = "Asset i",
      xlabel = "T", ylabel = "Price", legend = :topright)
 
 plot!(b_ttt:e_ttt, fund_val[iii, b_ttt:e_ttt], label = "Fundamental Value", linecolor=:red)
+
+# Checks (7)
+
+all(wealth_Fund .> 0)
+all(wealth_Chart .>= 0)
