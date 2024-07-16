@@ -38,7 +38,7 @@ div_0 = 0.002       # Initial Dividend
 fund_0 = 10         # Initial Fundamental Value
 asset_0 = 1         # Initial Risky Asset Positions
 
-assetSupply_max = (kFund * asset_0 * 10) + (kChart * asset_0 * 10)       # Initialise Max Supply of each Risky Asset
+assetSupply_max = (kFund * asset_0 * 1) + (kChart * asset_0 * 1)       # Initialise Max Supply of each Risky Asset
 
 dividends = zeros(N, T)         # Dividends of Risky Assets
 fund_val = zeros(N, T)          # Fundamental Values of Risky Assets
@@ -174,7 +174,7 @@ for t in 2:T
 
             # Conditional to account for price two time periods ago in Expected Price Change
             if t == 2
-                expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + ((1 - ema_c) * (0.1))
+                expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + ((1 - ema_c) * (0.01))
             
             else 
                 expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + ((1 - ema_c) * ((price[i, t-1] - price[i, t-2])/price[i, t-2]))
@@ -197,8 +197,11 @@ for t in 2:T
 
         # Fundamentalists Portfolio of Risky Assets
         wealthProp_Fund[:, t, ff] = (1/lambda) * inv(expRet_CovMat_Fund[:, :, t, ff]) * (expRet_Fund[:, t, ff] .- r)
+        wealthProp_Fund[:, t, ff] = round.(wealthProp_Fund[:, t, ff], digits = 3)
 
         # Ensure Fundamentalists Portfolio does not violate max/min Conditions
+        # No Short Selling
+        wealthProp_Fund[:, t, ff] = max.(wealthProp_Fund[:, t, ff], 0.001)
 
         # Use Proportional Scaling if conditions violated
 
@@ -207,12 +210,7 @@ for t in 2:T
 
         if propTot > propW_max
             sf = propW_max ./ propTot
-            wealthProp_Fund[:, t, ff] = wealthProp_Fund[:, t, ff] .* sf
-        elseif propTot < propW_min
-            sf = propW_min ./ propTot
-            wealthProp_Fund[:, t, ff] = wealthProp_Fund[:, t, ff] .* sf
-        else
-            continue
+            wealthProp_Fund[:, t, ff] = round.(wealthProp_Fund[:, t, ff] .* sf, digits = 3)
         end
 
         wealthInvest_Fund[:, t, ff] = wealth_Fund[ff, t-1] * wealthProp_Fund[:, t, ff]
@@ -225,13 +223,7 @@ for t in 2:T
             if dem > stock_max
     
                 wealthInvest_Fund[ii, t, ff] = price[ii, t-1] * stock_max
-    
-            elseif dem < stock_min
-    
-                wealthInvest_Fund[ii, t, ff] = price[ii, t-1] * stock_min
-    
-            else 
-                continue
+                println("Fund ", ff, ": Demand > Stock Max (10): ", dem)
             end
         end
 
@@ -244,8 +236,12 @@ for t in 2:T
 
         # Chartists Portfolio of Risky Assets
         wealthProp_Chart[:, t, cc] = (1/lambda) * inv(expRet_CovMat_Chart[:, :, t, cc]) * (expRet_Chart[:, t, cc] .- r)
-
+        wealthProp_Chart[:, t, cc] = round.(wealthProp_Chart[:, t, cc], digits = 3)
         # Ensure Chartists Portfolio does not violate max/min Conditions
+
+        # No Short Selling
+        wealthProp_Chart[:, t, cc] = max.(wealthProp_Chart[:, t, cc], 0.001)
+        
 
         # Use Proportional Scaling if conditions violated
         propTot = sum(wealthProp_Chart[:, t, cc], dims = 1)
@@ -253,12 +249,7 @@ for t in 2:T
 
         if propTot > propW_max
             sf = propW_max ./ propTot
-            wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* sf
-        elseif propTot < propW_min
-            sf = propW_min ./ propTot
-            wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* sf
-        else
-            continue
+            wealthProp_Chart[:, t, cc] = round.(wealthProp_Chart[:, t, cc] .* sf, digits = 3)
         end
 
         wealthInvest_Chart[:, t, cc] = wealth_Chart[cc, t-1] * wealthProp_Chart[:, t, cc]
@@ -271,13 +262,7 @@ for t in 2:T
             if dem > stock_max
     
                 wealthInvest_Chart[ii, t, cc] = price[ii, t-1] * stock_max
-    
-            elseif dem < stock_min
-    
-                wealthInvest_Chart[ii, t, cc] = price[ii, t-1] * stock_min
-    
-            else 
-                continue
+                println("Chart ", cc, ": Demand > Stock Max (10): ", dem)
             end
         end
 
@@ -287,26 +272,12 @@ for t in 2:T
     totalPort_Fund = sum(wealthInvest_Fund[:, t, :], dims = 2)
     totalPort_Chart = sum(wealthInvest_Chart[:, t, :], dims = 2)
 
-    # Conditional to account for drastic price changes at t == 2
-    if t == 2
+    # Print Output to determine where issues are arising
+    println("Fund Port: ", totalPort_Fund)
+    println("Chart Port: ", totalPort_Chart)
 
-        price[:, 2] = price[:, 1] .+ rand(Normal(0, 1))
-        println("Fund Port: ", totalPort_Fund)
-        println("Chart Port: ", totalPort_Chart)
-    else
-
-        # Determine the price that will Clear each market of Risky Assets
-        price[:, t] = (totalPort_Fund + totalPort_Chart) / assetSupply_max
-
-    end
-    
-    # Condition to ensure that price does not dip below 0
-
-    for ii in 1:N
-        if price[ii, t] < 0
-            price[ii, t] = fund_val[ii, t] + rand(Normal(0, 1))
-        end
-    end
+    # Determine the price that will Clear each market of Risky Assets
+    price[:, t] = (totalPort_Fund + totalPort_Chart) / assetSupply_max
     
     # Calculate Asset Returns
     price_returns[:, t] = ((price[:, t] - price[:, t-1]) ./ price[:, t-1])
@@ -318,23 +289,26 @@ for t in 2:T
     # Update Fundamentalists Wealth at Market Clearing Prices
     wealth_Fund[:, t] = ((ones(1, kFund) - sum(wealthProp_Fund[:, t, :], dims = 1)) .* 
                         (wealth_Fund[:, t-1] * (1 + r))') + 
-                        (wealth_Fund[:, t-1])' .* (sum(wealthProp_Fund[:, t, :] .* 
+                        (sum(wealthInvest_Fund[:, t, :] .* 
                         (price[:, t] + dividends[:, t]) ./ (price[:, t-1]), dims = 1))
+
+    wealth_Fund[:, t] = round.(wealth_Fund[:, t], digits = 2)
 
     # Update Chartists Wealth at Market Clearing Prices
     wealth_Chart[:, t] = ((ones(1, kChart) - sum(wealthProp_Chart[:, t, :], dims = 1)) .* 
                          (wealth_Chart[:, t-1] * (1 + r))') + 
-                         (wealth_Chart[:, t-1])' .* (sum(wealthProp_Chart[:, t, :] .* 
+                         (sum(wealthInvest_Chart[:, t, :] .* 
                          (price[:, t] + dividends[:, t]) ./ (price[:, t-1]), dims = 1))
-    
+
+    wealth_Chart[:, t] = round.(wealth_Chart[:, t], digits = 2)
 
 end
 
 # Checks (1)
 
-iii = 3
+iii = 1
 b_ttt = 1
-e_ttt = 15
+e_ttt = 1000
 fff = 2
 ccc = 2
 

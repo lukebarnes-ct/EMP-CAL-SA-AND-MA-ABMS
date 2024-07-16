@@ -382,3 +382,46 @@ end
 wealth_Fund[fff, 2:6]
 wealthProp_Fund[:, 2:6, fff]
 wealthInvest_Fund[:, 2:6, fff]
+
+##############################################################################
+
+# Conditional to account for drastic price changes at t == 2
+if t == 2
+
+    price[:, 2] = price[:, 1] .+ rand(Normal(0, 1))
+    println("Fund Port: ", totalPort_Fund)
+    println("Chart Port: ", totalPort_Chart)
+else
+
+    # Determine the price that will Clear each market of Risky Assets
+    price[:, t] = (totalPort_Fund + totalPort_Chart) / assetSupply_max
+
+end
+
+# Condition to ensure that price does not dip below 0
+
+for ii in 1:N
+    if price[ii, t] < 0
+        price[ii, t] = fund_val[ii, t] + rand(Normal(0, 1))
+    end
+end
+
+################################################################################
+
+# Update Fundamentalists Wealth at Market Clearing Prices
+wealth_Fund[:, t] = ((ones(1, kFund) - sum(wealthProp_Fund[:, t, :], dims = 1)) .* 
+(wealth_Fund[:, t-1] * (1 + r))') + 
+(wealth_Fund[:, t-1])' .* (sum(wealthProp_Fund[:, t, :] .* 
+(price[:, t] + dividends[:, t]) ./ (price[:, t-1]), dims = 1))
+
+wealth_Fund[:, t] = round.(wealth_Fund[:, t], digits = 2)
+
+# Update Chartists Wealth at Market Clearing Prices
+wealth_Chart[:, t] = ((ones(1, kChart) - sum(wealthProp_Chart[:, t, :], dims = 1)) .* 
+ (wealth_Chart[:, t-1] * (1 + r))') + 
+ (wealth_Chart[:, t-1])' .* (sum(wealthProp_Chart[:, t, :] .* 
+ (price[:, t] + dividends[:, t]) ./ (price[:, t-1]), dims = 1))
+
+wealth_Chart[:, t] = round.(wealth_Chart[:, t], digits = 2)
+
+###################################################################################
