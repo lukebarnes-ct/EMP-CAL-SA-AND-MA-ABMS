@@ -452,3 +452,15 @@ if any(x -> x != 0, ggg)
 else
     return 0
 end
+
+########################################################################
+
+xxx = [10.0, 10.0, 10.0]
+optDemand(xxx)
+
+# lower = [0.0, 0.0, 0.0]
+res = optimize(optDemand, xxx, NelderMead())
+Optim.minimizer(res)
+Optim.minimum(res)
+
+########################################################################
