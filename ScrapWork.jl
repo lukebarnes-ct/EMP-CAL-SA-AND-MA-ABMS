@@ -439,3 +439,16 @@ wealth_Chart[:, t] = (wealth_Chart[:, t-1] .- sum(wealthInvest_Chart[:, t, :], d
  (price[:, t] + dividends[:, t]) ./ (price[:, t-1]), dims = 1))
 
 wealth_Chart[:, t] = round.(wealth_Chart[:, t], digits = 2)
+
+ddd = ones(3, 20)
+sum(ddd)
+
+ggg = [20, 30, 40]
+
+sum(ddd ./ ggg, dims = 2)
+
+if any(x -> x != 0, ggg)
+    return 1
+else
+    return 0
+end
