@@ -7,7 +7,7 @@ using Optim
 
 ### Parameters
 
-T = 1000            # Number of Timesteps
+T = 100            # Number of Timesteps
 N = 3               # Number of Risky Assets
 kChart = 20         # Number of Chartists
 kFund = 20          # Number of Fundamentalists
@@ -59,7 +59,7 @@ expPriceChange = zeros(N, T, kChart)                # Chartists Expected Price C
 for i in 1:N
     dividends[i, 1] = div_0         # Set Initial Dividend in Matrix
     fund_val[i, 1] = fund_0         # Set Initial Fundamental Value
-    price[i, 1] = fund_0 * 1.05     # Set Initial Asset Price
+    price[i, 1] = fund_0 * 1.00     # Set Initial Asset Price
 end
 
 Random.seed!(1234)                  # Set Seed for Reproducibility
@@ -166,15 +166,20 @@ function optDemand(assetPrice)
     wInvest_Fund = zeros(N, kFund)
     wInvest_Chart = zeros(N, kChart)
 
+    d_Fund = zeros(N, kFund, 2)
+    d_Fund[:, :, 1] = demand_Fund[:, TT-1, :]
+    d_Chart = zeros(N, kChart, 2)
+    d_Chart[:, :, 1] = demand_Chart[:, TT-1, :]
+
     for i in 1:N
 
         for f in 1:kFund
 
             # Fundamentalists Expected Return for the i-th Asset at time t
-            eR_Fund[i, 2, f] = ((phi * fund_val[i, TT]) + 
+            eR_Fund[i, 2, f] = (((phi * fund_val[i, TT]) + 
                                 (meanR[f] * (fund_val[i, TT] - assetPrice[i])) + 
                                 ((1 + phi) * dividends[i, TT]) -
-                                assetPrice[i]) / assetPrice[i]
+                                assetPrice[i]) / assetPrice[i]) + 0
         
             # Fundamentalists Exponential Moving Average Parameter
             ema_f = exp(-1/ema_wind_Fund[f])
@@ -225,6 +230,7 @@ function optDemand(assetPrice)
             wProp_Fund[:, ff] = wProp_Fund[:, ff] .* sf
         end
 
+        wProp_Fund[:, ff] = min.(max.(wProp_Fund[:, ff], propW_min), propW_max)
         wInvest_Fund[:, ff] = wealth_Fund[ff, TT-1] * wProp_Fund[:, ff]
 
     end
@@ -249,26 +255,41 @@ function optDemand(assetPrice)
             wProp_Chart[:, cc] = wProp_Chart[:, cc] .* sf
         end
 
+        wProp_Chart[:, cc] = min.(max.(wProp_Chart[:, cc], propW_min), propW_max)
+
         wInvest_Chart[:, cc] = wealth_Chart[cc, TT-1] * wProp_Chart[:, cc]
 
     end
 
-    demand_Fund = wInvest_Fund ./ assetPrice
-    demand_Chart = wInvest_Chart ./ assetPrice
+    d_Fund[:, :, 2] = wInvest_Fund ./ assetPrice
+    d_Chart[:, :, 2] = wInvest_Chart ./ assetPrice
 
     for iii in 1:N
 
         for fff in 1:kFund
 
-            dem = demand_Fund[iii, fff]
+            prevDem = d_Fund[iii, fff, 1]
+            dem = d_Fund[iii, fff, 2]
 
             if dem > stock_max
 
-                demand_Fund[iii, fff] = stock_max
+                d_Fund[iii, fff, 2] = stock_max
 
             elseif dem < stock_min
 
-                demand_Fund[iii, fff] = stock_min
+                d_Fund[iii, fff, 2] = stock_min
+
+            end
+
+            if dem < 0
+                
+                demDiff = prevDem + dem
+                
+                if demDiff < 0
+
+                    d_Fund[iii, fff, 2] = -prevDem
+
+                end
 
             end
 
@@ -276,15 +297,28 @@ function optDemand(assetPrice)
 
         for ccc in 1:kChart
 
-            dem = demand_Chart[iii, ccc]
+            prevDem = d_Chart[iii, ccc, 1]
+            dem = d_Chart[iii, ccc, 2]
 
             if dem > stock_max
 
-                demand_Chart[iii, ccc] = stock_max
+                d_Chart[iii, ccc, 2] = stock_max
 
             elseif dem < stock_min
 
-                demand_Chart[iii, ccc] = stock_min
+                d_Chart[iii, ccc, 2] = stock_min
+
+            end
+
+            if dem < 0
+                
+                demDiff = prevDem + dem
+                
+                if demDiff < 0
+
+                    d_Chart[iii, ccc, 2] = -prevDem
+
+                end
 
             end
 
@@ -292,8 +326,8 @@ function optDemand(assetPrice)
 
     end
 
-    totalDemand = sum((demand_Fund), dims = 2) + 
-                  sum((demand_Chart), dims = 2)
+    totalDemand = sum((d_Fund[:, :, 2]), dims = 2) + 
+                  sum((d_Chart[:, :, 2]), dims = 2)
 
     excessDemand = totalDemand .- assetSupply_max
 
@@ -327,10 +361,10 @@ for t in 2:T
         for f in 1:kFund
 
             # Fundamentalists Expected Return for the i-th Asset at time t
-            expRet_Fund[i, t, f] = ((phi * fund_val[i, t]) + 
+            expRet_Fund[i, t, f] = (((phi * fund_val[i, t]) + 
                                     (meanR[f] * (fund_val[i, t] - price[i, t])) + 
                                     ((1 + phi) * dividends[i, t]) -
-                                    price[i, t]) / price[i, t]
+                                    price[i, t]) / price[i, t]) + 0
         
             # Fundamentalists Exponential Moving Average Parameter
             ema_f = exp(-1/ema_wind_Fund[f])
@@ -366,8 +400,7 @@ for t in 2:T
 
         # Fundamentalists Portfolio of Risky Assets
         wealthProp_Fund[:, t, ff] = (1/lambda) * inv(expRet_CovMat_Fund[:, :, t, ff]) * (expRet_Fund[:, t, ff] .- r)
-    
-        # Ensure Fundamentalists Portfolio does not violate max/min Conditions
+        
         # Use Proportional Scaling if conditions violated
 
         propTot = sum(wealthProp_Fund[:, t, ff], dims = 1)
@@ -381,6 +414,10 @@ for t in 2:T
             wealthProp_Fund[:, t, ff] = wealthProp_Fund[:, t, ff] .* sf
         end
 
+        # Ensure Fundamentalists Portfolio does not violate max/min Conditions
+
+        wealthProp_Fund[:, t, ff] = min.(max.(wealthProp_Fund[:, t, ff], propW_min), propW_max)
+
         wealthInvest_Fund[:, t, ff] = wealth_Fund[ff, t-1] * wealthProp_Fund[:, t, ff]
 
     end
@@ -393,7 +430,6 @@ for t in 2:T
         # Chartists Portfolio of Risky Assets
         wealthProp_Chart[:, t, cc] = (1/lambda) * inv(expRet_CovMat_Chart[:, :, t, cc]) * (expRet_Chart[:, t, cc] .- r)
         
-        # Ensure Chartists Portfolio does not violate max/min Conditions
         # Use Proportional Scaling if conditions violated
 
         propTot = sum(wealthProp_Chart[:, t, cc], dims = 1)
@@ -407,9 +443,82 @@ for t in 2:T
             wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* sf
         end
 
+        # Ensure Chartists Portfolio does not violate max/min Conditions
+
+        wealthProp_Chart[:, t, cc] = min.(max.(wealthProp_Chart[:, t, cc], propW_min), propW_max)
+
         wealthInvest_Chart[:, t, cc] = wealth_Chart[cc, t-1] * wealthProp_Chart[:, t, cc]
 
     end
+
+    # Demand for Risky Assets at time t
+    demand_Fund[:, t, :] = (wealthInvest_Fund[:, t, :]) ./ price[:, t]
+    demand_Chart[:, t, :] = (wealthInvest_Chart[:, t, :]) ./ price[:, t]
+
+    for iii in 1:N
+
+        for fff in 1:kFund
+
+            prevDem = demand_Fund[iii, t-1, fff]
+            dem = demand_Fund[iii, t, fff]
+
+            if dem > stock_max
+
+                demand_Fund[iii, t, fff] = stock_max
+
+            elseif dem < stock_min
+
+                demand_Fund[iii, t, fff] = stock_min
+
+            end
+
+            if dem < 0
+                
+                demDiff = prevDem + dem
+                
+                if demDiff < 0
+
+                    demand_Fund[iii, t, fff] = -prevDem
+
+                end
+
+            end
+
+        end
+
+        for ccc in 1:kChart
+
+            prevDem = demand_Chart[iii, t-1, ccc]
+            dem = demand_Chart[iii, t, ccc]
+
+            if dem > stock_max
+
+                demand_Chart[iii, t, ccc] = stock_max
+
+            elseif dem < stock_min
+
+                demand_Chart[iii, t, ccc] = stock_min
+
+            end
+
+            if dem < 0
+                
+                demDiff = prevDem + dem
+                
+                if demDiff < 0
+
+                    demand_Chart[iii, t, ccc] = -prevDem
+
+                end
+
+            end
+
+        end
+
+    end
+
+    wealthInvest_Fund[:, t, :] = demand_Fund[:, t, :] .* price[:, t]
+    wealthInvest_Chart[:, t, :] = demand_Chart[:, t, :] .* price[:, t]
 
     # Update Fundamentalists Wealth at Market Clearing Prices
     wealth_Fund[:, t] = ((wealth_Fund[:, t-1]' .- sum(wealthInvest_Fund[:, t, :], dims = 1)) .* (1 + r)) + 
@@ -431,7 +540,7 @@ end
 
 iii = 2
 b_ttt = 1
-e_ttt = 300
+e_ttt = T
 fff = 10
 ccc = 10
 
