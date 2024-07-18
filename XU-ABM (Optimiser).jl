@@ -7,7 +7,7 @@ using Optim
 
 ### Parameters
 
-T = 100            # Number of Timesteps
+T = 400             # Number of Timesteps
 N = 3               # Number of Risky Assets
 kChart = 20         # Number of Chartists
 kFund = 20          # Number of Fundamentalists
@@ -51,8 +51,8 @@ expRet_Chart = zeros(N, T, kChart)                  # Chartists Expected Return 
 expRet_CovMat_Fund = ones(N, N, T, kFund)           # Expected Return Covariance Array for Fundamentalists
 expRet_CovMat_Chart = ones(N, N, T, kChart)         # Expected Return Covariance Array for Chartists
 
-fill!(expRet_CovMat_Fund, phi)
-fill!(expRet_CovMat_Chart, phi)
+## fill!(expRet_CovMat_Fund, phi)
+## fill!(expRet_CovMat_Chart, phi)
 
 expPriceChange = zeros(N, T, kChart)                # Chartists Expected Price Change of Risky Assets
 
@@ -72,8 +72,12 @@ ema_wind_Fund = rand(wind_min:wind_max, kFund)
 ema_wind_Chart = rand(wind_min:wind_max, kChart)
 
 # Agent's Expected Correlation Coefficients for the Risky Assets
-corr_coef_Fund = round.(rand(Uniform(corr_min, corr_max), kFund, N), digits = 2)
-corr_coef_Chart = round.(rand(Uniform(corr_min, corr_max), kChart, N), digits = 2)
+triAg = floor(Int, (N * (N - 1)) / (2))
+corr_coef_Fund = round.(rand(Uniform(corr_min, corr_max), 
+                        kFund, triAg), digits = 2)
+
+corr_coef_Chart = round.(rand(Uniform(corr_min, corr_max), 
+                         kChart, triAg), digits = 2)
 
 wealth_Fund  = zeros(kFund, T)              # Fundamentalists Wealth
 wealth_Chart  = zeros(kChart, T)            # Chartists Wealth
@@ -86,28 +90,6 @@ wealthInvest_Chart = zeros(N, T, kChart)    # Chartists Wealth Invested in Risky
 
 demand_Fund = zeros(N, T, kFund)            # Fundamentalists Demand of Risky Assets
 demand_Chart = zeros(N, T, kChart)          # Chartists Demand of Risky Assets
-
-for k in 1:kFund
-    wealth_Fund[k, 1] = cash_0 * (1 + N)           # Set Initial Wealth of Fundamentalists
-
-    for ii in 1:N
-        wealthProp_Fund[ii, 1, k] = 1/(1 + N)       # Set Initial Portfolio Weights
-        demand_Fund[ii, 1, k] = asset_0             # Set Initial Asset Demand 
-
-        expRet_Fund[ii, 1, k] = (phi * fund_val[ii, 1]) + ((1 + phi) * dividends[ii, 1])
-    end
-end
-
-for k in 1:kChart
-    wealth_Chart[k, 1] = cash_0 * (1 + N)           # Set Initial Wealth of Chartists
-
-    for ii in 1:N
-        wealthProp_Chart[ii, 1, k] = 1/(1 + N)      # Set Initial Portfolio Weights
-        demand_Chart[ii, 1, k] = asset_0            # Set Initial Asset Demand 
-
-        expRet_Chart[ii, 1, k] = 0.1
-    end
-end
 
 # Retrieve the Covariance Matrix of Expected Returns for both sets of Agents
 function getCovMat(retArr, coefMat)
@@ -141,6 +123,44 @@ function getCovMat(retArr, coefMat)
     end
 
     return retArr
+end
+
+for k in 1:kFund
+    wealth_Fund[k, 1] = cash_0 * (1 + N)           # Set Initial Wealth of Fundamentalists
+    
+    # Fundamentalists Exponential Moving Average Parameter
+    ema_f = exp(-1/ema_wind_Fund[k])
+
+    for ii in 1:N
+        wealthProp_Fund[ii, 1, k] = 1/(1 + N)       # Set Initial Portfolio Weights
+        demand_Fund[ii, 1, k] = asset_0             # Set Initial Asset Demand 
+
+        expRet_Fund[ii, 1, k] = (phi * fund_val[ii, 1]) + ((1 + phi) * dividends[ii, 1])
+        expRet_CovMat_Fund[ii, ii, 1, k] = (ema_f * expRet_CovMat_Fund[ii, ii, 1, k]) + 
+        ((1 - ema_f) * (expRet_Fund[ii, 1, k] - 0.0015)^2)
+    end
+
+    expRet_CovMat_Fund[:, :, 1, k] = getCovMat(expRet_CovMat_Fund[:, :, 1, k], corr_coef_Fund[k, :])
+
+end
+
+for k in 1:kChart
+    wealth_Chart[k, 1] = cash_0 * (1 + N)           # Set Initial Wealth of Chartists
+
+    # Chartists Exponential Moving Average Parameter
+    ema_c = exp(-1/ema_wind_Chart[k])
+
+    for ii in 1:N
+        wealthProp_Chart[ii, 1, k] = 1/(1 + N)      # Set Initial Portfolio Weights
+        demand_Chart[ii, 1, k] = asset_0            # Set Initial Asset Demand 
+
+        expRet_Chart[ii, 1, k] = (ema_c * 0.0015) + (((1 + phi) * dividends[ii, 1])/price[ii, 1])
+
+        expRet_CovMat_Chart[ii, ii, 1, k] = (ema_c * expRet_CovMat_Chart[ii, ii, 1, k]) + 
+        ((1 - ema_c) * (expRet_Chart[ii, 1, k] - 0.0015)^2)
+    end
+
+    expRet_CovMat_Chart[:, :, 1, k] = getCovMat(expRet_CovMat_Chart[:, :, 1, k], corr_coef_Chart[k, :])
 end
 
 TT = 2
@@ -179,7 +199,7 @@ function optDemand(assetPrice)
             eR_Fund[i, 2, f] = (((phi * fund_val[i, TT]) + 
                                 (meanR[f] * (fund_val[i, TT] - assetPrice[i])) + 
                                 ((1 + phi) * dividends[i, TT]) -
-                                assetPrice[i]) / assetPrice[i]) + 0
+                                assetPrice[i]) / assetPrice[i])
         
             # Fundamentalists Exponential Moving Average Parameter
             ema_f = exp(-1/ema_wind_Fund[f])
@@ -217,19 +237,6 @@ function optDemand(assetPrice)
         wProp_Fund[:, ff] = (1/lambda) * inv(eR_Cov_Fund[:, :, 2, ff]) * 
                             (eR_Fund[:, 2, ff] .- r)
 
-        # Use Proportional Scaling if conditions violated
-
-        propTot = sum(wProp_Fund[:, ff])
-
-        if propTot > propW_max
-            sf = propW_max ./ propTot
-            wProp_Fund[:, ff] = wProp_Fund[:, ff] .* sf
-
-        elseif propTot < propW_min
-            sf = propW_min ./ propTot
-            wProp_Fund[:, ff] = wProp_Fund[:, ff] .* sf
-        end
-
         wProp_Fund[:, ff] = min.(max.(wProp_Fund[:, ff], propW_min), propW_max)
         wInvest_Fund[:, ff] = wealth_Fund[ff, TT-1] * wProp_Fund[:, ff]
 
@@ -242,18 +249,6 @@ function optDemand(assetPrice)
 
         # Chartists Portfolio of Risky Assets
         wProp_Chart[:, cc] = (1/lambda) * inv(eR_Cov_Chart[:, :, 2, cc]) * (eR_Chart[:, 2, cc] .- r)
-
-        # Use Proportional Scaling if conditions violated
-        propTot = sum(wProp_Chart[:, cc])
-
-        if propTot > propW_max
-            sf = propW_max ./ propTot
-            wProp_Chart[:, cc] = wProp_Chart[:, cc] .* sf
-        
-        elseif propTot < propW_min
-            sf = propW_min ./ propTot
-            wProp_Chart[:, cc] = wProp_Chart[:, cc] .* sf
-        end
 
         wProp_Chart[:, cc] = min.(max.(wProp_Chart[:, cc], propW_min), propW_max)
 
@@ -364,7 +359,7 @@ for t in 2:T
             expRet_Fund[i, t, f] = (((phi * fund_val[i, t]) + 
                                     (meanR[f] * (fund_val[i, t] - price[i, t])) + 
                                     ((1 + phi) * dividends[i, t]) -
-                                    price[i, t]) / price[i, t]) + 0
+                                    price[i, t]) / price[i, t]) 
         
             # Fundamentalists Exponential Moving Average Parameter
             ema_f = exp(-1/ema_wind_Fund[f])
@@ -400,19 +395,6 @@ for t in 2:T
 
         # Fundamentalists Portfolio of Risky Assets
         wealthProp_Fund[:, t, ff] = (1/lambda) * inv(expRet_CovMat_Fund[:, :, t, ff]) * (expRet_Fund[:, t, ff] .- r)
-        
-        # Use Proportional Scaling if conditions violated
-
-        propTot = sum(wealthProp_Fund[:, t, ff], dims = 1)
-        propTot = propTot[1]
-
-        if propTot > propW_max
-            sf = propW_max ./ propTot
-            wealthProp_Fund[:, t, ff] = wealthProp_Fund[:, t, ff] .* sf
-        elseif propTot < propW_min
-            sf = propW_min ./ propTot
-            wealthProp_Fund[:, t, ff] = wealthProp_Fund[:, t, ff] .* sf
-        end
 
         # Ensure Fundamentalists Portfolio does not violate max/min Conditions
 
@@ -429,19 +411,6 @@ for t in 2:T
 
         # Chartists Portfolio of Risky Assets
         wealthProp_Chart[:, t, cc] = (1/lambda) * inv(expRet_CovMat_Chart[:, :, t, cc]) * (expRet_Chart[:, t, cc] .- r)
-        
-        # Use Proportional Scaling if conditions violated
-
-        propTot = sum(wealthProp_Chart[:, t, cc], dims = 1)
-        propTot = propTot[1]
-
-        if propTot > propW_max
-            sf = propW_max ./ propTot
-            wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* sf
-        elseif propTot < propW_min
-            sf = propW_min ./ propTot
-            wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* sf
-        end
 
         # Ensure Chartists Portfolio does not violate max/min Conditions
 
@@ -541,8 +510,8 @@ end
 iii = 2
 b_ttt = 1
 e_ttt = T
-fff = 10
-ccc = 10
+fff = 5
+ccc = 5
 
 fund_val
 dividends

@@ -464,3 +464,57 @@ Optim.minimizer(res)
 Optim.minimum(res)
 
 ########################################################################
+
+# Use Proportional Scaling if conditions violated
+
+propTot = sum(wProp_Fund[:, ff])
+
+if propTot > propW_max
+    sf = propW_max ./ propTot
+    wProp_Fund[:, ff] = wProp_Fund[:, ff] .* sf
+
+elseif propTot < propW_min
+    sf = propW_min ./ propTot
+    wProp_Fund[:, ff] = wProp_Fund[:, ff] .* sf
+end
+
+# Use Proportional Scaling if conditions violated
+propTot = sum(wProp_Chart[:, cc])
+
+if propTot > propW_max
+    sf = propW_max ./ propTot
+    wProp_Chart[:, cc] = wProp_Chart[:, cc] .* sf
+
+elseif propTot < propW_min
+    sf = propW_min ./ propTot
+    wProp_Chart[:, cc] = wProp_Chart[:, cc] .* sf
+end
+
+# Use Proportional Scaling if conditions violated
+
+propTot = sum(wealthProp_Fund[:, t, ff], dims = 1)
+propTot = propTot[1]
+
+if propTot > propW_max
+    sf = propW_max ./ propTot
+    wealthProp_Fund[:, t, ff] = wealthProp_Fund[:, t, ff] .* sf
+elseif propTot < propW_min
+    sf = propW_min ./ propTot
+    wealthProp_Fund[:, t, ff] = wealthProp_Fund[:, t, ff] .* sf
+end
+
+# Use Proportional Scaling if conditions violated
+
+propTot = sum(wealthProp_Chart[:, t, cc], dims = 1)
+propTot = propTot[1]
+
+if propTot > propW_max
+    sf = propW_max ./ propTot
+    wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* sf
+elseif propTot < propW_min
+    sf = propW_min ./ propTot
+    wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* sf
+end
+
+########################################################################
+
