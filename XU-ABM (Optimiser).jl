@@ -7,7 +7,7 @@ using Optim
 
 ### Parameters
 
-T = 400             # Number of Timesteps
+T = 100             # Number of Timesteps
 N = 3               # Number of Risky Assets
 kChart = 20         # Number of Chartists
 kFund = 20          # Number of Fundamentalists
@@ -44,7 +44,8 @@ assetSupply_max = (kFund * asset_0 * 1) + (kChart * asset_0 * 1)       # Initial
 dividends = zeros(N, T)         # Dividends of Risky Assets
 fund_val = zeros(N, T)          # Fundamental Values of Risky Assets
 price = zeros(N, T)             # Prices of Risky Assets
-price_returns = zeros(N, T)     # Returns of Risky Assets
+price_returns = zeros(N, T)     # Price Returns of Risky Assets
+asset_Returns = zeros(N, T)     # Asset Returns of Risky Assets
 
 expRet_Fund = zeros(N, T, kFund)                    # Fundamentalists Expected Return of Risky Assets
 expRet_Chart = zeros(N, T, kChart)                  # Chartists Expected Return of Risky Assets
@@ -172,7 +173,8 @@ function optDemand(assetPrice)
     eR_Fund[:, 1, :] = expRet_Fund[:, TT-1, :]
     eR_Cov_Fund = ones(N, N, 2, kFund)
     eR_Cov_Fund[:, :, 1, :] = expRet_CovMat_Fund[:, :, TT-1, :]
-    returns = (assetPrice .- price[:, TT-1]) ./ price[:, TT-1]
+    pReturns = (assetPrice .- price[:, TT-1]) ./ price[:, TT-1]
+    returns = pReturns .+ (dividends[:, TT] ./ price[:, TT-1])
 
     ePChange = zeros(N, 2, kChart)
     ePChange[:, 1, :] = expPriceChange[:, TT-1, :]
@@ -199,7 +201,7 @@ function optDemand(assetPrice)
             eR_Fund[i, 2, f] = (((phi * fund_val[i, TT]) + 
                                 (meanR[f] * (fund_val[i, TT] - assetPrice[i])) + 
                                 ((1 + phi) * dividends[i, TT]) -
-                                assetPrice[i]) / assetPrice[i])
+                                assetPrice[i]) / assetPrice[i]) 
         
             # Fundamentalists Exponential Moving Average Parameter
             ema_f = exp(-1/ema_wind_Fund[f])
@@ -216,7 +218,7 @@ function optDemand(assetPrice)
             ema_c = exp(-1/ema_wind_Chart[c])
 
             ePChange[i, 2, c] = (ema_c * ePChange[i, 1, c]) + 
-                                ((1 - ema_c) * returns[i])
+                                ((1 - ema_c) * pReturns[i])
             
             # Chartists Expected Return for the i-th Asset at time t
             eR_Chart[i, 2, c] = ePChange[i, 2, c] + (((1 + phi) * dividends[i, TT])/assetPrice[i])
@@ -348,8 +350,11 @@ for t in 2:T
     # Determine the price that will Clear each market of Risky Assets
     price[:, t] = Optim.minimizer(resOpt)
 
-    # Calculate Asset Returns
+    # Calculate Price Returns
     price_returns[:, t] = ((price[:, t] - price[:, t-1]) ./ price[:, t-1])
+
+    # Calculate Asset Returns
+    asset_Returns[:, t] = price_returns[:, t] .+ (dividends[:, t] ./ price[:, t-1])
 
     for i in 1:N
 
@@ -359,14 +364,14 @@ for t in 2:T
             expRet_Fund[i, t, f] = (((phi * fund_val[i, t]) + 
                                     (meanR[f] * (fund_val[i, t] - price[i, t])) + 
                                     ((1 + phi) * dividends[i, t]) -
-                                    price[i, t]) / price[i, t]) 
+                                    price[i, t]) / price[i, t])
         
             # Fundamentalists Exponential Moving Average Parameter
             ema_f = exp(-1/ema_wind_Fund[f])
 
             # Diagonal of Fundamentalists Covariance Matrix of Expected Returns at time t
             expRet_CovMat_Fund[i, i, t, f] = (ema_f * expRet_CovMat_Fund[i, i, t-1, f]) + 
-                                             ((1 - ema_f) * (expRet_Fund[i, t-1, f] - price_returns[i, t])^2)
+                                             ((1 - ema_f) * (expRet_Fund[i, t-1, f] - asset_Returns[i, t])^2)
 
         end
         
@@ -376,13 +381,13 @@ for t in 2:T
             ema_c = exp(-1/ema_wind_Chart[c])
 
             expPriceChange[i, t, c] = (ema_c * expPriceChange[i, t-1, c]) + 
-                                      ((1 - ema_c) * ((price[i, t] - price[i, t-1])/price[i, t-1]))
+                                      ((1 - ema_c) * (price_returns[i, t]))
             
             # Chartists Expected Return for the i-th Asset at time t
             expRet_Chart[i, t, c] = expPriceChange[i, t, c] + (((1 + phi) * dividends[i, t])/price[i, t])
             
             # Diagonal of Chartists Covariance Matrix of Expected Returns at time t
-            expRet_CovMat_Chart[i, i, t, c] = (ema_c * expRet_CovMat_Chart[i, i, t-1, c]) + ((1 - ema_c) * (expRet_Chart[i, t-1, c] - price_returns[i, t])^2)
+            expRet_CovMat_Chart[i, i, t, c] = (ema_c * expRet_CovMat_Chart[i, i, t-1, c]) + ((1 - ema_c) * (expRet_Chart[i, t-1, c] - asset_Returns[i, t])^2)
 
         end
 
@@ -507,7 +512,7 @@ end
 
 # Checks (1)
 
-iii = 2
+iii = 1
 b_ttt = 1
 e_ttt = T
 fff = 5
