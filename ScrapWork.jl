@@ -455,6 +455,7 @@ end
 
 ########################################################################
 
+TT = 2
 xxx = [10.0, 10.0, 10.0]
 optDemand(xxx)
 
@@ -463,6 +464,19 @@ res = optimize(optDemand, xxx, NelderMead())
 Optim.minimizer(res)
 Optim.minimum(res)
 
+yyy = Optim.minimizer(res)
+optimize(optDemand, yyy, NelderMead())
+
+priceLowerBounds = [xxx[1] * 0.5, xxx[2] * 0.5, xxx[3] * 0.5]
+priceUpperBounds = [xxx[1] * 2, xxx[2] * 2, xxx[3] * 2]
+
+## resOpt = optimize(optDemand, resPrice, NelderMead())
+resOpt = optimize(optDemand, priceLowerBounds, priceUpperBounds, 
+                  xxx, Fminbox(NelderMead()))
+
+Optim.minimizer(resOpt)
+Optim.minimum(resOpt)
+                  
 ########################################################################
 
 # Use Proportional Scaling if conditions violated
@@ -518,3 +532,94 @@ end
 
 ########################################################################
 
+d_Fund[:, :, 2] = wInvest_Fund ./ assetPrice
+    d_Chart[:, :, 2] = wInvest_Chart ./ assetPrice
+
+    for iii in 1:N
+
+        for fff in 1:kFund
+
+            prevDem = d_Fund[iii, fff, 1]
+            dem = d_Fund[iii, fff, 2]
+
+            if dem > stock_max
+
+                d_Fund[iii, fff, 2] = stock_max
+
+            elseif dem < stock_min
+
+                d_Fund[iii, fff, 2] = stock_min
+
+            end
+
+            if dem < 0
+                
+                demDiff = prevDem + dem
+                
+                if demDiff < 0
+
+                    d_Fund[iii, fff, 2] = -prevDem
+
+                end
+
+            end
+
+        end
+
+        for ccc in 1:kChart
+
+            prevDem = d_Chart[iii, ccc, 1]
+            dem = d_Chart[iii, ccc, 2]
+
+            if dem > stock_max
+
+                d_Chart[iii, ccc, 2] = stock_max
+
+            elseif dem < stock_min
+
+                d_Chart[iii, ccc, 2] = stock_min
+
+            end
+
+            if dem < 0
+                
+                demDiff = prevDem + dem
+                
+                if demDiff < 0
+
+                    d_Chart[iii, ccc, 2] = -prevDem
+
+                end
+
+            end
+
+        end
+
+    end
+
+    totalDemand = sum((d_Fund[:, :, 2]), dims = 2) + 
+                  sum((d_Chart[:, :, 2]), dims = 2)
+
+    excessDemand = totalDemand .- assetSupply_max
+
+    # println(excessDemand)
+
+    totalExcessDemand = sum(abs.(excessDemand))
+
+#####################################################################
+
+summation = sum(demand_Fund, dims = 3) .+ sum(demand_Chart, dims = 3)
+
+###################################################################
+
+# Fundamentalists Expected Return for the i-th Asset at time t
+expRet_Fund[i, t, f] = (((phi * fund_val[i, t]) + 
+(meanR[f] * (fund_val[i, t] - price[i, t])) + 
+((1 + phi) * dividends[i, t]) -
+price[i, t]) / price[i, t])
+
+# Fundamentalists Expected Return for the i-th Asset at time t
+eR_Fund[i, 2, f] = (((phi * fund_val[i, TT]) + 
+(meanR[f] * (fund_val[i, TT] - assetPrice[i])) + 
+((1 + phi) * dividends[i, TT]) -
+assetPrice[i]) / assetPrice[i])

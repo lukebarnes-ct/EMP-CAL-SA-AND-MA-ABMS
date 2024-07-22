@@ -198,10 +198,9 @@ function optDemand(assetPrice)
         for f in 1:kFund
 
             # Fundamentalists Expected Return for the i-th Asset at time t
-            eR_Fund[i, 2, f] = (((phi * fund_val[i, TT]) + 
+            eR_Fund[i, 2, f] =  ((phi * fund_val[i, TT]) + 
                                 (meanR[f] * (fund_val[i, TT] - assetPrice[i])) + 
-                                ((1 + phi) * dividends[i, TT]) -
-                                assetPrice[i]) / assetPrice[i]) 
+                                ((1 + phi) * dividends[i, TT])) / assetPrice[i]
         
             # Fundamentalists Exponential Moving Average Parameter
             ema_f = exp(-1/ema_wind_Fund[f])
@@ -261,11 +260,24 @@ function optDemand(assetPrice)
     d_Fund[:, :, 2] = wInvest_Fund ./ assetPrice
     d_Chart[:, :, 2] = wInvest_Chart ./ assetPrice
 
+    totalDem = sum((d_Fund[:, :, 2]), dims = 2) + 
+               sum((d_Chart[:, :, 2]), dims = 2)
+
     for iii in 1:N
+
+        totDem_i = totalDem[iii]
+        scaFact = assetSupply_max / totDem_i
 
         for fff in 1:kFund
 
             prevDem = d_Fund[iii, fff, 1]
+            dem = d_Fund[iii, fff, 2]
+
+            if totDem_i > assetSupply_max
+
+                d_Fund[iii, fff, 2] = dem * scaFact
+            end
+
             dem = d_Fund[iii, fff, 2]
 
             if dem > stock_max
@@ -278,14 +290,23 @@ function optDemand(assetPrice)
 
             end
 
+            dem = d_Fund[iii, fff, 2]
+
             if dem < 0
                 
-                demDiff = prevDem + dem
+                if prevDem > 0
+
+                    demDiff = prevDem + dem
                 
-                if demDiff < 0
+                    if demDiff < 0
 
-                    d_Fund[iii, fff, 2] = -prevDem
+                        d_Fund[iii, fff, 2] = -prevDem
 
+                    end
+
+                else 
+
+                    d_Fund[iii, fff, 2] = 0
                 end
 
             end
@@ -295,6 +316,13 @@ function optDemand(assetPrice)
         for ccc in 1:kChart
 
             prevDem = d_Chart[iii, ccc, 1]
+            dem = d_Chart[iii, ccc, 2]
+
+            if totDem_i > assetSupply_max
+
+                d_Chart[iii, ccc, 2] = dem * scaFact
+            end
+
             dem = d_Chart[iii, ccc, 2]
 
             if dem > stock_max
@@ -307,14 +335,23 @@ function optDemand(assetPrice)
 
             end
 
+            dem = d_Chart[iii, ccc, 2]
+
             if dem < 0
-                
-                demDiff = prevDem + dem
-                
-                if demDiff < 0
 
-                    d_Chart[iii, ccc, 2] = -prevDem
+                if prevDem > 0
 
+                    demDiff = prevDem + dem
+                
+                    if demDiff < 0
+
+                        d_Chart[iii, ccc, 2] = -prevDem
+    
+                    end
+
+                else 
+
+                    d_Chart[iii, ccc, 2] = 0
                 end
 
             end
@@ -345,7 +382,12 @@ for t in 2:T
     fund_val[:, t] = (1 + phi .+ phi_sd * err) .* fund_val[:, t-1]          # Expected Fundamental Value for Next Time Period
     
     resPrice = price[:, t-1]
-    resOpt = optimize(optDemand, resPrice, NelderMead())
+    priceLowerBounds = resPrice * 0.1
+    priceUpperBounds = resPrice * 100
+
+    ## resOpt = optimize(optDemand, resPrice, NelderMead())
+    resOpt = optimize(optDemand, priceLowerBounds, priceUpperBounds, 
+                      resPrice, Fminbox(NelderMead()))
 
     # Determine the price that will Clear each market of Risky Assets
     price[:, t] = Optim.minimizer(resOpt)
@@ -361,10 +403,10 @@ for t in 2:T
         for f in 1:kFund
 
             # Fundamentalists Expected Return for the i-th Asset at time t
-            expRet_Fund[i, t, f] = (((phi * fund_val[i, t]) + 
+            expRet_Fund[i, t, f] = ((phi * fund_val[i, t]) + 
                                     (meanR[f] * (fund_val[i, t] - price[i, t])) + 
                                     ((1 + phi) * dividends[i, t]) -
-                                    price[i, t]) / price[i, t])
+                                    price[i, t]) / price[i, t]
         
             # Fundamentalists Exponential Moving Average Parameter
             ema_f = exp(-1/ema_wind_Fund[f])
@@ -429,11 +471,24 @@ for t in 2:T
     demand_Fund[:, t, :] = (wealthInvest_Fund[:, t, :]) ./ price[:, t]
     demand_Chart[:, t, :] = (wealthInvest_Chart[:, t, :]) ./ price[:, t]
 
+    totalDem = sum((demand_Fund[:, t, :]), dims = 2) + 
+               sum((demand_Chart[:, t, :]), dims = 2)
+
     for iii in 1:N
+
+        totDem_i = totalDem[iii]
+        scaFact = assetSupply_max / totDem_i
 
         for fff in 1:kFund
 
             prevDem = demand_Fund[iii, t-1, fff]
+            dem = demand_Fund[iii, t, fff]
+
+            if totDem_i > assetSupply_max
+
+                demand_Fund[iii, t, fff] = dem * scaFact
+            end
+
             dem = demand_Fund[iii, t, fff]
 
             if dem > stock_max
@@ -446,14 +501,23 @@ for t in 2:T
 
             end
 
+            dem = demand_Fund[iii, t, fff]
+
             if dem < 0
-                
-                demDiff = prevDem + dem
-                
-                if demDiff < 0
+               
+                if prevDem > 0
 
-                    demand_Fund[iii, t, fff] = -prevDem
+                    demDiff = prevDem + dem
+                
+                    if demDiff < 0
 
+                        demand_Fund[iii, t, fff] = -prevDem
+    
+                    end
+
+                else 
+
+                    demand_Fund[iii, t, fff] = 0
                 end
 
             end
@@ -465,6 +529,13 @@ for t in 2:T
             prevDem = demand_Chart[iii, t-1, ccc]
             dem = demand_Chart[iii, t, ccc]
 
+            if totDem_i > assetSupply_max
+
+                demand_Chart[iii, t, ccc] = dem * scaFact
+            end
+
+            dem = demand_Chart[iii, t, ccc]
+            
             if dem > stock_max
 
                 demand_Chart[iii, t, ccc] = stock_max
@@ -475,14 +546,23 @@ for t in 2:T
 
             end
 
+            dem = demand_Chart[iii, t, ccc]
+
             if dem < 0
-                
-                demDiff = prevDem + dem
-                
-                if demDiff < 0
 
-                    demand_Chart[iii, t, ccc] = -prevDem
+                if prevDem > 0
 
+                    demDiff = prevDem + dem
+                
+                    if demDiff < 0
+
+                        demand_Chart[iii, t, ccc] = -prevDem
+    
+                    end
+
+                else 
+
+                    demand_Chart[iii, t, ccc] = 0
                 end
 
             end
@@ -545,11 +625,17 @@ wealthInvest_Chart[:, b_ttt:e_ttt, ccc]
 
 price[:, b_ttt:e_ttt]
 price_returns[:, b_ttt:e_ttt]
+asset_Returns[:, b_ttt:e_ttt]
 
 # Checks (6)
 
 demand_Fund[:, b_ttt:e_ttt, fff]
 demand_Chart[:, b_ttt:e_ttt, ccc]
+
+sum(demand_Fund, dims = 3)
+sum(demand_Chart, dims = 3)
+
+sum(demand_Fund, dims = 3) .+ sum(demand_Chart, dims = 3)
 
 # Plot Check
 
@@ -562,3 +648,11 @@ plot!(b_ttt:e_ttt, fund_val[iii, b_ttt:e_ttt], label = "Fundamental Value", line
 
 all(wealth_Fund .> 0)
 all(wealth_Chart .>= 0)
+
+#####
+
+plot(b_ttt:e_ttt, price[iii, b_ttt:e_ttt], label = "Price", title = "Asset i", 
+     xlabel = "T", ylabel = "Price", legend = :topright)
+
+plot!(b_ttt:e_ttt, fund_val[iii, b_ttt:e_ttt], label = "Fundamental Value", linecolor=:red)
+
