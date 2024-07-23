@@ -202,7 +202,8 @@ function optDemand(assetPrice)
             # Fundamentalists Expected Return for the i-th Asset at time t
             eR_Fund[i, 2, f] =  ((phi * fund_val[i, TT]) + 
                                 (meanR[f] * (fund_val[i, TT] - assetPrice[i])) + 
-                                ((1 + phi) * dividends[i, TT])) / assetPrice[i]
+                                ((1 + phi) * dividends[i, TT]) - 
+                                assetPrice[i]) / assetPrice[i]
         
             # Fundamentalists Exponential Moving Average Parameter
             ema_f = exp(-1/ema_wind_Fund[f])
@@ -240,7 +241,7 @@ function optDemand(assetPrice)
         wProp_Fund[:, ff] = (1/lambda) * inv(eR_Cov_Fund[:, :, 2, ff]) * 
                             (eR_Fund[:, 2, ff] .- r)
 
-        wProp_Fund[:, ff] = min.(max.(wProp_Fund[:, ff], propW_min), propW_max)
+        # wProp_Fund[:, ff] = min.(max.(wProp_Fund[:, ff], propW_min), propW_max)
         wInvest_Fund[:, ff] = wealth_Fund[ff, TT-1] * wProp_Fund[:, ff]
 
     end
@@ -253,7 +254,7 @@ function optDemand(assetPrice)
         # Chartists Portfolio of Risky Assets
         wProp_Chart[:, cc] = (1/lambda) * inv(eR_Cov_Chart[:, :, 2, cc]) * (eR_Chart[:, 2, cc] .- r)
 
-        wProp_Chart[:, cc] = min.(max.(wProp_Chart[:, cc], propW_min), propW_max)
+        # wProp_Chart[:, cc] = min.(max.(wProp_Chart[:, cc], propW_min), propW_max)
 
         wInvest_Chart[:, cc] = wealth_Chart[cc, TT-1] * wProp_Chart[:, cc]
 
@@ -262,112 +263,10 @@ function optDemand(assetPrice)
     d_Fund[:, :, 2] = wInvest_Fund ./ assetPrice
     d_Chart[:, :, 2] = wInvest_Chart ./ assetPrice
 
-    totalDem = sum((d_Fund[:, :, 2]), dims = 2) + 
-               sum((d_Chart[:, :, 2]), dims = 2)
-
-    for iii in 1:N
-
-        totDem_i = totalDem[iii]
-        scaFact = assetSupply_max / totDem_i
-
-        for fff in 1:kFund
-
-            prevDem = d_Fund[iii, fff, 1]
-            dem = d_Fund[iii, fff, 2]
-
-            if totDem_i > assetSupply_max
-
-                d_Fund[iii, fff, 2] = dem * scaFact
-            end
-
-            dem = d_Fund[iii, fff, 2]
-
-            if dem > stock_max
-
-                d_Fund[iii, fff, 2] = stock_max
-
-            elseif dem < stock_min
-
-                d_Fund[iii, fff, 2] = stock_min
-
-            end
-
-            dem = d_Fund[iii, fff, 2]
-
-            if dem < 0
-                
-                if prevDem > 0
-
-                    demDiff = prevDem + dem
-                
-                    if demDiff < 0
-
-                        d_Fund[iii, fff, 2] = -prevDem
-
-                    end
-
-                else 
-
-                    d_Fund[iii, fff, 2] = 0
-                end
-
-            end
-
-        end
-
-        for ccc in 1:kChart
-
-            prevDem = d_Chart[iii, ccc, 1]
-            dem = d_Chart[iii, ccc, 2]
-
-            if totDem_i > assetSupply_max
-
-                d_Chart[iii, ccc, 2] = dem * scaFact
-            end
-
-            dem = d_Chart[iii, ccc, 2]
-
-            if dem > stock_max
-
-                d_Chart[iii, ccc, 2] = stock_max
-
-            elseif dem < stock_min
-
-                d_Chart[iii, ccc, 2] = stock_min
-
-            end
-
-            dem = d_Chart[iii, ccc, 2]
-
-            if dem < 0
-
-                if prevDem > 0
-
-                    demDiff = prevDem + dem
-                
-                    if demDiff < 0
-
-                        d_Chart[iii, ccc, 2] = -prevDem
-    
-                    end
-
-                else 
-
-                    d_Chart[iii, ccc, 2] = 0
-                end
-
-            end
-
-        end
-
-    end
-
     totalDemand = sum((d_Fund[:, :, 2]), dims = 2) + 
                   sum((d_Chart[:, :, 2]), dims = 2)
 
     excessDemand = totalDemand .- assetSupply_max
-
-    # println(excessDemand)
 
     totalExcessDemand = sum(abs.(excessDemand))
 
@@ -385,7 +284,7 @@ for t in 2:T
     
     resPrice = price[:, t-1]
     priceLowerBounds = resPrice * 0.1
-    priceUpperBounds = resPrice * 100
+    priceUpperBounds = resPrice * 1e6
 
     ## resOpt = optimize(optDemand, resPrice, NelderMead())
     resOpt = optimize(optDemand, priceLowerBounds, priceUpperBounds, 
@@ -447,7 +346,7 @@ for t in 2:T
 
         # Ensure Fundamentalists Portfolio does not violate max/min Conditions
 
-        wealthProp_Fund[:, t, ff] = min.(max.(wealthProp_Fund[:, t, ff], propW_min), propW_max)
+        # wealthProp_Fund[:, t, ff] = min.(max.(wealthProp_Fund[:, t, ff], propW_min), propW_max)
 
         wealthInvest_Fund[:, t, ff] = wealth_Fund[ff, t-1] * wealthProp_Fund[:, t, ff]
 
@@ -463,7 +362,7 @@ for t in 2:T
 
         # Ensure Chartists Portfolio does not violate max/min Conditions
 
-        wealthProp_Chart[:, t, cc] = min.(max.(wealthProp_Chart[:, t, cc], propW_min), propW_max)
+        # wealthProp_Chart[:, t, cc] = min.(max.(wealthProp_Chart[:, t, cc], propW_min), propW_max)
 
         wealthInvest_Chart[:, t, cc] = wealth_Chart[cc, t-1] * wealthProp_Chart[:, t, cc]
 
@@ -472,106 +371,6 @@ for t in 2:T
     # Demand for Risky Assets at time t
     demand_Fund[:, t, :] = (wealthInvest_Fund[:, t, :]) ./ price[:, t]
     demand_Chart[:, t, :] = (wealthInvest_Chart[:, t, :]) ./ price[:, t]
-
-    totalDem = sum((demand_Fund[:, t, :]), dims = 2) + 
-               sum((demand_Chart[:, t, :]), dims = 2)
-
-    for iii in 1:N
-
-        totDem_i = totalDem[iii]
-        scaFact = assetSupply_max / totDem_i
-
-        for fff in 1:kFund
-
-            prevDem = demand_Fund[iii, t-1, fff]
-            dem = demand_Fund[iii, t, fff]
-
-            if totDem_i > assetSupply_max
-
-                demand_Fund[iii, t, fff] = dem * scaFact
-            end
-
-            dem = demand_Fund[iii, t, fff]
-
-            if dem > stock_max
-
-                demand_Fund[iii, t, fff] = stock_max
-
-            elseif dem < stock_min
-
-                demand_Fund[iii, t, fff] = stock_min
-
-            end
-
-            dem = demand_Fund[iii, t, fff]
-
-            if dem < 0
-               
-                if prevDem > 0
-
-                    demDiff = prevDem + dem
-                
-                    if demDiff < 0
-
-                        demand_Fund[iii, t, fff] = -prevDem
-    
-                    end
-
-                else 
-
-                    demand_Fund[iii, t, fff] = 0
-                end
-
-            end
-
-        end
-
-        for ccc in 1:kChart
-
-            prevDem = demand_Chart[iii, t-1, ccc]
-            dem = demand_Chart[iii, t, ccc]
-
-            if totDem_i > assetSupply_max
-
-                demand_Chart[iii, t, ccc] = dem * scaFact
-            end
-
-            dem = demand_Chart[iii, t, ccc]
-            
-            if dem > stock_max
-
-                demand_Chart[iii, t, ccc] = stock_max
-
-            elseif dem < stock_min
-
-                demand_Chart[iii, t, ccc] = stock_min
-
-            end
-
-            dem = demand_Chart[iii, t, ccc]
-
-            if dem < 0
-
-                if prevDem > 0
-
-                    demDiff = prevDem + dem
-                
-                    if demDiff < 0
-
-                        demand_Chart[iii, t, ccc] = -prevDem
-    
-                    end
-
-                else 
-
-                    demand_Chart[iii, t, ccc] = 0
-                end
-
-            end
-
-        end
-
-    end
 
     wealthInvest_Fund[:, t, :] = demand_Fund[:, t, :] .* price[:, t]
     wealthInvest_Chart[:, t, :] = demand_Chart[:, t, :] .* price[:, t]
@@ -594,7 +393,7 @@ end
 
 # Checks (1)
 
-iii = 1
+iii = 3
 b_ttt = 1
 e_ttt = T
 fff = 5

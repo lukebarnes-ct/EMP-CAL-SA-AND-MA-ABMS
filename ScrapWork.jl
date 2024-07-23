@@ -533,7 +533,7 @@ end
 ########################################################################
 
 d_Fund[:, :, 2] = wInvest_Fund ./ assetPrice
-    d_Chart[:, :, 2] = wInvest_Chart ./ assetPrice
+d_Chart[:, :, 2] = wInvest_Chart ./ assetPrice
 
     for iii in 1:N
 
@@ -623,3 +623,208 @@ eR_Fund[i, 2, f] = (((phi * fund_val[i, TT]) +
 (meanR[f] * (fund_val[i, TT] - assetPrice[i])) + 
 ((1 + phi) * dividends[i, TT]) -
 assetPrice[i]) / assetPrice[i])
+
+####################################################################
+
+totalDem = sum((d_Fund[:, :, 2]), dims = 2) + 
+           sum((d_Chart[:, :, 2]), dims = 2)
+
+for iii in 1:N
+
+    totDem_i = totalDem[iii]
+    scaFact = assetSupply_max / totDem_i
+
+    for fff in 1:kFund
+
+        prevDem = d_Fund[iii, fff, 1]
+        dem = d_Fund[iii, fff, 2]
+
+        if totDem_i > assetSupply_max
+
+            d_Fund[iii, fff, 2] = dem * scaFact
+        end
+
+        dem = d_Fund[iii, fff, 2]
+
+        if dem > stock_max
+
+            d_Fund[iii, fff, 2] = stock_max
+
+        elseif dem < stock_min
+
+            d_Fund[iii, fff, 2] = stock_min
+
+        end
+
+        dem = d_Fund[iii, fff, 2]
+
+        if dem < 0
+            
+            if prevDem > 0
+
+                demDiff = prevDem + dem
+            
+                if demDiff < 0
+
+                    d_Fund[iii, fff, 2] = -prevDem
+
+                end
+
+            else 
+
+                d_Fund[iii, fff, 2] = 0
+            end
+
+        end
+
+    end
+
+    for ccc in 1:kChart
+
+        prevDem = d_Chart[iii, ccc, 1]
+        dem = d_Chart[iii, ccc, 2]
+
+        if totDem_i > assetSupply_max
+
+            d_Chart[iii, ccc, 2] = dem * scaFact
+        end
+
+        dem = d_Chart[iii, ccc, 2]
+
+        if dem > stock_max
+
+            d_Chart[iii, ccc, 2] = stock_max
+
+        elseif dem < stock_min
+
+            d_Chart[iii, ccc, 2] = stock_min
+
+        end
+
+        dem = d_Chart[iii, ccc, 2]
+
+        if dem < 0
+
+            if prevDem > 0
+
+                demDiff = prevDem + dem
+            
+                if demDiff < 0
+
+                    d_Chart[iii, ccc, 2] = -prevDem
+
+                end
+
+            else 
+
+                d_Chart[iii, ccc, 2] = 0
+            end
+
+        end
+
+    end
+
+end
+
+totalDem = sum((demand_Fund[:, t, :]), dims = 2) + 
+               sum((demand_Chart[:, t, :]), dims = 2)
+
+    for iii in 1:N
+
+        totDem_i = totalDem[iii]
+        scaFact = assetSupply_max / totDem_i
+
+        for fff in 1:kFund
+
+            prevDem = demand_Fund[iii, t-1, fff]
+            dem = demand_Fund[iii, t, fff]
+
+            if totDem_i > assetSupply_max
+
+                demand_Fund[iii, t, fff] = dem * scaFact
+            end
+
+            dem = demand_Fund[iii, t, fff]
+
+            if dem > stock_max
+
+                demand_Fund[iii, t, fff] = stock_max
+
+            elseif dem < stock_min
+
+                demand_Fund[iii, t, fff] = stock_min
+
+            end
+
+            dem = demand_Fund[iii, t, fff]
+
+            if dem < 0
+               
+                if prevDem > 0
+
+                    demDiff = prevDem + dem
+                
+                    if demDiff < 0
+
+                        demand_Fund[iii, t, fff] = -prevDem
+    
+                    end
+
+                else 
+
+                    demand_Fund[iii, t, fff] = 0
+                end
+
+            end
+
+        end
+
+        for ccc in 1:kChart
+
+            prevDem = demand_Chart[iii, t-1, ccc]
+            dem = demand_Chart[iii, t, ccc]
+
+            if totDem_i > assetSupply_max
+
+                demand_Chart[iii, t, ccc] = dem * scaFact
+            end
+
+            dem = demand_Chart[iii, t, ccc]
+            
+            if dem > stock_max
+
+                demand_Chart[iii, t, ccc] = stock_max
+
+            elseif dem < stock_min
+
+                demand_Chart[iii, t, ccc] = stock_min
+
+            end
+
+            dem = demand_Chart[iii, t, ccc]
+
+            if dem < 0
+
+                if prevDem > 0
+
+                    demDiff = prevDem + dem
+                
+                    if demDiff < 0
+
+                        demand_Chart[iii, t, ccc] = -prevDem
+    
+                    end
+
+                else 
+
+                    demand_Chart[iii, t, ccc] = 0
+                end
+
+            end
+
+        end
+
+    end
+
+##################################################################
+
