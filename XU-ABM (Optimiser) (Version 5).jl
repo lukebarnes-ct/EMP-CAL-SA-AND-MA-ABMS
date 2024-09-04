@@ -8,7 +8,7 @@ using LinearAlgebra
 
 ### Parameters
 
-T = 100             # Number of Timesteps
+T = 500             # Number of Timesteps
 N = 3               # Number of Risky Assets
 kChart = 20         # Number of Chartists
 kFund = 20          # Number of Fundamentalists
@@ -27,8 +27,8 @@ meanR_min = 0.5     # Min Mean Reversion
 corr_max = 0.8      # Max Expected Correlation Coefficient
 corr_min = -0.2     # Min Expected Correlation Coefficient
 
-propW_max = 0.95    # Max Wealth Investment Proportion
-propW_min = -0.95   # Min Wealth Investment Proportion 
+propW_max = 1       # Max Wealth Investment Proportion
+propW_min = 1e-8    # Min Wealth Investment Proportion 
 
 stock_max = 10      # Max Stock Position
 stock_min = -5      # Min Stock Position
@@ -38,9 +38,9 @@ stock_min = -5      # Min Stock Position
 cash_0 = 10         # Initial Cash 
 div_0 = 0.002       # Initial Dividend
 fund_0 = 10         # Initial Fundamental Value
-asset_0 = 1         # Initial Risky Asset Positions
+asset_0 = 1 * 1    # Initial Risky Asset Positions
 
-assetSupply_max = (kFund * asset_0 * 1) + (kChart * asset_0 * 1)       # Initialise Max Supply of each Risky Asset
+assetSupply_max = (kFund * asset_0) + (kChart * asset_0)       # Initialise Max Supply of each Risky Asset
 
 dividends = zeros(N, T)         # Dividends of Risky Assets
 fund_val = zeros(N, T)          # Fundamental Values of Risky Assets
@@ -247,6 +247,15 @@ function optDemand(assetPrice)
                             (eR_Fund[:, 2, ff] .- r)
 
         wProp_Fund[:, ff] = min.(max.(wProp_Fund[:, ff], propW_min), propW_max)
+
+        # Use Proportional Scaling if conditions violated
+
+        propTot = sum(wProp_Fund[:, ff])
+
+        if propTot > propW_max
+            sf = propW_max ./ propTot
+            wProp_Fund[:, ff] = wProp_Fund[:, ff] .* sf
+        end
         
         wInvest_Fund[:, ff] = wealth_Fund[ff, TT-1] * wProp_Fund[:, ff]
 
@@ -258,7 +267,18 @@ function optDemand(assetPrice)
         eR_Cov_Chart[:, :, 2, cc] = getCovMat(eR_Cov_Chart[:, :, 2, cc], corr_coef_Chart[cc, :])
 
         # Chartists Portfolio of Risky Assets
-        wProp_Chart[:, cc] = (1/lambda) * inv(eR_Cov_Chart[:, :, 2, cc]) * (eR_Chart[:, 2, cc] .- r)
+        wProp_Chart[:, cc] = (1/lambda) * inv(eR_Cov_Chart[:, :, 2, cc]) * 
+                             (eR_Chart[:, 2, cc] .- r)
+
+        wProp_Chart[:, cc] = min.(max.(wProp_Chart[:, cc], propW_min), propW_max)
+
+        # Use Proportional Scaling if conditions violated
+        propTot = sum(wProp_Chart[:, cc])
+
+        if propTot > propW_max
+            sf = propW_max ./ propTot
+            wProp_Chart[:, cc] = wProp_Chart[:, cc] .* sf
+        end
 
         wInvest_Chart[:, cc] = wealth_Chart[cc, TT-1] * wProp_Chart[:, cc]
 
@@ -266,6 +286,21 @@ function optDemand(assetPrice)
 
     d_Fund[:, :, 2] = wInvest_Fund ./ assetPrice
     d_Chart[:, :, 2] = wInvest_Chart ./ assetPrice
+
+    totalDemand = sum((d_Fund[:, :, 2]), dims = 2) + 
+                  sum((d_Chart[:, :, 2]), dims = 2)
+
+    for i in 1:N
+
+        totDem_i = totalDemand[i]
+        sF = assetSupply_max / totDem_i
+
+        if totDem_i > assetSupply_max
+
+            d_Fund[i, :, 2] = d_Fund[i, :, 2] .* sF
+            d_Chart[i, :, 2] = d_Chart[i, :, 2] .* sF
+        end
+    end
 
     totalDemand = sum((d_Fund[:, :, 2]), dims = 2) + 
                   sum((d_Chart[:, :, 2]), dims = 2)
@@ -287,12 +322,8 @@ for t in 2:T
     fund_val[:, t] = (1 + phi .+ phi_sd * err) .* fund_val[:, t-1]          # Expected Fundamental Value for Next Time Period
     
     resPrice = price[:, t-1]
-    priceLowerBounds = resPrice * 0.1
-    priceUpperBounds = resPrice * 1e6
 
-    ## resOpt = optimize(optDemand, resPrice, NelderMead())
-    resOpt = optimize(optDemand, priceLowerBounds, priceUpperBounds, 
-                      resPrice, Fminbox(NelderMead()))
+    resOpt = optimize(optDemand, resPrice, NelderMead())
 
     # Determine the price that will Clear each market of Risky Assets
     price[:, t] = Optim.minimizer(resOpt)
@@ -349,6 +380,17 @@ for t in 2:T
         # Fundamentalists Portfolio of Risky Assets
         wealthProp_Fund[:, t, ff] = (1/lambda) * inv(expRet_CovMat_Fund[:, :, t, ff]) * (expRet_Fund[:, t, ff] .- r)
 
+        wealthProp_Fund[:, t, ff] = min.(max.(wealthProp_Fund[:, t, ff], propW_min), propW_max)
+
+        # Use Proportional Scaling if conditions violated
+
+        propTot = sum(wealthProp_Fund[:, t, ff])
+
+        if propTot > propW_max
+            sf = propW_max ./ propTot
+            wealthProp_Fund[:, t, ff] = wealthProp_Fund[:, t, ff] .* sf
+        end
+
         wealthInvest_Fund[:, t, ff] = wealth_Fund[ff, t-1] * wealthProp_Fund[:, t, ff]
 
     end
@@ -360,6 +402,17 @@ for t in 2:T
 
         # Chartists Portfolio of Risky Assets
         wealthProp_Chart[:, t, cc] = (1/lambda) * inv(expRet_CovMat_Chart[:, :, t, cc]) * (expRet_Chart[:, t, cc] .- r)
+
+        wealthProp_Chart[:, t, cc] = min.(max.(wealthProp_Chart[:, t, cc], propW_min), propW_max)
+
+        # Use Proportional Scaling if conditions violated
+
+        propTot = sum(wealthProp_Chart[:, t, cc])
+
+        if propTot > propW_max
+            sf = propW_max ./ propTot
+            wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* sf
+        end
 
         wealthInvest_Chart[:, t, cc] = wealth_Chart[cc, t-1] * wealthProp_Chart[:, t, cc]
 
@@ -387,7 +440,7 @@ end
 
 # Checks (1)
 
-iii = 1
+iii = 2
 b_ttt = 1
 e_ttt = T
 fff = 5
@@ -399,8 +452,6 @@ dividends
 # Checks (2)
 expRet_Fund[:, b_ttt:e_ttt, fff]
 expRet_Chart[:, b_ttt:e_ttt, ccc]
-
-expPriceReturn_Chart[:, b_ttt:e_ttt, ccc]
 
 # Checks (3)
 
