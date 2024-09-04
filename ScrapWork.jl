@@ -828,3 +828,18 @@ totalDem = sum((demand_Fund[:, t, :]), dims = 2) +
 
 ##################################################################
 
+tt = 3
+qq = 1
+
+identityMat = Matrix{Float64}(I, N, N)
+
+zMat = wealthProp_Fund[:, tt-1, :] ./ price[:, tt-1]
+
+hatMat = identityMat .- (wealthInvest_Fund[:, tt, :] * transpose(zMat))
+invHatMat = inv(hatMat)
+
+divYield = dividends[:, tt] ./ price[:, tt-1]
+
+inv(hatMat) * sum(wealthInvest_Fund[:, tt, :] .* ((wealthProp_Fund[:, tt-1, :] .* divYield) .+ 
+                                 ((1 - sum(wealthProp_Fund[:, tt-1, :])) .* (1 + r))), dims = 2)
+

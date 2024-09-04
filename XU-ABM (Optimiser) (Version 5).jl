@@ -204,7 +204,7 @@ function optDemand(assetPrice)
         for f in 1:kFund
 
             ePChange = (phi * fund_val[i, TT]) + 
-                       (meanR[f] * (fund_val[i, TT] - assetPrice[i]))
+                       (meanR[f] * (fund_val[i, TT] - assetPrice[i])) 
 
             # Fundamentalists Expected Return for the i-th Asset at time t
             eR_Fund[i, 2, f] =  (ePChange + 
@@ -225,7 +225,7 @@ function optDemand(assetPrice)
             ema_c = exp(-1/ema_wind_Chart[c])
 
             eP_Return[i, 2, c] = (ema_c * eP_Return[i, 1, c]) + 
-                                ((1 - ema_c) * pReturns[i])
+                                 ((1 - ema_c) * pReturns[i])
             
             # Chartists Expected Return for the i-th Asset at time t
             eR_Chart[i, 2, c] = eP_Return[i, 2, c] + (((1 + phi) * dividends[i, TT])/assetPrice[i])
@@ -246,7 +246,8 @@ function optDemand(assetPrice)
         wProp_Fund[:, ff] = (1/lambda) * inv(eR_Cov_Fund[:, :, 2, ff]) * 
                             (eR_Fund[:, 2, ff] .- r)
 
-        # wProp_Fund[:, ff] = min.(max.(wProp_Fund[:, ff], propW_min), propW_max)
+        wProp_Fund[:, ff] = min.(max.(wProp_Fund[:, ff], propW_min), propW_max)
+        
         wInvest_Fund[:, ff] = wealth_Fund[ff, TT-1] * wProp_Fund[:, ff]
 
     end
@@ -258,8 +259,6 @@ function optDemand(assetPrice)
 
         # Chartists Portfolio of Risky Assets
         wProp_Chart[:, cc] = (1/lambda) * inv(eR_Cov_Chart[:, :, 2, cc]) * (eR_Chart[:, 2, cc] .- r)
-
-        # wProp_Chart[:, cc] = min.(max.(wProp_Chart[:, cc], propW_min), propW_max)
 
         wInvest_Chart[:, cc] = wealth_Chart[cc, TT-1] * wProp_Chart[:, cc]
 
@@ -309,7 +308,7 @@ for t in 2:T
         for f in 1:kFund
 
             expPriceChange_Fund[i, t, f] = (phi * fund_val[i, t]) + 
-                                           (meanR[f] * (fund_val[i, t] - price[i, t]))
+                                           (meanR[f] * (fund_val[i, t] - price[i, t])) 
 
             # Fundamentalists Expected Return for the i-th Asset at time t
             expRet_Fund[i, t, f] = (expPriceChange_Fund[i, t, f] + 
@@ -350,10 +349,6 @@ for t in 2:T
         # Fundamentalists Portfolio of Risky Assets
         wealthProp_Fund[:, t, ff] = (1/lambda) * inv(expRet_CovMat_Fund[:, :, t, ff]) * (expRet_Fund[:, t, ff] .- r)
 
-        # Ensure Fundamentalists Portfolio does not violate max/min Conditions
-
-        # wealthProp_Fund[:, t, ff] = min.(max.(wealthProp_Fund[:, t, ff], propW_min), propW_max)
-
         wealthInvest_Fund[:, t, ff] = wealth_Fund[ff, t-1] * wealthProp_Fund[:, t, ff]
 
     end
@@ -366,10 +361,6 @@ for t in 2:T
         # Chartists Portfolio of Risky Assets
         wealthProp_Chart[:, t, cc] = (1/lambda) * inv(expRet_CovMat_Chart[:, :, t, cc]) * (expRet_Chart[:, t, cc] .- r)
 
-        # Ensure Chartists Portfolio does not violate max/min Conditions
-
-        # wealthProp_Chart[:, t, cc] = min.(max.(wealthProp_Chart[:, t, cc], propW_min), propW_max)
-
         wealthInvest_Chart[:, t, cc] = wealth_Chart[cc, t-1] * wealthProp_Chart[:, t, cc]
 
     end
@@ -377,9 +368,6 @@ for t in 2:T
     # Demand for Risky Assets at time t
     demand_Fund[:, t, :] = (wealthInvest_Fund[:, t, :]) ./ price[:, t]
     demand_Chart[:, t, :] = (wealthInvest_Chart[:, t, :]) ./ price[:, t]
-
-    wealthInvest_Fund[:, t, :] = demand_Fund[:, t, :] .* price[:, t]
-    wealthInvest_Chart[:, t, :] = demand_Chart[:, t, :] .* price[:, t]
 
     # Update Fundamentalists Wealth at Market Clearing Prices
     wealth_Fund[:, t] = ((wealth_Fund[:, t-1]' .- sum(wealthInvest_Fund[:, t, :], dims = 1)) .* (1 + r)) + 
@@ -399,7 +387,7 @@ end
 
 # Checks (1)
 
-iii = 3
+iii = 1
 b_ttt = 1
 e_ttt = T
 fff = 5
@@ -462,4 +450,3 @@ plot(b_ttt:e_ttt, price[iii, b_ttt:e_ttt], label = "Price", title = "Asset i",
      xlabel = "T", ylabel = "Price", legend = :topright)
 
 plot!(b_ttt:e_ttt, fund_val[iii, b_ttt:e_ttt], label = "Fundamental Value", linecolor=:red)
-
