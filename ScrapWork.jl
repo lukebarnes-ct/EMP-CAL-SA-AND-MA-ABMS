@@ -843,3 +843,10 @@ divYield = dividends[:, tt] ./ price[:, tt-1]
 inv(hatMat) * sum(wealthInvest_Fund[:, tt, :] .* ((wealthProp_Fund[:, tt-1, :] .* divYield) .+ 
                                  ((1 - sum(wealthProp_Fund[:, tt-1, :])) .* (1 + r))), dims = 2)
 
+####################################################################
+
+wealthProp_RF_Fund[t, ff] = (1 - sum(wealthProp_Fund[:, t, ff]))
+wealthInvest_RF_Fund[t, ff] = wealth_Fund[ff, t-1] * wealthProp_RF_Fund[t, ff]
+
+wealthProp_RF_Chart[t, cc] = (1 - sum(wealthProp_Chart[:, t, cc]))
+wealthInvest_RF_Chart[t, cc] = wealth_Chart[cc, t-1] * wealthProp_RF_Chart[t, cc]

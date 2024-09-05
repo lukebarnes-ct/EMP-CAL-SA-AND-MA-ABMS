@@ -27,7 +27,7 @@ meanR_min = 0.5     # Min Mean Reversion
 corr_max = 0.8      # Max Expected Correlation Coefficient
 corr_min = -0.2     # Min Expected Correlation Coefficient
 
-propW_max = 1       # Max Wealth Investment Proportion
+propW_max = 0.9       # Max Wealth Investment Proportion
 propW_min = 1e-8    # Min Wealth Investment Proportion 
 
 stock_max = 10      # Max Stock Position
@@ -50,11 +50,11 @@ asset_Returns = zeros(N, T)     # Asset Returns of Risky Assets
 
 expRet_Fund = zeros(N, T, kFund)                    # Fundamentalists Expected Return of Risky Assets
 expRet_Chart = zeros(N, T, kChart)                  # Chartists Expected Return of Risky Assets
-expRet_CovMat_Fund = ones(N, N, T, kFund)           # Expected Return Covariance Array for Fundamentalists
-expRet_CovMat_Chart = ones(N, N, T, kChart)         # Expected Return Covariance Array for Chartists
+expRet_CovMat_Fund = zeros(N, N, T, kFund)          # Expected Return Covariance Array for Fundamentalists
+expRet_CovMat_Chart = zeros(N, N, T, kChart)        # Expected Return Covariance Array for Chartists
 
-## fill!(expRet_CovMat_Fund, phi)
-## fill!(expRet_CovMat_Chart, phi)
+# fill!(expRet_CovMat_Fund, 1e-10)
+# fill!(expRet_CovMat_Chart, 1e-10)
 
 expPriceChange_Fund = zeros(N, T, kFund)                 # Fundamentalists Expected Price Change of Risky Assets
 expPriceReturn_Chart = zeros(N, T, kChart)                # Chartists Expected Price Return of Risky Assets
@@ -136,7 +136,7 @@ end
 
 for k in 1:kFund
     wealth_Fund[k, 1] = cash_0 * (1 + N)           # Set Initial Wealth of Fundamentalists
-    wealthProp_RF_Fund[1, k] = (1 - 1/(1 + N))     # Set Initial Risk-Free Prop weight
+    wealthProp_RF_Fund[1, k] = 1/(1 + N)           # Set Initial Risk-Free Prop weight
 
     # Fundamentalists Exponential Moving Average Parameter
     ema_f = exp(-1/ema_wind_Fund[k])
@@ -147,8 +147,7 @@ for k in 1:kFund
 
         expPriceChange_Fund[ii, 1, k] = (phi * fund_val[ii, 1])
         expRet_Fund[ii, 1, k] = expPriceChange_Fund[ii, 1, k] + (((1 + phi) * dividends[ii, 1])/price[ii, 1])
-        expRet_CovMat_Fund[ii, ii, 1, k] = (ema_f * expRet_CovMat_Fund[ii, ii, 1, k]) + 
-                                           ((1 - ema_f) * (expRet_Fund[ii, 1, k] - 0.0015)^2)
+        expRet_CovMat_Fund[ii, ii, 1, k] = ((1 - ema_f) * (expRet_Fund[ii, 1, k])^2)
     end
 
     expRet_CovMat_Fund[:, :, 1, k] = getCovMat(expRet_CovMat_Fund[:, :, 1, k], corr_coef_Fund[k, :])
@@ -157,7 +156,7 @@ end
 
 for k in 1:kChart
     wealth_Chart[k, 1] = cash_0 * (1 + N)           # Set Initial Wealth of Chartists
-    wealthProp_RF_Chart[1, k] = (1 - 1/(1 + N))     # Set Initial Risk-Free Prop weight
+    wealthProp_RF_Chart[1, k] = 1/(1 + N)           # Set Initial Risk-Free Prop weight
 
     # Chartists Exponential Moving Average Parameter
     ema_c = exp(-1/ema_wind_Chart[k])
@@ -166,11 +165,10 @@ for k in 1:kChart
         wealthProp_Chart[ii, 1, k] = 1/(1 + N)      # Set Initial Portfolio Weights
         demand_Chart[ii, 1, k] = asset_0            # Set Initial Asset Demand 
 
-        expPriceReturn_Chart[ii, 1, k] = (ema_c * 0.0015)
+        expPriceReturn_Chart[ii, 1, k] = (ema_c * 0.015)
         expRet_Chart[ii, 1, k] = expPriceReturn_Chart[ii, 1, k] + (((1 + phi) * dividends[ii, 1])/price[ii, 1])
 
-        expRet_CovMat_Chart[ii, ii, 1, k] = (ema_c * expRet_CovMat_Chart[ii, ii, 1, k]) + 
-        ((1 - ema_c) * (expRet_Chart[ii, 1, k] - 0.0015)^2)
+        expRet_CovMat_Chart[ii, ii, 1, k] = ((1 - ema_c) * (expRet_Chart[ii, 1, k])^2)
     end
 
     expRet_CovMat_Chart[:, :, 1, k] = getCovMat(expRet_CovMat_Chart[:, :, 1, k], corr_coef_Chart[k, :])
@@ -185,7 +183,7 @@ function optDemand(assetPrice)
     
     eR_Fund = zeros(N, 2, kFund)
     eR_Fund[:, 1, :] = expRet_Fund[:, TT-1, :]
-    eR_Cov_Fund = ones(N, N, 2, kFund)
+    eR_Cov_Fund = zeros(N, N, 2, kFund)
     eR_Cov_Fund[:, :, 1, :] = expRet_CovMat_Fund[:, :, TT-1, :]
     pReturns = (assetPrice .- price[:, TT-1]) ./ price[:, TT-1]
     returns = pReturns .+ (dividends[:, TT] ./ price[:, TT-1])
@@ -194,7 +192,7 @@ function optDemand(assetPrice)
     eP_Return[:, 1, :] = expPriceReturn_Chart[:, TT-1, :]
     eR_Chart = zeros(N, 2, kChart)
     eR_Chart[:, 1, :] = expRet_Chart[:, TT-1, :]
-    eR_Cov_Chart = ones(N, N, 2, kChart)
+    eR_Cov_Chart = zeros(N, N, 2, kChart)
     eR_Cov_Chart[:, :, 1, :] = expRet_CovMat_Chart[:, :, TT-1, :]
 
     wProp_Fund = zeros(N, kFund)
@@ -414,9 +412,6 @@ for t in 2:T
             wealthProp_Fund[:, t, ff] = wealthProp_Fund[:, t, ff] .* sf
         end
 
-        wealthProp_RF_Fund[t, ff] = (1 - sum(wealthProp_Fund[:, t, ff]))
-        wealthInvest_RF_Fund[t, ff] = wealth_Fund[ff, t-1] * wealthProp_RF_Fund[t, ff]
-
         wealthInvest_Fund[:, t, ff] = wealth_Fund[ff, t-1] * wealthProp_Fund[:, t, ff]
         
     end
@@ -440,9 +435,6 @@ for t in 2:T
             wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* sf
         end
 
-        wealthProp_RF_Chart[t, cc] = (1 - sum(wealthProp_Chart[:, t, cc]))
-        wealthInvest_RF_Chart[t, cc] = wealth_Chart[cc, t-1] * wealthProp_RF_Chart[t, cc]
-
         wealthInvest_Chart[:, t, cc] = wealth_Chart[cc, t-1] * wealthProp_Chart[:, t, cc]
 
     end
@@ -450,6 +442,34 @@ for t in 2:T
     # Demand for Risky Assets at time t
     demand_Fund[:, t, :] = (wealthInvest_Fund[:, t, :]) ./ price[:, t]
     demand_Chart[:, t, :] = (wealthInvest_Chart[:, t, :]) ./ price[:, t]
+
+    totalDem = sum((demand_Fund[:, t, :]), dims = 2) + 
+               sum((demand_Chart[:, t, :]), dims = 2)
+
+    for i in 1:N
+
+        totDem_i = totalDem[i]
+        sF = assetSupply_max / totDem_i
+
+        if totDem_i > assetSupply_max
+
+            wealthProp_Fund[i, t, :] = wealthProp_Fund[i, t, :] .* sF            
+            wealthInvest_Fund[i, t, :] = wealth_Fund[:, t-1] .* wealthProp_Fund[i, t, :]
+
+            wealthProp_Chart[i, t, :] = wealthProp_Chart[i, t, :] .* sF
+            wealthInvest_Chart[i, t, :] = wealth_Chart[:, t-1] .* wealthProp_Chart[i, t, :]
+
+        end
+
+    end
+
+    # Update Fundamentalists Investment in the Risk-Free Asset
+    wealthProp_RF_Fund[t, :] = (1 .- sum(wealthProp_Fund[:, t, :], dims = 1))
+    wealthInvest_RF_Fund[t, :] = wealth_Fund[:, t-1] .* wealthProp_RF_Fund[t, :]
+
+    # Update Chartists Investment in the Risk-Free Asset
+    wealthProp_RF_Chart[t, :] = (1 .- sum(wealthProp_Chart[:, t, :], dims = 1))
+    wealthInvest_RF_Chart[t, :] = wealth_Chart[:, t-1] .* wealthProp_RF_Chart[t, :]
 
     # Update Fundamentalists Wealth at Market Clearing Prices
     wealth_Fund[:, t] = transpose(wealthInvest_RF_Fund[t, :] .* (1 + r)) + 
