@@ -175,7 +175,9 @@ for k in 1:kChart
 end
 
 TT = 2
-fR = 2
+assetSupply_Fund = (assetSupply_max * 0.5)
+assetSupply_Chart = (assetSupply_max * 0.5)
+
 # Find the set of asset prices that such that the 
 # excess demand for each asset is 0
 
@@ -253,15 +255,6 @@ function optDemand(assetPrice)
                             (eR_Fund[:, 2, ff] .- r)
 
         wProp_Fund[:, ff] = min.(max.(wProp_Fund[:, ff], propW_min), propW_max)
-
-        # Use Proportional Scaling if conditions violated
-
-        propTot = sum(wProp_Fund[:, ff])
-
-        if propTot > propW_max
-            sf = propW_max ./ propTot
-            wProp_Fund[:, ff] = wProp_Fund[:, ff] .* sf
-        end
         
         wInvest_Fund[:, ff] = wealth_Fund[ff, TT-1] * wProp_Fund[:, ff]
 
@@ -278,14 +271,6 @@ function optDemand(assetPrice)
 
         wProp_Chart[:, cc] = min.(max.(wProp_Chart[:, cc], propW_min), propW_max)
 
-        # Use Proportional Scaling if conditions violated
-        propTot = sum(wProp_Chart[:, cc])
-
-        if propTot > propW_max
-            sf = propW_max ./ propTot
-            wProp_Chart[:, cc] = wProp_Chart[:, cc] .* sf
-        end
-
         wInvest_Chart[:, cc] = wealth_Chart[cc, TT-1] * wProp_Chart[:, cc]
 
     end
@@ -293,18 +278,25 @@ function optDemand(assetPrice)
     d_Fund[:, :, 2] = wInvest_Fund ./ assetPrice
     d_Chart[:, :, 2] = wInvest_Chart ./ assetPrice
 
-    totalDemand = sum((d_Fund[:, :, 2]), dims = 2) + 
-                  sum((d_Chart[:, :, 2]), dims = 2)
+    totDem_Fund = sum((d_Fund[:, :, 2]), dims = 2)
+    totDem_Chart = sum((d_Chart[:, :, 2]), dims = 2)
 
     for i in 1:N
 
-        totDem_i = totalDemand[i]
-        sF = assetSupply_max / totDem_i
+        totDemFund_i = totDem_Fund[i]
+        totDemChart_i = totDem_Chart[i]
 
-        if (totDem_i > assetSupply_max) | (totDem_i < assetSupply_max)
+        sF_Fund = assetSupply_Fund / totDemFund_i
+        sF_Chart = assetSupply_Chart / totDemChart_i
 
-            d_Fund[i, :, 2] = d_Fund[i, :, 2] .* sF
-            d_Chart[i, :, 2] = d_Chart[i, :, 2] .* sF
+        if (totDemFund_i > assetSupply_Fund) | (totDemFund_i < assetSupply_Fund)
+
+            d_Fund[i, :, 2] = d_Fund[i, :, 2] .* sF_Fund
+        end
+
+        if (totDemChart_i > assetSupply_Chart) | (totDemChart_i < assetSupply_Chart)
+
+            d_Chart[i, :, 2] = d_Chart[i, :, 2] .* sF_Chart
         end
         
     end
@@ -389,15 +381,6 @@ for t in 2:T
 
         wealthProp_Fund[:, t, ff] = min.(max.(wealthProp_Fund[:, t, ff], propW_min), propW_max)
 
-        # Use Proportional Scaling if conditions violated
-
-        propTot = sum(wealthProp_Fund[:, t, ff])
-
-        if propTot > propW_max
-            sf = propW_max ./ propTot
-            wealthProp_Fund[:, t, ff] = wealthProp_Fund[:, t, ff] .* sf
-        end
-
         wealthInvest_Fund[:, t, ff] = wealth_Fund[ff, t-1] * wealthProp_Fund[:, t, ff]
         
     end
@@ -412,15 +395,6 @@ for t in 2:T
 
         wealthProp_Chart[:, t, cc] = min.(max.(wealthProp_Chart[:, t, cc], propW_min), propW_max)
 
-        # Use Proportional Scaling if conditions violated
-
-        propTot = sum(wealthProp_Chart[:, t, cc])
-
-        if propTot > propW_max
-            sf = propW_max ./ propTot
-            wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* sf
-        end
-
         wealthInvest_Chart[:, t, cc] = wealth_Chart[cc, t-1] * wealthProp_Chart[:, t, cc]
 
     end
@@ -429,24 +403,29 @@ for t in 2:T
     demand_Fund[:, t, :] = (wealthInvest_Fund[:, t, :]) ./ price[:, t]
     demand_Chart[:, t, :] = (wealthInvest_Chart[:, t, :]) ./ price[:, t]
 
-    totalDem = sum((demand_Fund[:, t, :]), dims = 2) + 
-               sum((demand_Chart[:, t, :]), dims = 2)
+    totDem_Fund = sum((demand_Fund[:, t, :]), dims = 2)
+    totDem_Chart = sum((demand_Chart[:, t, :]), dims = 2)
 
     for i in 1:N
 
-        totDem_i = totalDem[i]
-        sF = assetSupply_max / totDem_i
+        totDemFund_i = totDem_Fund[i]
+        totDemChart_i = totDem_Chart[i]
 
-        if (totDem_i > assetSupply_max) | (totDem_i < assetSupply_max)
+        sF_Fund = assetSupply_Fund / totDemFund_i
+        sF_Chart = assetSupply_Chart / totDemChart_i
 
-            wealthProp_Fund[i, t, :] = wealthProp_Fund[i, t, :] .* sF            
+        if (totDemFund_i > assetSupply_Fund) | (totDemFund_i < assetSupply_Fund)
+
+            wealthProp_Fund[i, t, :] = wealthProp_Fund[i, t, :] .* sF_Fund            
             wealthInvest_Fund[i, t, :] = wealth_Fund[:, t-1] .* wealthProp_Fund[i, t, :]
-
-            wealthProp_Chart[i, t, :] = wealthProp_Chart[i, t, :] .* sF
-            wealthInvest_Chart[i, t, :] = wealth_Chart[:, t-1] .* wealthProp_Chart[i, t, :]
-
         end
 
+        if (totDemChart_i > assetSupply_Chart) | (totDemChart_i < assetSupply_Chart)
+
+            wealthProp_Chart[i, t, :] = wealthProp_Chart[i, t, :] .* sF_Chart
+            wealthInvest_Chart[i, t, :] = wealth_Chart[:, t-1] .* wealthProp_Chart[i, t, :]
+        end
+        
     end
 
     # Update Fundamentalists Investment in the Risk-Free Asset
@@ -482,7 +461,7 @@ end
 iii = 2
 b_ttt = 1
 e_ttt = T
-fff = 5
+fff = 4
 ccc = 5
 
 fund_val
