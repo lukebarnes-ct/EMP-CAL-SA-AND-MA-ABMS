@@ -211,12 +211,18 @@ function optDemand(assetPrice)
 
         for f in 1:kFund
 
-            ePChange = (phi * fund_val[i, TT]) + 
-                       (meanR[f] * (fund_val[i, TT] - assetPrice[i])) 
+            if fund_val[i, TT] > assetPrice[i]
+                ePChange = (phi * fund_val[i, TT]) + 
+                           (meanR[f] * (0.003))
+            
+            else
+                ePChange = (phi * fund_val[i, TT]) + 
+                           (meanR[f] * (-0.003))
+            end
 
             # Fundamentalists Expected Return for the i-th Asset at time t
             eR_Fund[i, 2, f] =  (ePChange + 
-                                ((1 + phi) * dividends[i, TT])) / assetPrice[i]
+                                ((1 + phi) * dividends[i, TT]))
         
             # Fundamentalists Exponential Moving Average Parameter
             ema_f = exp(-1/ema_wind_Fund[f])
@@ -349,9 +355,18 @@ for t in 2:T
             expPriceChange_Fund[i, t, f] = (phi * fund_val[i, t]) + 
                                            (meanR[f] * (fund_val[i, t] - price[i, t])) 
 
+            if fund_val[i, t] > price[i, t]
+                expPriceChange_Fund[i, t, f] = (phi * fund_val[i, t]) + 
+                                               (meanR[f] * (0.003))
+            
+            else
+                expPriceChange_Fund[i, t, f] = (phi * fund_val[i, t]) + 
+                                               (meanR[f] * (-0.003))
+            end
+
             # Fundamentalists Expected Return for the i-th Asset at time t
             expRet_Fund[i, t, f] = (expPriceChange_Fund[i, t, f] + 
-                                    ((1 + phi) * dividends[i, t])) / price[i, t]
+                                    ((1 + phi) * dividends[i, t]))
         
             # Fundamentalists Exponential Moving Average Parameter
             ema_f = exp(-1/ema_wind_Fund[f])
@@ -503,10 +518,22 @@ sum(demand_Fund, dims = 3) .+ sum(demand_Chart, dims = 3)
 
 # Plot Check
 
-plot(b_ttt:e_ttt, price[iii, b_ttt:e_ttt], label = "Price", title = "Asset i", 
-     xlabel = "T", ylabel = "Price", legend = :topright)
+p1 = plot(b_ttt:e_ttt, price[1, b_ttt:e_ttt], label = "Price", title = "Asset 1", 
+          xlabel = "T", ylabel = "Price", legend = :topright)
 
-plot!(b_ttt:e_ttt, fund_val[iii, b_ttt:e_ttt], label = "Fundamental Value", linecolor=:red)
+plot!(b_ttt:e_ttt, fund_val[1, b_ttt:e_ttt], label = "Fundamental Value", linecolor=:red)
+
+p2 = plot(b_ttt:e_ttt, price[2, b_ttt:e_ttt], label = "Price", title = "Asset 2", 
+          xlabel = "T", ylabel = "Price", legend = :topright)
+
+plot!(b_ttt:e_ttt, fund_val[2, b_ttt:e_ttt], label = "Fundamental Value", linecolor=:red)
+
+p3 = plot(b_ttt:e_ttt, price[3, b_ttt:e_ttt], label = "Price", title = "Asset 3", 
+          xlabel = "T", ylabel = "Price", legend = :topright)
+
+plot!(b_ttt:e_ttt, fund_val[3, b_ttt:e_ttt], label = "Fundamental Value", linecolor=:red)
+
+plot(p1, p2, p3, layout = (3, 1), size = (800, 800))
 
 # Checks (7)
 
@@ -514,8 +541,9 @@ all(wealth_Fund .> 0)
 all(wealth_Chart .>= 0)
 
 #####
-
-plot(b_ttt:e_ttt, price[iii, b_ttt:e_ttt], label = "Price", title = "Asset i", 
+vvv = 300
+plot(b_ttt:(e_ttt-vvv), price[iii, b_ttt:(e_ttt-vvv)], label = "Price", title = "Asset i", 
      xlabel = "T", ylabel = "Price", legend = :topright)
 
-plot!(b_ttt:e_ttt, fund_val[iii, b_ttt:e_ttt], label = "Fundamental Value", linecolor=:red)
+plot!(b_ttt:(e_ttt-vvv), fund_val[iii, b_ttt:(e_ttt-vvv)], label = "Fundamental Value", linecolor=:red)
+
