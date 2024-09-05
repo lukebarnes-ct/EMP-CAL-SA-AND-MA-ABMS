@@ -209,18 +209,12 @@ function optDemand(assetPrice)
 
         for f in 1:kFund
 
-            if fund_val[i, TT] < assetPrice[i]
-                ePChange = (phi * fund_val[i, TT]) + 
-                           (meanR[f] * (fR))
-            
-            else
-                ePChange = (phi * fund_val[i, TT]) + 
-                           (meanR[f] * (-fR))
-            end
+            ePChange = (phi * fund_val[i, TT]) + 
+                       (meanR[f] * (fund_val[i, TT] - assetPrice[i])) 
 
             # Fundamentalists Expected Return for the i-th Asset at time t
             eR_Fund[i, 2, f] =  (ePChange + 
-                                ((1 + phi) * dividends[i, TT]))
+                                ((1 + phi) * dividends[i, TT])) / assetPrice[i]
         
             # Fundamentalists Exponential Moving Average Parameter
             ema_f = exp(-1/ema_wind_Fund[f])
@@ -351,18 +345,12 @@ for t in 2:T
 
         for f in 1:kFund 
 
-            if fund_val[i, t] > price[i, t]
-                expPriceChange_Fund[i, t, f] = (phi * fund_val[i, t]) + 
-                                               (meanR[f] * (fR))
-            
-            else
-                expPriceChange_Fund[i, t, f] = (phi * fund_val[i, t]) + 
-                                               (meanR[f] * (-fR))
-            end
+            expPriceChange_Fund[i, t, f] = (phi * fund_val[i, t]) + 
+                                           (meanR[f] * (fund_val[i, t] - price[i, t])) 
 
             # Fundamentalists Expected Return for the i-th Asset at time t
             expRet_Fund[i, t, f] = (expPriceChange_Fund[i, t, f] + 
-                                    ((1 + phi) * dividends[i, t]))
+                                    ((1 + phi) * dividends[i, t])) / price[i, t]
         
             # Fundamentalists Exponential Moving Average Parameter
             ema_f = exp(-1/ema_wind_Fund[f])
