@@ -850,3 +850,53 @@ wealthInvest_RF_Fund[t, ff] = wealth_Fund[ff, t-1] * wealthProp_RF_Fund[t, ff]
 
 wealthProp_RF_Chart[t, cc] = (1 - sum(wealthProp_Chart[:, t, cc]))
 wealthInvest_RF_Chart[t, cc] = wealth_Chart[cc, t-1] * wealthProp_RF_Chart[t, cc]
+
+#################################################################################
+
+if dem < 0
+                
+    demDiff = prevDem + dem
+    
+    if demDiff < 0
+
+        d_Fund[i, f, 2] = -prevDem
+
+    end
+
+end
+
+if dem < 0
+                
+    demDiff = prevDem + dem
+    
+    if demDiff < 0
+
+        d_Chart[i, c, 2] = -prevDem
+
+    end
+
+end
+
+if dem < 0
+                
+    demDiff = prevDem + dem
+    
+    if demDiff < 0
+
+        demand_Fund[i, t, f] = -prevDem
+
+    end
+
+end
+
+if dem < 0
+                
+    demDiff = prevDem + dem
+    
+    if demDiff < 0
+
+        demand_Chart[i, t, c] = -prevDem
+
+    end
+
+end
