@@ -900,3 +900,54 @@ if dem < 0
     end
 
 end
+
+##########################################################################
+
+for ff in 1:kFund
+
+    # Fundamentalists Covariance Matrix of Expected Returns at time t
+    eR_Cov_Fund[:, :, 2, ff] = getCovMat(eR_Cov_Fund[:, :, 2, ff], corr_coef_Fund[ff, :])
+
+    # Fundamentalists Portfolio of Risky Assets
+    wProp_Fund[:, ff] = (1/lambda) * inv(eR_Cov_Fund[:, :, 2, ff]) * 
+                        (eR_Fund[:, 2, ff] .- r)
+
+    wProp_Fund[:, ff] = min.(max.(wProp_Fund[:, ff], propW_min), propW_max)
+
+    # Use Proportional Scaling if conditions violated
+
+    propTot = sum(wProp_Fund[:, ff])
+
+    if propTot > propW_max
+        sf = propW_max ./ propTot
+        wProp_Fund[:, ff] = wProp_Fund[:, ff] .* sf
+    end
+
+    wInvest_Fund[:, ff] = wealth_Fund[ff, TT-1] * wProp_Fund[:, ff]
+
+end
+
+for cc in 1:kChart
+
+    # Chartists Covariance Matrix of Expected Returns at time t
+    eR_Cov_Chart[:, :, 2, cc] = getCovMat(eR_Cov_Chart[:, :, 2, cc], corr_coef_Chart[cc, :])
+
+    # Chartists Portfolio of Risky Assets
+    wProp_Chart[:, cc] = (1/lambda) * inv(eR_Cov_Chart[:, :, 2, cc]) * (eR_Chart[:, 2, cc] .- r)
+
+    wProp_Chart[:, cc] = min.(max.(wProp_Chart[:, cc], propW_min), propW_max)
+
+    # Use Proportional Scaling if conditions violated
+    propTot = sum(wProp_Chart[:, cc])
+
+    if propTot > propW_max
+        sf = propW_max ./ propTot
+        wProp_Chart[:, cc] = wProp_Chart[:, cc] .* sf
+    end
+
+    wInvest_Chart[:, cc] = wealth_Chart[cc, TT-1] * wProp_Chart[:, cc]
+
+end
+
+#################################################################################
+
