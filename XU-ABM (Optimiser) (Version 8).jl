@@ -7,7 +7,7 @@ using Optim
 
 ### Parameters
 
-T = 200             # Number of Timesteps
+T = 100             # Number of Timesteps
 N = 3               # Number of Risky Assets
 kChart = 20         # Number of Chartists
 kFund = 20          # Number of Fundamentalists
@@ -27,10 +27,10 @@ corr_max = 0.8      # Max Expected Correlation Coefficient
 corr_min = -0.2     # Min Expected Correlation Coefficient
 
 propW_max = 0.95    # Max Wealth Investment Proportion
-propW_min = 0.00   # Min Wealth Investment Proportion 
+propW_min = 0.00    # Min Wealth Investment Proportion 
 
 stock_max = 10      # Max Stock Position
-stock_min = 0      # Min Stock Position
+stock_min = 0       # Min Stock Position
 
 ### Initialise Variables
 
@@ -39,12 +39,15 @@ div_0 = 0.002       # Initial Dividend
 fund_0 = 10         # Initial Fundamental Value
 asset_0 = 1         # Initial Risky Asset Positions
 
-assetSupply_max = (kFund * asset_0 * 1) + (kChart * asset_0 * 1)       # Initialise Max Supply of each Risky Asset
+supplyMult = 1      # Asset Supply Multiplier
+
+assetSupply_max = (kFund * asset_0 * supplyMult) + (kChart * asset_0 * supplyMult)       # Initialise Max Supply of each Risky Asset
 
 dividends = zeros(N, T)         # Dividends of Risky Assets
 fund_val = zeros(N, T)          # Fundamental Values of Risky Assets
 price = zeros(N, T)             # Prices of Risky Assets
-price_returns = zeros(N, T)     # Returns of Risky Assets
+price_returns = zeros(N, T)     # Price Returns of Risky Assets
+asset_Returns = zeros(N, T)     # Total Returns of Risky Assets
 
 expRet_Fund = zeros(N, T, kFund)                    # Fundamentalists Expected Return of Risky Assets
 expRet_Chart = zeros(N, T, kChart)                  # Chartists Expected Return of Risky Assets
@@ -83,8 +86,14 @@ wealth_Chart  = zeros(kChart, T)            # Chartists Wealth
 wealthProp_Fund = zeros(N, T, kFund)        # Fundamentalists Proportion of Wealth Invested in Risky Assets
 wealthProp_Chart = zeros(N, T, kChart)      # Chartists Proportion of Wealth Invested in Risky Assets
 
+wealthProp_RF_Fund = zeros(kFund, T)        # Fundamentalists Proportion of Wealth Invested in Risk-Free Asset
+wealthProp_RF_Chart = zeros(kChart, T)      # Chartists Proportion of Wealth Invested in Risk-Free Asset
+
 wealthInvest_Fund = zeros(N, T, kFund)      # Fundamentalists Wealth Invested in Risky Assets
 wealthInvest_Chart = zeros(N, T, kChart)    # Chartists Wealth Invested in Risky Assets
+
+wealthInvest_RF_Fund = zeros(kFund, T)      # Fundamentalists Wealth Invested in Risk-Free Asset
+wealthInvest_RF_Chart = zeros(kChart, T)    # Chartists Wealth Invested in Risk-Free Asset
 
 demand_Fund = zeros(N, T, kFund)            # Fundamentalists Demand of Risky Assets
 demand_Chart = zeros(N, T, kChart)          # Chartists Demand of Risky Assets
@@ -302,7 +311,7 @@ function optDemand(assetPrice)
 
     excessDemand = totalDemand .- assetSupply_max
 
-    totalExcessDemand = sum(abs.(excessDemand))
+    totalExcessDemand = sum(excessDemand.^2)
 
     return totalExcessDemand
 end
@@ -417,6 +426,7 @@ for t in 2:T
             elseif dem < stock_min
 
                 demand_Fund[i, t, f] = stock_min
+                println("Demand Less than Stock Fund: ", dem)
 
             end
 
@@ -433,6 +443,7 @@ for t in 2:T
             elseif dem < stock_min
 
                 demand_Chart[i, t, c] = stock_min
+                println("Demand Less than Stock Chart: ", dem)
 
             end
 
@@ -443,15 +454,23 @@ for t in 2:T
     wealthInvest_Fund[:, t, :] = demand_Fund[:, t, :] .* price[:, t]
     wealthInvest_Chart[:, t, :] = demand_Chart[:, t, :] .* price[:, t]
 
+    # Update Fundamentalists Investment in the Risk-Free Asset
+    wealthProp_RF_Fund[:, t] = (1 .- sum(wealthProp_Fund[:, t, :], dims = 1))
+    wealthInvest_RF_Fund[:, t] = wealth_Fund[:, t-1] .* wealthProp_RF_Fund[:, t]
+
+    # Update Chartists Investment in the Risk-Free Asset
+    wealthProp_RF_Chart[:, t] = (1 .- sum(wealthProp_Chart[:, t, :], dims = 1))
+    wealthInvest_RF_Chart[:, t] = wealth_Chart[:, t-1] .* wealthProp_RF_Chart[:, t]
+
     # Update Fundamentalists Wealth at Market Clearing Prices
-    wealth_Fund[:, t] = ((wealth_Fund[:, t-1]' .- sum(wealthInvest_Fund[:, t, :], dims = 1)) .* (1 + r)) + 
+    wealth_Fund[:, t] = transpose(wealthInvest_RF_Fund[:, t] .* (1 + r)) + 
                         (sum(wealthInvest_Fund[:, t, :] .* 
                         ((price[:, t] + dividends[:, t]) ./ (price[:, t-1])), dims = 1))
 
     wealth_Fund[:, t] = round.(wealth_Fund[:, t], digits = 2)
 
     # Update Chartists Wealth at Market Clearing Prices
-    wealth_Chart[:, t] = ((wealth_Chart[:, t-1]' .- sum(wealthInvest_Chart[:, t, :], dims = 1)) .* (1 + r)) + 
+    wealth_Chart[:, t] = transpose(wealthInvest_RF_Chart[:, t] .* (1 + r)) + 
                          (sum(wealthInvest_Chart[:, t, :] .* 
                          ((price[:, t] + dividends[:, t]) ./ (price[:, t-1])), dims = 1))
 
@@ -461,7 +480,7 @@ end
 
 # Checks (1)
 
-iii = 2
+iii = 1
 b_ttt = 1
 e_ttt = T
 fff = 5
@@ -525,5 +544,5 @@ plot(p1, p2, p3, layout = (3, 1), size = (800, 800))
 
 # Checks (7)
 
-all(wealth_Fund .> 0)
+all(wealth_Fund .>= 0)
 all(wealth_Chart .>= 0)
