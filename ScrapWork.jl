@@ -457,6 +457,7 @@ end
 
 TT = 2
 xxx = [10.0, 10.0, 10.0]
+xxx.^2
 optDemand(xxx)
 
 # lower = [0.0, 0.0, 0.0]
@@ -950,4 +951,47 @@ for cc in 1:kChart
 end
 
 #################################################################################
+
+for i in 1:N
+
+    totDem_i = totalDemand[i]
+    scaFact = assetSupply_max / totDem_i
+
+    if (totDem_i > assetSupply_max) | (totDem_i < assetSupply_max)
+
+        d_Fund[i, :, 2] = d_Fund[i, :, 2] .* scaFact
+        d_Chart[i, :, 2] = d_Chart[i, :, 2] * scaFact
+
+        totalDemand[i] = sum((d_Fund[i, :, 2])) + sum((d_Chart[i, :, 2]))
+    end
+
+end
+
+
+totalDem = sum((demand_Fund[:, t, :]), dims = 2) + 
+sum((demand_Chart[:, t, :]), dims = 2)
+
+for i in 1:N
+
+    totDem_i = totalDem[i]
+    scaFact = assetSupply_max / totDem_i
+
+    if (totDem_i > assetSupply_max) | (totDem_i < assetSupply_max)
+
+    demand_Fund[i, t, :] = demand_Fund[i, t, :] .* scaFact
+    demand_Chart[i, t, :] = demand_Chart[i, t, :] * scaFact
+
+    end
+
+end
+
+##############################################################################
+
+wProp_Fund[:, ff] = wProp_Fund[:, ff] .* (propW_max / sum(wProp_Fund[:, ff]))
+wProp_Chart[:, cc] = wProp_Chart[:, cc] .* (propW_max / sum(wProp_Chart[:, cc]))
+
+wealthProp_Fund[:, t, ff] = wealthProp_Fund[:, t, ff] .* (propW_max / sum(wealthProp_Fund[:, t, ff]))
+wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* (propW_max / sum(wealthProp_Chart[:, t, cc]))
+
+##############################################################################
 
