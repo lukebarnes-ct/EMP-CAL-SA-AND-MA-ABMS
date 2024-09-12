@@ -21,7 +21,7 @@ wind_max = 80       # Max Exponential Moving Average Periods
 wind_min = 20       # Min Exponential Moving Average Periods
 
 meanR_max = 1       # Max Mean Reversion
-meanR_min = 0.9     # Min Mean Reversion
+meanR_min = 0.5     # Min Mean Reversion
 
 corr_max = 0.8      # Max Expected Correlation Coefficient
 corr_min = -0.2     # Min Expected Correlation Coefficient
@@ -600,17 +600,17 @@ excessDemand_Optim
 # Plot Check Price
 
 p1 = plot(b_ttt:e_ttt, price[1, b_ttt:e_ttt], label = "Price", title = "Asset 1", 
-          xlabel = "T", ylabel = "Price", legend = :topright)
+          xlabel = "T", ylabel = "Price", legend = :topleft)
 
 plot!(b_ttt:e_ttt, fund_val[1, b_ttt:e_ttt], label = "Fundamental Value", linecolor=:red)
 
 p2 = plot(b_ttt:e_ttt, price[2, b_ttt:e_ttt], label = "Price", title = "Asset 2", 
-          xlabel = "T", ylabel = "Price", legend = :topright)
+          xlabel = "T", ylabel = "Price", legend = :topleft)
 
 plot!(b_ttt:e_ttt, fund_val[2, b_ttt:e_ttt], label = "Fundamental Value", linecolor=:red)
 
 p3 = plot(b_ttt:e_ttt, price[3, b_ttt:e_ttt], label = "Price", title = "Asset 3", 
-          xlabel = "T", ylabel = "Price", legend = :topright)
+          xlabel = "T", ylabel = "Price", legend = :topleft)
 
 plot!(b_ttt:e_ttt, fund_val[3, b_ttt:e_ttt], label = "Fundamental Value", linecolor=:red)
 
@@ -631,13 +631,13 @@ plot(p4, p5, p6, layout = (3, 1), size = (800, 800))
 
 # Histogram Check Asset Returns
 
-h1 = histogram(asset_Returns[1, b_ttt:e_ttt], bins = 40, title = "Histogram of Asset 1 Returns", 
+h1 = histogram(asset_Returns[1, b_ttt:e_ttt], bins = 80, title = "Histogram of Asset 1 Returns", 
                xlabel = "Prices", ylabel = "Frequency", legend = false)
 
-h2 = histogram(asset_Returns[2, b_ttt:e_ttt], bins = 40, title = "Histogram of Asset 2 Returns", 
+h2 = histogram(asset_Returns[2, b_ttt:e_ttt], bins = 80, title = "Histogram of Asset 2 Returns", 
                xlabel = "Prices", ylabel = "Frequency", legend = false)
 
-h3 = histogram(asset_Returns[3, b_ttt:e_ttt], bins = 40, title = "Histogram of Asset 3 Returns", 
+h3 = histogram(asset_Returns[3, b_ttt:e_ttt], bins = 80, title = "Histogram of Asset 3 Returns", 
                xlabel = "Prices", ylabel = "Frequency", legend = false)
 
 plot(h1, h2, h3, layout = (3, 1), size = (800, 800))
