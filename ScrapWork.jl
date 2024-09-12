@@ -995,3 +995,19 @@ wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* (propW_max / sum(weal
 
 ##############################################################################
 
+println(mse_Array)
+
+perm = sortperm(vec(mse_Array))
+ci = CartesianIndices(perm)
+ind = ci[perm[1:5]]
+t5 = mse_Array[ind]
+
+top5 = sss[1:5]
+
+t5Val = mse_Array[top5]
+
+mse_Array[7]
+
+vec(mse_Array)
+
+##################################################################################
