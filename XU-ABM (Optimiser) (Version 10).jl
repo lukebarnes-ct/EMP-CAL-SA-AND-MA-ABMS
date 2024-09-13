@@ -10,7 +10,7 @@ using Optim
 T = 200             # Number of Timesteps
 N = 3               # Number of Risky Assets
 kChart = 5          # Number of Chartists
-kFund = 50          # Number of Fundamentalists
+kFund = 5           # Number of Fundamentalists
 
 phi = 0.001         # Dividend Growth Rate
 phi_sd = 0.01       # Dividend Growth Rate Standard Deviation
@@ -27,7 +27,7 @@ corr_max = 0.8      # Max Expected Correlation Coefficient
 corr_min = -0.2     # Min Expected Correlation Coefficient
 
 propW_max = 0.95    # Max Wealth Investment Proportion
-propW_min = 0.05    # Min Wealth Investment Proportion 
+propW_min = 0.00   # Min Wealth Investment Proportion 
 
 stock_max = 10      # Max Stock Position
 stock_min = 0       # Min Stock Position
@@ -277,6 +277,9 @@ function optDemand(assetPrice)
         if propTot > propW_max
             sf = propW_max ./ propTot
             wProp_Fund[:, ff] = wProp_Fund[:, ff] .* sf
+        elseif propTot < propW_min
+            sf = propW_min ./ propTot
+            wProp_Fund[:, ff] = wProp_Fund[:, ff] .* sf
         end
 
         wInvest_Fund[:, ff] = wealth_Fund[ff, TT-1] * wProp_Fund[:, ff]
@@ -298,6 +301,9 @@ function optDemand(assetPrice)
 
         if propTot > propW_max
             sf = propW_max ./ propTot
+            wProp_Chart[:, cc] = wProp_Chart[:, cc] .* sf
+        elseif propTot < propW_min
+            sf = propW_min ./ propTot
             wProp_Chart[:, cc] = wProp_Chart[:, cc] .* sf
         end
 
@@ -436,6 +442,9 @@ for t in 2:T
         if propTot > propW_max
             sf = propW_max ./ propTot
             wealthProp_Fund[:, t, ff] = wealthProp_Fund[:, t, ff] .* sf
+        elseif propTot < propW_min
+            sf = propW_min ./ propTot
+            wealthProp_Fund[:, t, ff] = wealthProp_Fund[:, t, ff] .* sf
         end
 
         wealthInvest_Fund[:, t, ff] = wealth_Fund[ff, t-1] * wealthProp_Fund[:, t, ff]
@@ -459,6 +468,9 @@ for t in 2:T
 
         if propTot > propW_max
             sf = propW_max ./ propTot
+            wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* sf
+        elseif propTot < propW_min
+            sf = propW_min ./ propTot
             wealthProp_Chart[:, t, cc] = wealthProp_Chart[:, t, cc] .* sf
         end
 
