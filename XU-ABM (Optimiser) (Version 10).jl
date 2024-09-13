@@ -7,10 +7,10 @@ using Optim
 
 ### Parameters
 
-T = 100             # Number of Timesteps
+T = 200             # Number of Timesteps
 N = 3               # Number of Risky Assets
-kChart = 5         # Number of Chartists
-kFund = 20          # Number of Fundamentalists
+kChart = 5          # Number of Chartists
+kFund = 50          # Number of Fundamentalists
 
 phi = 0.001         # Dividend Growth Rate
 phi_sd = 0.01       # Dividend Growth Rate Standard Deviation
@@ -27,7 +27,7 @@ corr_max = 0.8      # Max Expected Correlation Coefficient
 corr_min = -0.2     # Min Expected Correlation Coefficient
 
 propW_max = 0.95    # Max Wealth Investment Proportion
-propW_min = 0.00    # Min Wealth Investment Proportion 
+propW_min = 0.05    # Min Wealth Investment Proportion 
 
 stock_max = 10      # Max Stock Position
 stock_min = 0       # Min Stock Position
@@ -36,7 +36,7 @@ stock_min = 0       # Min Stock Position
 
 cash_0 = 10         # Initial Cash 
 div_0 = 0.002       # Initial Dividend
-fund_0 = 4          # Initial Fundamental Value
+fund_0 = 5          # Initial Fundamental Value
 asset_0 = 1         # Initial Risky Asset Positions
 
 supplyMult = 1      # Asset Supply Multiplier
@@ -177,7 +177,7 @@ for k in 1:kChart
         
         demand_Chart[ii, 1, k] = asset_0            # Set Initial Asset Demand 
 
-        expPriceReturn_Chart[ii, 1, k] = (ema_c * 0.015) 
+        expPriceReturn_Chart[ii, 1, k] = 0
         expRet_Chart[ii, 1, k] = expPriceReturn_Chart[ii, 1, k] 
 
         expRet_CovMat_Chart[ii, ii, 1, k] = (ema_c * expRet_CovMat_Chart[ii, ii, 1, k])
@@ -369,7 +369,7 @@ for t in 2:T
     # Determine the price that will Clear each market of Risky Assets
     price[:, t] = Optim.minimizer(resOpt)
 
-    excessDemand_Optim[1, t] = Optim.minimum(resOpt)
+    excessDemand_Optim[1, t] = round(Optim.minimum(resOpt), digits = 3)
 
     # Calculate Price Returns
     price_returns[:, t] = ((price[:, t] - price[:, t-1]) ./ price[:, t-1])
@@ -551,7 +551,7 @@ end
 iii = 1
 b_ttt = 1
 e_ttt = T
-fff = 5
+fff = 2
 ccc = 2
 
 fund_val
@@ -600,17 +600,17 @@ excessDemand_Optim
 # Plot Check Price
 
 p1 = plot(b_ttt:e_ttt, price[1, b_ttt:e_ttt], label = "Price", title = "Asset 1", 
-          xlabel = "T", ylabel = "Price", legend = :topright)
+          xlabel = "T", ylabel = "Price", legend = :topleft)
 
 plot!(b_ttt:e_ttt, fund_val[1, b_ttt:e_ttt], label = "Fundamental Value", linecolor=:red)
 
 p2 = plot(b_ttt:e_ttt, price[2, b_ttt:e_ttt], label = "Price", title = "Asset 2", 
-          xlabel = "T", ylabel = "Price", legend = :topright)
+          xlabel = "T", ylabel = "Price", legend = :topleft)
 
 plot!(b_ttt:e_ttt, fund_val[2, b_ttt:e_ttt], label = "Fundamental Value", linecolor=:red)
 
 p3 = plot(b_ttt:e_ttt, price[3, b_ttt:e_ttt], label = "Price", title = "Asset 3", 
-          xlabel = "T", ylabel = "Price", legend = :topright)
+          xlabel = "T", ylabel = "Price", legend = :topleft)
 
 plot!(b_ttt:e_ttt, fund_val[3, b_ttt:e_ttt], label = "Fundamental Value", linecolor=:red)
 
@@ -629,7 +629,25 @@ p6 = plot(b_ttt:e_ttt, asset_Returns[3, b_ttt:e_ttt], label = "Returns", title =
 
 plot(p4, p5, p6, layout = (3, 1), size = (800, 800))
 
+# Histogram Check Asset Returns
+
+h1 = histogram(asset_Returns[1, b_ttt:e_ttt], bins = 80, title = "Histogram of Asset 1 Returns", 
+               xlabel = "Prices", ylabel = "Frequency", legend = false)
+
+h2 = histogram(asset_Returns[2, b_ttt:e_ttt], bins = 80, title = "Histogram of Asset 2 Returns", 
+               xlabel = "Prices", ylabel = "Frequency", legend = false)
+
+h3 = histogram(asset_Returns[3, b_ttt:e_ttt], bins = 80, title = "Histogram of Asset 3 Returns", 
+               xlabel = "Prices", ylabel = "Frequency", legend = false)
+
+plot(h1, h2, h3, layout = (3, 1), size = (800, 800))
+
+
 # Checks (7)
 
 all(wealth_Fund .>= 0)
 all(wealth_Chart .>= 0)
+
+# Checks (8)
+
+sum((price .- fund_val).^2)
