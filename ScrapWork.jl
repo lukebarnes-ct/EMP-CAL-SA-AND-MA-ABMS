@@ -1011,3 +1011,47 @@ mse_Array[7]
 vec(mse_Array)
 
 ##################################################################################
+
+# Update Fundamentalists Investment in the Risk-Free Asset
+wealthProp_RF_Fund[:, t] = (1 .- sum(wealthProp_Fund[:, t, :], dims = 1))
+wealthInvest_RF_Fund[:, t] = wealth_Fund[:, t-1] .* wealthProp_RF_Fund[:, t]
+
+# Update Chartists Investment in the Risk-Free Asset
+wealthProp_RF_Chart[:, t] = (1 .- sum(wealthProp_Chart[:, t, :], dims = 1))
+wealthInvest_RF_Chart[:, t] = wealth_Chart[:, t-1] .* wealthProp_RF_Chart[:, t]
+
+for f in 1:kFund
+
+    wp = (1 - sum(wealthProp_Fund[:, t, f]))
+
+    if wp > 1
+
+        wealthProp_RF_Fund[f, t] = 0
+        wealthInvest_RF_Fund[f, t] = 0
+
+    else
+
+        # Update Fundamentalists Investment in the Risk-Free Asset
+        wealthProp_RF_Fund[f, t] = (1 - sum(wealthProp_Fund[:, t, f]))
+        wealthInvest_RF_Fund[f, t] = wealth_Fund[f, t-1] * wealthProp_RF_Fund[f, t]
+    end
+end
+
+for c in 1:kChart
+
+    wp = (1 - sum(wealthProp_Chart[:, t, c]))
+
+    if wp > 1
+
+        wealthProp_RF_Chart[c, t] = 0
+        wealthInvest_RF_Chart[c, t] = 0
+
+    else
+
+        # Update Chartists Investment in the Risk-Free Asset
+        wealthProp_RF_Chart[c, t] = (1 - sum(wealthProp_Chart[:, t, c]))
+        wealthInvest_RF_Chart[c, t] = wealth_Chart[c, t-1] * wealthProp_RF_Chart[c, t]
+    end
+end
+
+##################################################################################
