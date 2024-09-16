@@ -7,9 +7,9 @@ using Optim
 
 ### Parameters
 
-T = 400             # Number of Timesteps
+T = 300             # Number of Timesteps
 N = 3               # Number of Risky Assets
-kChart = 5          # Number of Chartists
+kChart = 15          # Number of Chartists
 kFund = 15          # Number of Fundamentalists
 
 phi = 0.001         # Dividend Growth Rate
@@ -21,16 +21,16 @@ wind_max = 96       # Max Exponential Moving Average Periods
 wind_min = 24       # Min Exponential Moving Average Periods
 
 meanR_max = 1.00     # Max Mean Reversion
-meanR_min = 0.75     # Min Mean Reversion
+meanR_min = 0.25     # Min Mean Reversion
 
-corr_max = 0.90      # Max Expected Correlation Coefficient
-corr_min = 0.00      # Min Expected Correlation Coefficient
+corr_max = 0.60      # Max Expected Correlation Coefficient
+corr_min = -0.60     # Min Expected Correlation Coefficient
 
 propW_max = 0.95    # Max Wealth Investment Proportion
-propW_min = 0.00    # Min Wealth Investment Proportion 
+propW_min = -0.95   # Min Wealth Investment Proportion 
 
 stock_max = 10      # Max Stock Position
-stock_min = 0       # Min Stock Position
+stock_min = -5       # Min Stock Position
 
 ### Initialise Variables
 
@@ -64,7 +64,8 @@ for i in 1:N
     price[i, 1] = fund_0 * 0.80     # Set Initial Asset Price
 end
 
-Random.seed!(1234)                  # Set Seed for Reproducibility
+# Set Seed for Reproducibility
+Random.seed!(1234)                  
 
 # Fundamentalists Mean Reversion Parameter
 meanR = round.(rand(Uniform(meanR_min, meanR_max), kFund), digits = 2)
@@ -577,19 +578,25 @@ function plotPrices(Prices, FValue, Time, kF, kC)
 
     t = 1:Time
 
-    p1 = plot(t, Prices[1, :], label = "Price", title = "Asset 1, KF = $kF, KC = $kC", 
+    p1 = plot(t, Prices[1, :], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
+              Gamma = [$meanR_min, $meanR_max], Rho = [$corr_min, $corr_max], 
+              Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
     plot!(t, FValue[1, :], 
           label = "Fundamental Value", linecolor=:red)
 
-    p2 = plot(t, Prices[2, :], label = "Price", title = "Asset 2, KF = $kF, KC = $kC", 
+    p2 = plot(t, Prices[2, :], label = "Price", title = "Asset 2, KF = $kF, KC = $kC, 
+              Gamma = [$meanR_min, $meanR_max], Rho = [$corr_min, $corr_max], 
+              Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
     plot!(t, FValue[2, :], 
           label = "Fundamental Value", linecolor=:red)
 
-    p3 = plot(t, Prices[3, :], label = "Price", title = "Asset 3, KF = $kF, KC = $kC", 
+    p3 = plot(t, Prices[3, :], label = "Price", title = "Asset 3, KF = $kF, KC = $kC, 
+              Gamma = [$meanR_min, $meanR_max], Rho = [$corr_min, $corr_max], 
+              Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
     plot!(t, FValue[3, :], 
