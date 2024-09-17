@@ -9,7 +9,7 @@ using Optim
 
 T = 300             # Number of Timesteps
 N = 3               # Number of Risky Assets
-kChart = 15          # Number of Chartists
+kChart = 15         # Number of Chartists
 kFund = 15          # Number of Fundamentalists
 
 phi = 0.001         # Dividend Growth Rate
@@ -30,13 +30,13 @@ propW_max = 0.95    # Max Wealth Investment Proportion
 propW_min = -0.95   # Min Wealth Investment Proportion 
 
 stock_max = 10      # Max Stock Position
-stock_min = -5       # Min Stock Position
+stock_min = -5      # Min Stock Position
 
 ### Initialise Variables
 
 cash_0 = 20                 # Initial Cash 
 div_0 = 0.002               # Initial Dividend
-fund_0 = cash_0 * 0.5       # Initial Fundamental Value
+fund_0 = cash_0 * 0.50       # Initial Fundamental Value
 asset_0 = 1                 # Initial Risky Asset Positions
 
 assetSupply_max = (kFund * asset_0) + (kChart * asset_0)       # Initialise Max Supply of each Risky Asset
@@ -52,8 +52,8 @@ expRet_Chart = zeros(N, T, kChart)                  # Chartists Expected Return 
 expRet_CovMat_Fund = ones(N, N, T, kFund)           # Expected Return Covariance Array for Fundamentalists
 expRet_CovMat_Chart = ones(N, N, T, kChart)         # Expected Return Covariance Array for Chartists
 
-fill!(expRet_CovMat_Fund, 1)
-fill!(expRet_CovMat_Chart, 1)
+fill!(expRet_CovMat_Fund, 2)
+fill!(expRet_CovMat_Chart, 2)
 
 expPriceChange_Fund = zeros(N, T, kFund)            # Fundamentalists Expected Price Change of Risky Assets
 expPriceReturn_Chart = zeros(N, T, kChart)          # Chartists Expected Price Return of Risky Assets
@@ -61,7 +61,7 @@ expPriceReturn_Chart = zeros(N, T, kChart)          # Chartists Expected Price R
 for i in 1:N
     dividends[i, 1] = div_0         # Set Initial Dividend in Matrix
     fund_val[i, 1] = fund_0         # Set Initial Fundamental Value
-    price[i, 1] = fund_0 * 0.80     # Set Initial Asset Price
+    price[i, 1] = cash_0 * 0.50     # Set Initial Asset Price
 end
 
 # Set Seed for Reproducibility
@@ -580,23 +580,20 @@ function plotPrices(Prices, FValue, Time, kF, kC)
 
     p1 = plot(t, Prices[1, :], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
               Gamma = [$meanR_min, $meanR_max], Rho = [$corr_min, $corr_max], 
-              Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max]", 
+              Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max],
+              EMA = [$wind_min, $wind_max]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
     plot!(t, FValue[1, :], 
           label = "Fundamental Value", linecolor=:red)
 
-    p2 = plot(t, Prices[2, :], label = "Price", title = "Asset 2, KF = $kF, KC = $kC, 
-              Gamma = [$meanR_min, $meanR_max], Rho = [$corr_min, $corr_max], 
-              Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max]", 
+    p2 = plot(t, Prices[2, :], label = "Price", title = "Asset 2", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
     plot!(t, FValue[2, :], 
           label = "Fundamental Value", linecolor=:red)
 
-    p3 = plot(t, Prices[3, :], label = "Price", title = "Asset 3, KF = $kF, KC = $kC, 
-              Gamma = [$meanR_min, $meanR_max], Rho = [$corr_min, $corr_max], 
-              Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max]", 
+    p3 = plot(t, Prices[3, :], label = "Price", title = "Asset 3", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
     plot!(t, FValue[3, :], 
