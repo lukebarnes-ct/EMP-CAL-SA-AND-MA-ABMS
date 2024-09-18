@@ -8,12 +8,12 @@ using PrettyTables
 
 ### Parameters
 
-T = 300             # Number of Timesteps
+T = 350             # Number of Timesteps
 N = 3               # Number of Risky Assets
 kChart = 15         # Number of Chartists
 kFund = 15          # Number of Fundamentalists
 
-phi = 0.001         # Dividend Growth Rate
+phi = 0.002         # Dividend Growth Rate
 phi_sd = 0.01       # Dividend Growth Rate Standard Deviation
 r = 0.0012          # Risk Free Rate
 lambda = 3          # Relative Risk Aversion
@@ -35,13 +35,10 @@ stock_min = -5      # Min Stock Position
 
 ### Initialise Variables
 
-wealth_0_Fund = 80          # Initial Fundamentalist Wealth
-wealth_0_Chart = 80         # Initial Chartist Wealth
-div_0 = 0.002               # Initial Dividend
-fund_0 = 10                 # Initial Fundamental Value
-asset_0 = 1                 # Initial Risky Asset Positions
-
-assetSupply_max = (kFund * asset_0) + (kChart * asset_0)       # Initialise Max Supply of each Risky Asset
+wealth_0_Fund = ((N + 1) * 20) * 3          # Initial Fundamentalist Wealth
+wealth_0_Chart = ((N + 1) * 20) * 1            # Initial Chartist Wealth
+div_0 = 0.002                               # Initial Dividend
+fund_0 = 10                                 # Initial Fundamental Value
 
 dividends = zeros(N, T)         # Dividends of Risky Assets
 fund_val = zeros(N, T)          # Fundamental Values of Risky Assets
@@ -54,8 +51,8 @@ expRet_Chart = zeros(N, T, kChart)                  # Chartists Expected Return 
 expRet_CovMat_Fund = ones(N, N, T, kFund)           # Expected Return Covariance Array for Fundamentalists
 expRet_CovMat_Chart = ones(N, N, T, kChart)         # Expected Return Covariance Array for Chartists
 
-fill!(expRet_CovMat_Fund, 2)
-fill!(expRet_CovMat_Chart, 2)
+fill!(expRet_CovMat_Fund, 10)
+fill!(expRet_CovMat_Chart, 0.5)
 
 expPriceChange_Fund = zeros(N, T, kFund)            # Fundamentalists Expected Price Change of Risky Assets
 expPriceReturn_Chart = zeros(N, T, kChart)          # Chartists Expected Price Return of Risky Assets
@@ -63,11 +60,11 @@ expPriceReturn_Chart = zeros(N, T, kChart)          # Chartists Expected Price R
 for i in 1:N
     dividends[i, 1] = div_0         # Set Initial Dividend in Matrix
     fund_val[i, 1] = fund_0         # Set Initial Fundamental Value
-    price[i, 1] = fund_0 * 0.750    # Set Initial Asset Price
+    price[i, 1] = fund_0 * 0.59     # Set Initial Asset Price
 end
 
 # Set Seed for Reproducibility
-Random.seed!(1234)                  
+Random.seed!(1234)
 
 # Fundamentalists Mean Reversion Parameter
 meanR = round.(rand(Uniform(meanR_min, meanR_max), kFund), digits = 2)
@@ -139,10 +136,6 @@ function getCovMat(retArr, coefMat)
 end
 
 for k in 1:kFund
-    
-    # Set Initial Risk-Free Prop weight
-    wealthProp_RF_Fund[k, 1] = 1/(1 + N)           
-    wealthInvest_RF_Fund[k, 1] = wealth_0_Fund * wealthProp_RF_Fund[k, 1]
 
     # Fundamentalists Exponential Moving Average Parameter
     ema_f = exp(-1/ema_wind_Fund[k])
@@ -150,7 +143,8 @@ for k in 1:kFund
     for ii in 1:N
         
         # Set Initial Portfolio Weights
-        wealthProp_Fund[ii, 1, k] = 1/(1 + N)       
+        # wealthProp_Fund[ii, 1, k] = 1/(1 + N)   
+        wealthProp_Fund[ii, 1, k] = 0.05    
         wealthInvest_Fund[ii, 1, k] = wealth_0_Fund * wealthProp_Fund[ii, 1, k] 
 
         # Set Initial Asset Demand 
@@ -165,6 +159,10 @@ for k in 1:kFund
 
     expRet_CovMat_Fund[:, :, 1, k] = getCovMat(expRet_CovMat_Fund[:, :, 1, k], corr_coef_Fund[k, :])
 
+    # Set Initial Risk-Free Prop weight 
+    wealthProp_RF_Fund[k, 1] = (1 - sum(wealthProp_Fund[:, 1, k]))     
+    wealthInvest_RF_Fund[k, 1] = wealth_0_Fund * wealthProp_RF_Fund[k, 1]
+
     # Set Initial Wealth of Fundamentalists
 
     wealth_Fund[k, 1] = wealthInvest_RF_Fund[k, 1] + 
@@ -172,10 +170,6 @@ for k in 1:kFund
 end
 
 for k in 1:kChart
-    
-    # Set Initial Risk-Free Prop weight
-    wealthProp_RF_Chart[k, 1] = 1/(1 + N)           
-    wealthInvest_RF_Chart[k, 1] = wealth_0_Chart * wealthProp_RF_Chart[k, 1]
 
     # Chartists Exponential Moving Average Parameter
     ema_c = exp(-1/ema_wind_Chart[k])
@@ -183,7 +177,8 @@ for k in 1:kChart
     for ii in 1:N
         
         # Set Initial Portfolio Weights
-        wealthProp_Chart[ii, 1, k] = 1/(1 + N)      
+        # wealthProp_Chart[ii, 1, k] = 1/(1 + N)
+        wealthProp_Chart[ii, 1, k] = 0.05      
         wealthInvest_Chart[ii, 1, k] = wealth_0_Chart * wealthProp_Chart[ii, 1, k]
         
         # Set Initial Asset Demand
@@ -198,11 +193,18 @@ for k in 1:kChart
 
     expRet_CovMat_Chart[:, :, 1, k] = getCovMat(expRet_CovMat_Chart[:, :, 1, k], corr_coef_Chart[k, :])
 
+    # Set Initial Risk-Free Prop weight
+    wealthProp_RF_Chart[k, 1] = (1 - sum(wealthProp_Chart[:, 1, k]))       
+    wealthInvest_RF_Chart[k, 1] = wealth_0_Chart * wealthProp_RF_Chart[k, 1]
+
     # Set Initial Wealth of Chartists
 
     wealth_Chart[k, 1] = wealthInvest_RF_Chart[k, 1] + 
                          sum(wealthInvest_Chart[:, 1, k])          
 end
+
+# Initialise Max Supply of each Risky Asset
+assetSupply_max = sum(demand_Fund[1, 1, :]) + sum(demand_Chart[1, 1, :])
 
 TT = 2
 
@@ -577,22 +579,93 @@ function plotReturns(Returns, Time, kF, kC)
 
     t = 1:Time
 
-    p1 = plot(t, Returns[1, :], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
+    if N == 2
+
+        p1 = plot(t, Returns[1, :], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
               xlabel = "T", ylabel = "Returns", legend = :topleft)
 
-    hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
+        hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
-    p2 = plot(t, Returns[2, :], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
+        p2 = plot(t, Returns[2, :], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
+                xlabel = "T", ylabel = "Returns", legend = :topleft)
+                
+        hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
+
+        plot(p1, p2, layout = (N, 1), size = (800, 800))
+
+    elseif N == 3
+
+        p1 = plot(t, Returns[1, :], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
               xlabel = "T", ylabel = "Returns", legend = :topleft)
-              
-    hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
-    p3 = plot(t, Returns[3, :], label = "Returns", title = "Asset 3, KF = $kF, KC = $kC", 
+        hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
+
+        p2 = plot(t, Returns[2, :], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
+                xlabel = "T", ylabel = "Returns", legend = :topleft)
+                
+        hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
+
+        p3 = plot(t, Returns[3, :], label = "Returns", title = "Asset 3, KF = $kF, KC = $kC", 
+                xlabel = "T", ylabel = "Returns", legend = :topleft)
+
+        hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
+
+        plot(p1, p2, p3, layout = (N, 1), size = (800, 800))
+
+    elseif N == 4
+
+        p1 = plot(t, Returns[1, :], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
               xlabel = "T", ylabel = "Returns", legend = :topleft)
 
-    hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
+        hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
-    plot(p1, p2, p3, layout = (3, 1), size = (800, 800))
+        p2 = plot(t, Returns[2, :], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
+                xlabel = "T", ylabel = "Returns", legend = :topleft)
+                
+        hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
+
+        p3 = plot(t, Returns[3, :], label = "Returns", title = "Asset 3, KF = $kF, KC = $kC", 
+                xlabel = "T", ylabel = "Returns", legend = :topleft)
+
+        hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
+
+        p4 = plot(t, Returns[4, :], label = "Returns", title = "Asset 4, KF = $kF, KC = $kC", 
+                xlabel = "T", ylabel = "Returns", legend = :topleft)
+
+        hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
+
+        plot(p1, p2, p3, p4, layout = (N, 1), size = (800, 800))
+
+    elseif N == 5
+
+        p1 = plot(t, Returns[1, :], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
+              xlabel = "T", ylabel = "Returns", legend = :topleft)
+
+        hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
+
+        p2 = plot(t, Returns[2, :], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
+                xlabel = "T", ylabel = "Returns", legend = :topleft)
+                
+        hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
+
+        p3 = plot(t, Returns[3, :], label = "Returns", title = "Asset 3, KF = $kF, KC = $kC", 
+                xlabel = "T", ylabel = "Returns", legend = :topleft)
+
+        hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
+
+        p4 = plot(t, Returns[4, :], label = "Returns", title = "Asset 4, KF = $kF, KC = $kC", 
+                xlabel = "T", ylabel = "Returns", legend = :topleft)
+
+        hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
+
+        p5 = plot(t, Returns[5, :], label = "Returns", title = "Asset 5, KF = $kF, KC = $kC", 
+                xlabel = "T", ylabel = "Returns", legend = :topleft)
+
+        hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
+
+        plot(p1, p2, p3, p4, p5, layout = (N, 1), size = (800, 800))
+
+    end
 
 end
 
@@ -604,28 +677,120 @@ function plotPrices(Prices, FValue, Time, kF, kC)
 
     t = 1:Time
 
-    p1 = plot(t, Prices[1, :], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
+    sz = 250 * N
+
+    if N == 2
+
+        p1 = plot(t, Prices[1, :], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
               Gamma = [$meanR_min, $meanR_max], Rho = [$corr_min, $corr_max], 
               Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max],
               EMA = [$wind_min, $wind_max]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
-    plot!(t, FValue[1, :], 
-          label = "Fundamental Value", linecolor=:red)
+        plot!(t, FValue[1, :], 
+            label = "Fundamental Value", linecolor=:red)
 
-    p2 = plot(t, Prices[2, :], label = "Price", title = "Asset 2", 
+        p2 = plot(t, Prices[2, :], label = "Price", title = "Asset 2", 
+                xlabel = "T", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[2, :], 
+            label = "Fundamental Value", linecolor=:red)
+
+        plot(p1, p2, layout = (N, 1), size = (800, sz))
+
+    elseif N == 3
+
+        p1 = plot(t, Prices[1, :], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
+              Gamma = [$meanR_min, $meanR_max], Rho = [$corr_min, $corr_max], 
+              Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max],
+              EMA = [$wind_min, $wind_max]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
-    plot!(t, FValue[2, :], 
-          label = "Fundamental Value", linecolor=:red)
+        plot!(t, FValue[1, :], 
+            label = "Fundamental Value", linecolor=:red)
 
-    p3 = plot(t, Prices[3, :], label = "Price", title = "Asset 3", 
+        p2 = plot(t, Prices[2, :], label = "Price", title = "Asset 2", 
+                xlabel = "T", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[2, :], 
+            label = "Fundamental Value", linecolor=:red)
+
+        p3 = plot(t, Prices[3, :], label = "Price", title = "Asset 3", 
+                xlabel = "T", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[3, :], 
+            label = "Fundamental Value", linecolor=:red)
+
+        plot(p1, p2, p3, layout = (3, 1), size = (800, sz))
+
+    elseif N == 4
+
+        p1 = plot(t, Prices[1, :], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
+              Gamma = [$meanR_min, $meanR_max], Rho = [$corr_min, $corr_max], 
+              Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max],
+              EMA = [$wind_min, $wind_max]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
-    plot!(t, FValue[3, :], 
-          label = "Fundamental Value", linecolor=:red)
+        plot!(t, FValue[1, :], 
+            label = "Fundamental Value", linecolor=:red)
 
-    plot(p1, p2, p3, layout = (3, 1), size = (800, 800))
+        p2 = plot(t, Prices[2, :], label = "Price", title = "Asset 2", 
+                xlabel = "T", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[2, :], 
+            label = "Fundamental Value", linecolor=:red)
+
+        p3 = plot(t, Prices[3, :], label = "Price", title = "Asset 3", 
+                xlabel = "T", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[3, :], 
+            label = "Fundamental Value", linecolor=:red)
+
+        p4 = plot(t, Prices[4, :], label = "Price", title = "Asset 4", 
+            xlabel = "T", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[4, :], 
+              label = "Fundamental Value", linecolor=:red)
+
+        plot(p1, p2, p3, p4, layout = (N, 1), size = (800, sz))
+
+    elseif N == 5
+
+        p1 = plot(t, Prices[1, :], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
+              Gamma = [$meanR_min, $meanR_max], Rho = [$corr_min, $corr_max], 
+              Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max],
+              EMA = [$wind_min, $wind_max]", 
+              xlabel = "T", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[1, :], 
+            label = "Fundamental Value", linecolor=:red)
+
+        p2 = plot(t, Prices[2, :], label = "Price", title = "Asset 2", 
+                xlabel = "T", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[2, :], 
+            label = "Fundamental Value", linecolor=:red)
+
+        p3 = plot(t, Prices[3, :], label = "Price", title = "Asset 3", 
+                xlabel = "T", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[3, :], 
+            label = "Fundamental Value", linecolor=:red)
+
+        p4 = plot(t, Prices[4, :], label = "Price", title = "Asset 4", 
+            xlabel = "T", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[4, :], 
+              label = "Fundamental Value", linecolor=:red)
+
+        p5 = plot(t, Prices[5, :], label = "Price", title = "Asset 5", 
+            xlabel = "T", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[5, :], 
+              label = "Fundamental Value", linecolor=:red)
+        plot(p1, p2, p3, p4, p5, layout = (N, 1), size = (800, sz))
+
+    end
 
 end
 
@@ -690,10 +855,21 @@ function printOutput(bt, et, agent, type)
                     header = head)
 
     elseif type == "Demand"
-        pretty_table(sum(demand_Fund, dims = 3))
-        pretty_table(sum(demand_Chart, dims = 3))
-        pretty_table(sum(demand_Fund, dims = 3) .+ sum(demand_Chart, dims = 3))
-        pretty_table(excessDemand_Optim)
+        println("Fundamentalists Demand")
+        df = reshape(sum(demand_Fund, dims = 3), 3, T)
+        pretty_table(df[:, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]],
+                    header = head)
+        println("Chartists Demand")
+        dc = reshape(sum(demand_Chart, dims = 3), 3, T)
+        pretty_table(dc[:, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]],
+                    header = head)
+        println("Total Demand")
+        dt = reshape(sum(demand_Fund, dims = 3) .+ sum(demand_Chart, dims = 3), 3, T)
+        pretty_table(dt[:, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]],
+                    header = head)
+        println("Excess Demand")
+        pretty_table(transpose(excessDemand_Optim[1, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]]),
+                    header = head)
     end
 end
 
@@ -702,3 +878,4 @@ printOutput(1, T, 5, "Prop")
 printOutput(1, T, 5, "Invest")
 printOutput(1, T, 5, "Wealth")
 printOutput(1, T, 5, "Price")
+printOutput(1, T, 5, "Demand")
