@@ -10,7 +10,7 @@ using Optim
 T = 200             # Number of Timesteps
 N = 3               # Number of Risky Assets
 kChart = 10         # Number of Chartists
-kFund = 20          # Number of Fundamentalists
+kFund = 5          # Number of Fundamentalists
 
 phi = 0.001         # Dividend Growth Rate
 phi_sd = 0.01       # Dividend Growth Rate Standard Deviation
@@ -548,7 +548,6 @@ end
 
 # Checks (1)
 
-iii = 1
 b_ttt = 1
 e_ttt = T
 fff = 2
@@ -599,6 +598,32 @@ excessDemand_Optim
 
 # Plot Check Price
 
+function plotPrices(Prices, FValue, Time, kF, kC)
+
+    t = 1:Time
+
+    p1 = plot(t, Prices[1, :], label = "Price", title = "Asset 1, KF = $kF, KC = $kC", 
+              xlabel = "T", ylabel = "Price", legend = :topleft)
+
+    plot!(t, FValue[1, :], 
+          label = "Fundamental Value", linecolor=:red)
+
+    p2 = plot(t, Prices[2, :], label = "Price", title = "Asset 2, KF = $kF, KC = $kC", 
+              xlabel = "T", ylabel = "Price", legend = :topleft)
+
+    plot!(t, FValue[2, :], 
+          label = "Fundamental Value", linecolor=:red)
+
+    p3 = plot(t, Prices[3, :], label = "Price", title = "Asset 3, KF = $kF, KC = $kC", 
+              xlabel = "T", ylabel = "Price", legend = :topleft)
+
+    plot!(t, FValue[3, :], 
+          label = "Fundamental Value", linecolor=:red)
+
+    plot(p1, p2, p3, layout = (3, 1), size = (800, 800))
+
+end
+
 p1 = plot(b_ttt:e_ttt, price[1, b_ttt:e_ttt], label = "Price", title = "Asset 1", 
           xlabel = "T", ylabel = "Price", legend = :topleft)
 
@@ -615,6 +640,8 @@ p3 = plot(b_ttt:e_ttt, price[3, b_ttt:e_ttt], label = "Price", title = "Asset 3"
 plot!(b_ttt:e_ttt, fund_val[3, b_ttt:e_ttt], label = "Fundamental Value", linecolor=:red)
 
 plot(p1, p2, p3, layout = (3, 1), size = (800, 800))
+
+plotPrices(price, fund_val, T, kFund, kChart)
 
 # Plot Check Asset Returns
 
@@ -1075,6 +1102,8 @@ vec(mse_Array)
 
 # Optimising Hyperparameters
 
+TimeT = 20
+
 kF_Seq = 5:5:30
 kC_Seq = 5:5:30
 
@@ -1085,8 +1114,8 @@ rMin_Seq = 0.5:0.05:0.95
 
 cMin_Seq = -0.8:0.1:0.4
 
-mse_Array = zeros(length(kF_Seq), length(kC_Seq))
-prArray = zeros(3, 2, length(kF_Seq), length(kC_Seq))
+prArray = zeros(3, TimeT, length(kF_Seq), length(kC_Seq))
+fvArray = zeros(3, TimeT, length(kF_Seq), length(kC_Seq))
 
 function optHyperparameter(T, N, kF, kC, wMax, wMin, rMin, cMin)
 
@@ -1112,7 +1141,7 @@ function optHyperparameter(T, N, kF, kC, wMax, wMin, rMin, cMin)
     corr_min = cMin     # Min Expected Correlation Coefficient
 
     propW_max = 0.95    # Max Wealth Investment Proportion
-    propW_min = 0.00    # Min Wealth Investment Proportion 
+    propW_min = 0.05    # Min Wealth Investment Proportion 
 
     stock_max = 10      # Max Stock Position
     stock_min = 0       # Min Stock Position
@@ -1148,7 +1177,7 @@ function optHyperparameter(T, N, kF, kC, wMax, wMin, rMin, cMin)
     for i in 1:N
         dividends[i, 1] = div_0         # Set Initial Dividend in Matrix
         fund_val[i, 1] = fund_0         # Set Initial Fundamental Value
-        price[i, 1] = fund_0 * 1.00     # Set Initial Asset Price
+        price[i, 1] = fund_0 * 0.60     # Set Initial Asset Price
     end
 
     Random.seed!(1234)                  # Set Seed for Reproducibility
@@ -1166,7 +1195,7 @@ function optHyperparameter(T, N, kF, kC, wMax, wMin, rMin, cMin)
                             kFund, triAg), digits = 2)
 
     corr_coef_Chart = round.(rand(Uniform(corr_min, corr_max), 
-                            kChart, triAg), digits = 2)
+                             kChart, triAg), digits = 2)
 
     wealth_Fund  = zeros(kFund, T)              # Fundamentalists Wealth
     wealth_Chart  = zeros(kChart, T)            # Chartists Wealth
@@ -1437,19 +1466,51 @@ function optHyperparameter(T, N, kF, kC, wMax, wMin, rMin, cMin)
 
 end
 
+function plotPrices(Prices, FValue, Time, kF, kC)
+
+    t = 1:Time
+
+    p1 = plot(t, Prices[1, :], label = "Price", title = "Asset 1, KF = $kF, KC = $kC", 
+              xlabel = "T", ylabel = "Price", legend = :topleft)
+
+    plot!(t, FValue[1, :], 
+          label = "Fundamental Value", linecolor=:red)
+
+    p2 = plot(t, Prices[2, :], label = "Price", title = "Asset 2, KF = $kF, KC = $kC", 
+              xlabel = "T", ylabel = "Price", legend = :topleft)
+
+    plot!(t, FValue[2, :], 
+          label = "Fundamental Value", linecolor=:red)
+
+    p3 = plot(t, Prices[3, :], label = "Price", title = "Asset 3, KF = $kF, KC = $kC", 
+              xlabel = "T", ylabel = "Price", legend = :topleft)
+
+    plot!(t, FValue[3, :], 
+          label = "Fundamental Value", linecolor=:red)
+
+    plot(p1, p2, p3, layout = (3, 1), size = (800, 800))
+
+end
+
 for f in 1:length(kF_Seq)
 
     for c in 1:length(kC_Seq)
 
-        pr, fV = optHyperparameter(2, 3, 
+        pr, fV = optHyperparameter(TimeT, 3, 
                                    kF_Seq[f], kC_Seq[c], 
                                    72, 24, 
                                    0.75, -0.5)
         prArray[:, :, f, c] = pr
-        mse_Array[f, c] = sum((pr .- fV).^2)            
-        println("Iteration: f: ", kF_Seq[f], " c: ", kC_Seq[c])
-        println(pr)
+        fvArray[:, :, f, c] = fV
 
+        println("Iteration: f: ", kF_Seq[f], " c: ", kC_Seq[c])
+
+        plotPrices(prArray[:, :, f, c], fvArray[:, :, f, c], 
+                   TimeT, kF_Seq[f], kC_Seq[c])
+
+        display(plotPrices(prArray[:, :, f, c], fvArray[:, :, f, c], 
+                TimeT, kF_Seq[f], kC_Seq[c]))
+        
     end
 end
 
