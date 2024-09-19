@@ -8,7 +8,7 @@ using PrettyTables
 
 ### Parameters
 
-T = 350             # Number of Timesteps
+T = 2000             # Number of Timesteps
 N = 3               # Number of Risky Assets
 kChart = 15         # Number of Chartists
 kFund = 15          # Number of Fundamentalists
@@ -38,7 +38,7 @@ stock_min = -5      # Min Stock Position
 wealth_0_Fund = ((N + 1) * 20) * 3          # Initial Fundamentalist Wealth
 wealth_0_Chart = ((N + 1) * 20) * 1            # Initial Chartist Wealth
 div_0 = 0.002                               # Initial Dividend
-fund_0 = 10                                 # Initial Fundamental Value
+fund_0 = 2                                 # Initial Fundamental Value
 
 dividends = zeros(N, T)         # Dividends of Risky Assets
 fund_val = zeros(N, T)          # Fundamental Values of Risky Assets
@@ -60,7 +60,7 @@ expPriceReturn_Chart = zeros(N, T, kChart)          # Chartists Expected Price R
 for i in 1:N
     dividends[i, 1] = div_0         # Set Initial Dividend in Matrix
     fund_val[i, 1] = fund_0         # Set Initial Fundamental Value
-    price[i, 1] = fund_0 * 0.59     # Set Initial Asset Price
+    price[i, 1] = fund_0 * 0.25     # Set Initial Asset Price
 end
 
 # Set Seed for Reproducibility
@@ -675,81 +675,81 @@ display(plotReturns(asset_Returns, T, kFund, kChart))
 
 function plotPrices(Prices, FValue, Time, kF, kC)
 
-    t = 1:Time
+    t = 1000:Time
 
     sz = 250 * N
 
     if N == 2
 
-        p1 = plot(t, Prices[1, :], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
+        p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
               Gamma = [$meanR_min, $meanR_max], Rho = [$corr_min, $corr_max], 
               Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max],
               EMA = [$wind_min, $wind_max]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
-        plot!(t, FValue[1, :], 
+        plot!(t, FValue[1, t], 
             label = "Fundamental Value", linecolor=:red)
 
-        p2 = plot(t, Prices[2, :], label = "Price", title = "Asset 2", 
+        p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
                 xlabel = "T", ylabel = "Price", legend = :topleft)
 
-        plot!(t, FValue[2, :], 
+        plot!(t, FValue[2, t], 
             label = "Fundamental Value", linecolor=:red)
 
         plot(p1, p2, layout = (N, 1), size = (800, sz))
 
     elseif N == 3
 
-        p1 = plot(t, Prices[1, :], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
+        p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
               Gamma = [$meanR_min, $meanR_max], Rho = [$corr_min, $corr_max], 
               Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max],
               EMA = [$wind_min, $wind_max]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
-        plot!(t, FValue[1, :], 
+        plot!(t, FValue[1, t], 
             label = "Fundamental Value", linecolor=:red)
 
-        p2 = plot(t, Prices[2, :], label = "Price", title = "Asset 2", 
+        p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
                 xlabel = "T", ylabel = "Price", legend = :topleft)
 
-        plot!(t, FValue[2, :], 
+        plot!(t, FValue[2, t], 
             label = "Fundamental Value", linecolor=:red)
 
-        p3 = plot(t, Prices[3, :], label = "Price", title = "Asset 3", 
+        p3 = plot(t, Prices[3, t], label = "Price", title = "Asset 3", 
                 xlabel = "T", ylabel = "Price", legend = :topleft)
 
-        plot!(t, FValue[3, :], 
+        plot!(t, FValue[3, t], 
             label = "Fundamental Value", linecolor=:red)
 
         plot(p1, p2, p3, layout = (3, 1), size = (800, sz))
 
     elseif N == 4
 
-        p1 = plot(t, Prices[1, :], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
+        p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
               Gamma = [$meanR_min, $meanR_max], Rho = [$corr_min, $corr_max], 
               Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max],
               EMA = [$wind_min, $wind_max]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
-        plot!(t, FValue[1, :], 
+        plot!(t, FValue[1, t], 
             label = "Fundamental Value", linecolor=:red)
 
-        p2 = plot(t, Prices[2, :], label = "Price", title = "Asset 2", 
+        p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
                 xlabel = "T", ylabel = "Price", legend = :topleft)
 
-        plot!(t, FValue[2, :], 
+        plot!(t, FValue[2, t], 
             label = "Fundamental Value", linecolor=:red)
 
-        p3 = plot(t, Prices[3, :], label = "Price", title = "Asset 3", 
+        p3 = plot(t, Prices[3, t], label = "Price", title = "Asset 3", 
                 xlabel = "T", ylabel = "Price", legend = :topleft)
 
-        plot!(t, FValue[3, :], 
+        plot!(t, FValue[3, t], 
             label = "Fundamental Value", linecolor=:red)
 
-        p4 = plot(t, Prices[4, :], label = "Price", title = "Asset 4", 
+        p4 = plot(t, Prices[4, t], label = "Price", title = "Asset 4", 
             xlabel = "T", ylabel = "Price", legend = :topleft)
 
-        plot!(t, FValue[4, :], 
+        plot!(t, FValue[4, t], 
               label = "Fundamental Value", linecolor=:red)
 
         plot(p1, p2, p3, p4, layout = (N, 1), size = (800, sz))
@@ -762,31 +762,31 @@ function plotPrices(Prices, FValue, Time, kF, kC)
               EMA = [$wind_min, $wind_max]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
-        plot!(t, FValue[1, :], 
+        plot!(t, FValue[1, t], 
             label = "Fundamental Value", linecolor=:red)
 
-        p2 = plot(t, Prices[2, :], label = "Price", title = "Asset 2", 
+        p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
                 xlabel = "T", ylabel = "Price", legend = :topleft)
 
-        plot!(t, FValue[2, :], 
+        plot!(t, FValue[2, t], 
             label = "Fundamental Value", linecolor=:red)
 
-        p3 = plot(t, Prices[3, :], label = "Price", title = "Asset 3", 
+        p3 = plot(t, Prices[3, t], label = "Price", title = "Asset 3", 
                 xlabel = "T", ylabel = "Price", legend = :topleft)
 
-        plot!(t, FValue[3, :], 
+        plot!(t, FValue[3, t], 
             label = "Fundamental Value", linecolor=:red)
 
-        p4 = plot(t, Prices[4, :], label = "Price", title = "Asset 4", 
+        p4 = plot(t, Prices[4, t], label = "Price", title = "Asset 4", 
             xlabel = "T", ylabel = "Price", legend = :topleft)
 
-        plot!(t, FValue[4, :], 
+        plot!(t, FValue[4, t], 
               label = "Fundamental Value", linecolor=:red)
 
-        p5 = plot(t, Prices[5, :], label = "Price", title = "Asset 5", 
+        p5 = plot(t, Prices[5, t], label = "Price", title = "Asset 5", 
             xlabel = "T", ylabel = "Price", legend = :topleft)
 
-        plot!(t, FValue[5, :], 
+        plot!(t, FValue[5, t], 
               label = "Fundamental Value", linecolor=:red)
         plot(p1, p2, p3, p4, p5, layout = (N, 1), size = (800, sz))
 
