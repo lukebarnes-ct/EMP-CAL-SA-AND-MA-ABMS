@@ -6,7 +6,10 @@ using Distributions
 using Optim
 using PrettyTables
 
-function modelHyperparameters(Time, N, kC, kF)
+function modelHyperparameters(Time, N, kC, kF,
+                              w_max, w_min, mR_max, mR_min,
+                              c_max, c_min, pW_max, pW_min,
+                              s_max, s_min)
 
     ### Parameters
 
@@ -20,20 +23,20 @@ function modelHyperparameters(Time, N, kC, kF)
     r = 0.0012          # Risk Free Rate
     lambda = 3          # Relative Risk Aversion
 
-    wind_max = 96       # Max Exponential Moving Average Periods
-    wind_min = 24       # Min Exponential Moving Average Periods
+    wind_max = w_max       # Max Exponential Moving Average Periods
+    wind_min = w_min       # Min Exponential Moving Average Periods
 
-    meanR_max = 1.00     # Max Mean Reversion
-    meanR_min = 0.25     # Min Mean Reversion
+    meanR_max = mR_max     # Max Mean Reversion
+    meanR_min = mR_min     # Min Mean Reversion
 
-    corr_max = 0.60      # Max Expected Correlation Coefficient
-    corr_min = -0.60     # Min Expected Correlation Coefficient
+    corr_max = c_max      # Max Expected Correlation Coefficient
+    corr_min = c_min      # Min Expected Correlation Coefficient
 
-    propW_max = 0.95    # Max Wealth Investment Proportion
-    propW_min = -0.95   # Min Wealth Investment Proportion 
+    propW_max = pW_max    # Max Wealth Investment Proportion
+    propW_min = pW_min    # Min Wealth Investment Proportion 
 
-    stock_max = 10      # Max Stock Position
-    stock_min = -5      # Min Stock Position
+    stock_max = s_max      # Max Stock Position
+    stock_min = s_min      # Min Stock Position
 
     ### Initialise Variables
 
@@ -583,112 +586,132 @@ function modelHyperparameters(Time, N, kC, kF)
 
 end
 
-time = 4000
+timeEnd = 4000
 n = 3
 numFund = 15
 numChart = 15
 
+wMax = 96       # Max Exponential Moving Average Periods
+wMin = 24       # Min Exponential Moving Average Periods
+
+mRMax = 1.00     # Max Mean Reversion
+mRMin = 0.25     # Min Mean Reversion
+
+corrMax = 0.60      # Max Expected Correlation Coefficient
+corrMin = -0.60     # Min Expected Correlation Coefficient
+
+pWMax = 0.95    # Max Wealth Investment Proportion
+pWMin = -0.95   # Min Wealth Investment Proportion 
+
+stockMax = 10      # Max Stock Position
+stockMin = -5      # Min Stock Position
+
 prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, wpChart, wpChart_rf, 
 wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, wFund, wChart, 
-demFund, demChart, excDem = modelHyperparameters(time, n, numChart, numFund)
+demFund, demChart, excDem = modelHyperparameters(timeEnd, n, numChart, numFund)
+
+# Plot Parameters 
+
+BT = 1000      ### Start Time Series Plot Here
+ET = 2000   ### End Time Series Plot Here
 
 # Plot Check Asset Returns
 
-function plotReturns(Returns, Time, kF, kC)
+function plotReturns(Returns, bt, et, kF, kC)
 
-    t = 1:Time
+    t = bt:et
 
-    if N == 2
+    if n == 2
 
-        p1 = plot(t, Returns[1, :], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
+        p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
               xlabel = "T", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
-        p2 = plot(t, Returns[2, :], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
+        p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
                 xlabel = "T", ylabel = "Returns", legend = :topleft)
                 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
-        plot(p1, p2, layout = (N, 1), size = (800, 800))
+        plot(p1, p2, layout = (n, 1), size = (800, 800))
 
-    elseif N == 3
+    elseif n == 3
 
-        p1 = plot(t, Returns[1, :], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
+        p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
               xlabel = "T", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
-        p2 = plot(t, Returns[2, :], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
+        p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
                 xlabel = "T", ylabel = "Returns", legend = :topleft)
                 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
-        p3 = plot(t, Returns[3, :], label = "Returns", title = "Asset 3, KF = $kF, KC = $kC", 
+        p3 = plot(t, Returns[3, t], label = "Returns", title = "Asset 3, KF = $kF, KC = $kC", 
                 xlabel = "T", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
-        plot(p1, p2, p3, layout = (N, 1), size = (800, 800))
+        plot(p1, p2, p3, layout = (n, 1), size = (800, 800))
 
-    elseif N == 4
+    elseif n == 4
 
-        p1 = plot(t, Returns[1, :], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
+        p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
               xlabel = "T", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
-        p2 = plot(t, Returns[2, :], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
+        p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
                 xlabel = "T", ylabel = "Returns", legend = :topleft)
                 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
-        p3 = plot(t, Returns[3, :], label = "Returns", title = "Asset 3, KF = $kF, KC = $kC", 
+        p3 = plot(t, Returns[3, t], label = "Returns", title = "Asset 3, KF = $kF, KC = $kC", 
                 xlabel = "T", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
-        p4 = plot(t, Returns[4, :], label = "Returns", title = "Asset 4, KF = $kF, KC = $kC", 
+        p4 = plot(t, Returns[4, t], label = "Returns", title = "Asset 4, KF = $kF, KC = $kC", 
                 xlabel = "T", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
-        plot(p1, p2, p3, p4, layout = (N, 1), size = (800, 800))
+        plot(p1, p2, p3, p4, layout = (n, 1), size = (800, 800))
 
-    elseif N == 5
+    elseif n == 5
 
-        p1 = plot(t, Returns[1, :], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
+        p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
               xlabel = "T", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
-        p2 = plot(t, Returns[2, :], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
+        p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
                 xlabel = "T", ylabel = "Returns", legend = :topleft)
                 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
-        p3 = plot(t, Returns[3, :], label = "Returns", title = "Asset 3, KF = $kF, KC = $kC", 
+        p3 = plot(t, Returns[3, t], label = "Returns", title = "Asset 3, KF = $kF, KC = $kC", 
                 xlabel = "T", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
-        p4 = plot(t, Returns[4, :], label = "Returns", title = "Asset 4, KF = $kF, KC = $kC", 
+        p4 = plot(t, Returns[4, t], label = "Returns", title = "Asset 4, KF = $kF, KC = $kC", 
                 xlabel = "T", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
-        p5 = plot(t, Returns[5, :], label = "Returns", title = "Asset 5, KF = $kF, KC = $kC", 
+        p5 = plot(t, Returns[5, t], label = "Returns", title = "Asset 5, KF = $kF, KC = $kC", 
                 xlabel = "T", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
-        plot(p1, p2, p3, p4, p5, layout = (N, 1), size = (800, 800))
+        plot(p1, p2, p3, p4, p5, layout = (n, 1), size = (800, 800))
 
     end
 
 end
 
-display(plotReturns(returns, time, numFund, numChart))
+display(plotReturns(returns, BT, ET, numFund, numChart))
 
 # Plot Check Price
 
@@ -696,14 +719,14 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
 
     t = bt:et
 
-    sz = 250 * N
+    sz = 250 * n
 
-    if N == 2
+    if n == 2
 
         p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
-              Gamma = [$meanR_min, $meanR_max], Rho = [$corr_min, $corr_max], 
-              Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max],
-              EMA = [$wind_min, $wind_max]", 
+              Gamma = [$mRMin, $mRMax], Rho = [$corrMin, $corrMax], 
+              Tau = [$pWMin, $pWMax], Stock = [$stockMin, $stockMax],
+              EMA = [$wMin, $wMax]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[1, t], 
@@ -715,14 +738,14 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
         plot!(t, FValue[2, t], 
             label = "Fundamental Value", linecolor=:red)
 
-        plot(p1, p2, layout = (N, 1), size = (800, sz))
+        plot(p1, p2, layout = (n, 1), size = (800, sz))
 
-    elseif N == 3
+    elseif n == 3
 
         p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
-              Gamma = [$meanR_min, $meanR_max], Rho = [$corr_min, $corr_max], 
-              Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max],
-              EMA = [$wind_min, $wind_max]", 
+              Gamma = [$mRMin, $mRMax], Rho = [$corrMin, $corrMax], 
+              Tau = [$pWMin, $pWMax], Stock = [$stockMin, $stockMax],
+              EMA = [$wMin, $wMax]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[1, t], 
@@ -742,12 +765,12 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
 
         plot(p1, p2, p3, layout = (3, 1), size = (800, sz))
 
-    elseif N == 4
+    elseif n == 4
 
         p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
-              Gamma = [$meanR_min, $meanR_max], Rho = [$corr_min, $corr_max], 
-              Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max],
-              EMA = [$wind_min, $wind_max]", 
+              Gamma = [$mRMin, $mRMax], Rho = [$corrMin, $corrMax], 
+              Tau = [$pWMin, $pWMax], Stock = [$stockMin, $stockMax],
+              EMA = [$wMin, $wMax]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[1, t], 
@@ -771,14 +794,14 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
         plot!(t, FValue[4, t], 
               label = "Fundamental Value", linecolor=:red)
 
-        plot(p1, p2, p3, p4, layout = (N, 1), size = (800, sz))
+        plot(p1, p2, p3, p4, layout = (n, 1), size = (800, sz))
 
-    elseif N == 5
+    elseif n == 5
 
         p1 = plot(t, Prices[1, :], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
-              Gamma = [$meanR_min, $meanR_max], Rho = [$corr_min, $corr_max], 
-              Tau = [$propW_min, $propW_max], Stock = [$stock_min, $stock_max],
-              EMA = [$wind_min, $wind_max]", 
+              Gamma = [$mRMin, $mRMax], Rho = [$corrMin, $corrMax], 
+              Tau = [$pWMin, $pWMax], Stock = [$stockMin, $stockMax],
+              EMA = [$wMin, $wMax]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[1, t], 
@@ -807,13 +830,13 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
 
         plot!(t, FValue[5, t], 
               label = "Fundamental Value", linecolor=:red)
-        plot(p1, p2, p3, p4, p5, layout = (N, 1), size = (800, sz))
+        plot(p1, p2, p3, p4, p5, layout = (n, 1), size = (800, sz))
 
     end
 
 end
 
-display(plotPrices(prices, fundValue, 2000, 3000, numFund, numChart))
+display(plotPrices(prices, fundValue, BT, ET, numFund, numChart))
 
 # Print Output from Model 
 
@@ -892,9 +915,9 @@ function printOutput(bt, et, agent, type)
     end
 end
 
-printOutput(1, time, 5, "ER")
-printOutput(1, time, 5, "Prop")
-printOutput(1, time, 5, "Invest")
-printOutput(1, time, 5, "Wealth")
-printOutput(1, time, 5, "Price")
-printOutput(1, time, 5, "Demand")
+printOutput(BT, ET, 5, "ER")
+printOutput(BT, ET, 5, "Prop")
+printOutput(BT, ET, 5, "Invest")
+printOutput(BT, ET, 5, "Wealth")
+printOutput(BT, ET, 5, "Price")
+printOutput(BT, ET, 5, "Demand")
