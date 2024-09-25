@@ -844,6 +844,8 @@ function printOutput(bt, et, agent, type)
 
     head = ["$bt", "$bt+1", "$bt+2", "$bt+3", "$bt+4", "$et-4", "$et-3", "$et-2", "$et-1", "$et"]
 
+    lt = length(bt:et)
+
     if type == "ER"
         println("Fundamentalists Expected Return")
         pretty_table(erFund[:, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et], agent],
@@ -898,15 +900,15 @@ function printOutput(bt, et, agent, type)
 
     elseif type == "Demand"
         println("Fundamentalists Demand")
-        df = reshape(sum(demFund, dims = 3), 3, et)
+        df = reshape(sum(demFund, dims = 3), 3, timeEnd)
         pretty_table(df[:, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]],
                     header = head)
         println("Chartists Demand")
-        dc = reshape(sum(demChart, dims = 3), 3, et)
+        dc = reshape(sum(demChart, dims = 3), 3, timeEnd)
         pretty_table(dc[:, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]],
                     header = head)
         println("Total Demand")
-        dt = reshape(sum(demFund, dims = 3) .+ sum(demChart, dims = 3), 3, et)
+        dt = reshape(sum(demFund, dims = 3) .+ sum(demChart, dims = 3), 3, timeEnd)
         pretty_table(dt[:, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]],
                     header = head)
         println("Excess Demand")
