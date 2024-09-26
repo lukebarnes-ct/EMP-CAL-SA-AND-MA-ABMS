@@ -9,7 +9,7 @@ using PrettyTables
 function modelHyperparameters(Time, N, kC, kF,
                               w_max, w_min, mR_max, mR_min,
                               c_max, c_min, pW_max, pW_min,
-                              s_max, s_min)
+                              s_max, s_min, fV, mF, mC)
 
     ### Parameters
 
@@ -18,7 +18,7 @@ function modelHyperparameters(Time, N, kC, kF,
     kChart = kC         # Number of Chartists
     kFund = kF          # Number of Fundamentalists
 
-    phi = 0.002         # Dividend Growth Rate
+    phi = 0.001         # Dividend Growth Rate
     phi_sd = 0.01       # Dividend Growth Rate Standard Deviation
     r = 0.0012          # Risk Free Rate
     lambda = 3          # Relative Risk Aversion
@@ -41,9 +41,11 @@ function modelHyperparameters(Time, N, kC, kF,
     ### Initialise Variables
 
     div_0 = 0.002                                   # Initial Dividend
-    fund_0 = 2                                      # Initial Fundamental Value
-    wealth_0_Fund = ((N + 1) * fund_0) * 30          # Initial Fundamentalist Wealth
-    wealth_0_Chart = ((N + 1) * fund_0) * 10         # Initial Chartist Wealth
+    fund_0 = fV                                     # Initial Fundamental Value
+    mult_Fund = mF
+    mult_Chart = mC
+    wealth_0_Fund = ((N + 1) * fund_0) * mult_Fund          # Initial Fundamentalist Wealth
+    wealth_0_Chart = ((N + 1) * fund_0) * mult_Chart        # Initial Chartist Wealth
 
     dividends = zeros(N, T)         # Dividends of Risky Assets
     fund_val = zeros(N, T)          # Fundamental Values of Risky Assets
@@ -56,8 +58,8 @@ function modelHyperparameters(Time, N, kC, kF,
     expRet_CovMat_Fund = ones(N, N, T, kFund)           # Expected Return Covariance Array for Fundamentalists
     expRet_CovMat_Chart = ones(N, N, T, kChart)         # Expected Return Covariance Array for Chartists
 
-    fill!(expRet_CovMat_Fund, 10)
-    fill!(expRet_CovMat_Chart, 0.5)
+    fill!(expRet_CovMat_Fund, 1)
+    fill!(expRet_CovMat_Chart, 0.1)
 
     expPriceChange_Fund = zeros(N, T, kFund)            # Fundamentalists Expected Price Change of Risky Assets
     expPriceReturn_Chart = zeros(N, T, kChart)          # Chartists Expected Price Return of Risky Assets
@@ -147,8 +149,7 @@ function modelHyperparameters(Time, N, kC, kF,
         for ii in 1:N
             
             # Set Initial Portfolio Weights
-            # wealthProp_Fund[ii, 1, k] = 1/(1 + N)   
-            wealthProp_Fund[ii, 1, k] = 0.05    
+            wealthProp_Fund[ii, 1, k] = 1/(1 + N)
             wealthInvest_Fund[ii, 1, k] = wealth_0_Fund * wealthProp_Fund[ii, 1, k] 
     
             # Set Initial Asset Demand 
@@ -181,8 +182,7 @@ function modelHyperparameters(Time, N, kC, kF,
         for ii in 1:N
             
             # Set Initial Portfolio Weights
-            # wealthProp_Chart[ii, 1, k] = 1/(1 + N)
-            wealthProp_Chart[ii, 1, k] = 0.05      
+            wealthProp_Chart[ii, 1, k] = 1/(1 + N)
             wealthInvest_Chart[ii, 1, k] = wealth_0_Chart * wealthProp_Chart[ii, 1, k]
             
             # Set Initial Asset Demand
@@ -586,7 +586,7 @@ function modelHyperparameters(Time, N, kC, kF,
 
 end
 
-timeEnd = 4000
+timeEnd = 500
 n = 3
 numFund = 15
 numChart = 15
@@ -603,17 +603,25 @@ corrMin = -0.60     # Min Expected Correlation Coefficient
 pWMax = 0.95    # Max Wealth Investment Proportion
 pWMin = -0.95   # Min Wealth Investment Proportion 
 
-stockMax = 10      # Max Stock Position
-stockMin = -5      # Min Stock Position
+stockMax = 100      # Max Stock Position
+stockMin = -50      # Min Stock Position
+
+fundamental_value = 4           # Initial Fundamental Value
+multiplierFund = 20
+multiplerChart = 10 
 
 prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, wpChart, wpChart_rf, 
 wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, wFund, wChart, 
-demFund, demChart, excDem = modelHyperparameters(timeEnd, n, numChart, numFund)
+demFund, demChart, excDem = modelHyperparameters(timeEnd, n, numChart, numFund, 
+                                                 wMax, wMin, mRMax, mRMin, 
+                                                 corrMax, corrMin, pWMax, pWMin, 
+                                                 stockMax, stockMin, fundamental_value,
+                                                 multiplierFund, multiplerChart)
 
 # Plot Parameters 
 
-BT = 1000      ### Start Time Series Plot Here
-ET = 2000   ### End Time Series Plot Here
+BT = 1      ### Start Time Series Plot Here
+ET = timeEnd   ### End Time Series Plot Here
 
 # Plot Check Asset Returns
 
@@ -798,7 +806,7 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
 
     elseif n == 5
 
-        p1 = plot(t, Prices[1, :], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
+        p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
               Gamma = [$mRMin, $mRMax], Rho = [$corrMin, $corrMax], 
               Tau = [$pWMin, $pWMax], Stock = [$stockMin, $stockMax],
               EMA = [$wMin, $wMax]", 
@@ -900,15 +908,15 @@ function printOutput(bt, et, agent, type)
 
     elseif type == "Demand"
         println("Fundamentalists Demand")
-        df = reshape(sum(demFund, dims = 3), 3, timeEnd)
+        df = reshape(sum(demFund, dims = 3), n, timeEnd)
         pretty_table(df[:, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]],
                     header = head)
         println("Chartists Demand")
-        dc = reshape(sum(demChart, dims = 3), 3, timeEnd)
+        dc = reshape(sum(demChart, dims = 3), n, timeEnd)
         pretty_table(dc[:, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]],
                     header = head)
         println("Total Demand")
-        dt = reshape(sum(demFund, dims = 3) .+ sum(demChart, dims = 3), 3, timeEnd)
+        dt = reshape(sum(demFund, dims = 3) .+ sum(demChart, dims = 3), n, timeEnd)
         pretty_table(dt[:, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]],
                     header = head)
         println("Excess Demand")
@@ -923,3 +931,4 @@ printOutput(BT, ET, 5, "Invest")
 printOutput(BT, ET, 5, "Wealth")
 printOutput(BT, ET, 5, "Price")
 printOutput(BT, ET, 5, "Demand")
+
