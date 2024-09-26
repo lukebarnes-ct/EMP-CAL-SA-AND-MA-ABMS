@@ -1055,3 +1055,21 @@ for c in 1:kChart
 end
 
 ##################################################################################
+
+### Some Loops
+
+fValues = [4, 8, 20, 40, 100, 200]
+
+for a in fValues
+
+    prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, wpChart, wpChart_rf, 
+    wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, wFund, wChart, 
+    demFund, demChart, excDem = modelHyperparameters(timeEnd, n, numChart, numFund, 
+                                                     wMax, wMin, mRMax, mRMin, 
+                                                     corrMax, corrMin, pWMax, pWMin, 
+                                                     stockMax, stockMin, a)
+
+    display(plotReturns(returns, BT, ET, numFund, numChart))
+    display(plotPrices(prices, fundValue, BT, ET, numFund, numChart))
+        
+end
