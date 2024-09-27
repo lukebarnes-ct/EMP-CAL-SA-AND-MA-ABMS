@@ -18,7 +18,7 @@ function modelHyperparameters(Time, N, kC, kF,
     kChart = kC         # Number of Chartists
     kFund = kF          # Number of Fundamentalists
 
-    phi = 0.001         # Dividend Growth Rate
+    phi = 0.002         # Dividend Growth Rate
     phi_sd = 0.01       # Dividend Growth Rate Standard Deviation
     r = 0.0012          # Risk Free Rate
     lambda = 3          # Relative Risk Aversion
@@ -44,8 +44,8 @@ function modelHyperparameters(Time, N, kC, kF,
     fund_0 = fV                                     # Initial Fundamental Value
     mult_Fund = mF
     mult_Chart = mC
-    wealth_0_Fund = ((N + 1) * fund_0) * mult_Fund          # Initial Fundamentalist Wealth
-    wealth_0_Chart = ((N + 1) * fund_0) * mult_Chart        # Initial Chartist Wealth
+    wealth_0_Fund = (N + 1) * mult_Fund          # Initial Fundamentalist Wealth
+    wealth_0_Chart = (N + 1) * mult_Chart        # Initial Chartist Wealth
 
     dividends = zeros(N, T)         # Dividends of Risky Assets
     fund_val = zeros(N, T)          # Fundamental Values of Risky Assets
@@ -67,7 +67,7 @@ function modelHyperparameters(Time, N, kC, kF,
     for i in 1:N
         dividends[i, 1] = div_0         # Set Initial Dividend in Matrix
         fund_val[i, 1] = fund_0         # Set Initial Fundamental Value
-        price[i, 1] = fund_0 * 0.25     # Set Initial Asset Price
+        price[i, 1] = fund_0 * 1.00     # Set Initial Asset Price
     end
 
     # Set Seed for Reproducibility
@@ -586,7 +586,7 @@ function modelHyperparameters(Time, N, kC, kF,
 
 end
 
-timeEnd = 500
+timeEnd = 1000
 n = 3
 numFund = 15
 numChart = 15
@@ -603,11 +603,11 @@ corrMin = -0.60     # Min Expected Correlation Coefficient
 pWMax = 0.95    # Max Wealth Investment Proportion
 pWMin = -0.95   # Min Wealth Investment Proportion 
 
-stockMax = 100      # Max Stock Position
-stockMin = -50      # Min Stock Position
+stockMax = 2      # Max Stock Position
+stockMin = -5      # Min Stock Position
 
-fundamental_value = 4           # Initial Fundamental Value
-multiplierFund = 20
+fundamental_value = 10
+multiplierFund = 50
 multiplerChart = 10 
 
 prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, wpChart, wpChart_rf, 
@@ -931,4 +931,3 @@ printOutput(BT, ET, 5, "Invest")
 printOutput(BT, ET, 5, "Wealth")
 printOutput(BT, ET, 5, "Price")
 printOutput(BT, ET, 5, "Demand")
-
