@@ -9,7 +9,7 @@ using PrettyTables
 function modelHyperparameters(Time, N, kC, kF,
                               w_max, w_min, mR_max, mR_min,
                               c_max, c_min, pW_max, pW_min,
-                              s_max, s_min, fV, mF, mC, sM)
+                              s_max, s_min, fV, mF, mC)
 
     ### Parameters
 
@@ -18,7 +18,7 @@ function modelHyperparameters(Time, N, kC, kF,
     kChart = kC         # Number of Chartists
     kFund = kF          # Number of Fundamentalists
 
-    phi = 0.001         # Dividend Growth Rate
+    phi = 0.002         # Dividend Growth Rate
     phi_sd = 0.01       # Dividend Growth Rate Standard Deviation
     r = 0.0012          # Risk Free Rate
     lambda = 3          # Relative Risk Aversion
@@ -150,7 +150,7 @@ function modelHyperparameters(Time, N, kC, kF,
             
             # Set Initial Portfolio Weights
             wealthProp_Fund[ii, 1, k] = 1/(1 + N)
-            wealthInvest_Fund[ii, 1, k] = wealth_0_Fund * wealthProp_Fund[ii, 1, k] 
+            wealthInvest_Fund[ii, 1, k] = 10 
     
             # Set Initial Asset Demand 
             demand_Fund[ii, 1, k] = wealthInvest_Fund[ii, 1, k] / price[ii, 1]            
@@ -183,7 +183,7 @@ function modelHyperparameters(Time, N, kC, kF,
             
             # Set Initial Portfolio Weights
             wealthProp_Chart[ii, 1, k] = 1/(1 + N)
-            wealthInvest_Chart[ii, 1, k] = wealth_0_Chart * wealthProp_Chart[ii, 1, k]
+            wealthInvest_Chart[ii, 1, k] = 10
             
             # Set Initial Asset Demand
             demand_Chart[ii, 1, k] = wealthInvest_Chart[ii, 1, k] / price[ii, 1]            
@@ -208,7 +208,7 @@ function modelHyperparameters(Time, N, kC, kF,
     end
     
     # Initialise Max Supply of each Risky Asset
-    assetSupply_max = (sum(demand_Fund[1, 1, :]) + sum(demand_Chart[1, 1, :])) * sM
+    assetSupply_max = (sum(demand_Fund[1, 1, :]) + sum(demand_Chart[1, 1, :])) * 1.5
     
     TT = 2
 
@@ -586,31 +586,29 @@ function modelHyperparameters(Time, N, kC, kF,
 
 end
 
-timeEnd = 1000
+timeEnd = 2000
 n = 3
 numFund = 20
 numChart = 20
 
-wMax = 80       # Max Exponential Moving Average Periods
-wMin = 20       # Min Exponential Moving Average Periods
+wMax = 96       # Max Exponential Moving Average Periods
+wMin = 24       # Min Exponential Moving Average Periods
 
 mRMax = 1.00     # Max Mean Reversion
-mRMin = 0.50     # Min Mean Reversion
+mRMin = 0.25     # Min Mean Reversion
 
-corrMax = 0.80      # Max Expected Correlation Coefficient
-corrMin = -0.20     # Min Expected Correlation Coefficient
+corrMax = 0.60      # Max Expected Correlation Coefficient
+corrMin = -0.60     # Min Expected Correlation Coefficient
 
 pWMax = 0.95    # Max Wealth Investment Proportion
 pWMin = -0.95   # Min Wealth Investment Proportion 
 
-stockMax = 10      # Max Stock Position
+stockMax = 2      # Max Stock Position
 stockMin = -5      # Min Stock Position
 
 fundamental_value = 10
-multiplierFund = 10
-multiplerChart = 10
-
-assetSupplyMult = 1
+multiplierFund = 50
+multiplerChart = 10 
 
 prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, wpChart, wpChart_rf, 
 wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, wFund, wChart, 
@@ -618,7 +616,7 @@ demFund, demChart, excDem = modelHyperparameters(timeEnd, n, numChart, numFund,
                                                  wMax, wMin, mRMax, mRMin, 
                                                  corrMax, corrMin, pWMax, pWMin, 
                                                  stockMax, stockMin, fundamental_value,
-                                                 multiplierFund, multiplerChart, assetSupplyMult)
+                                                 multiplierFund, multiplerChart)
 
 # Plot Parameters 
 
