@@ -9,7 +9,7 @@ using PrettyTables
 function modelHyperparameters(Time, N, kC, kF,
                               w_max, w_min, mR_max, mR_min,
                               c_max, c_min, pW_max, pW_min,
-                              s_max, s_min, fV, mF, mC)
+                              s_max, s_min, fV, mF, mC, inChart)
 
     ### Parameters
 
@@ -42,10 +42,8 @@ function modelHyperparameters(Time, N, kC, kF,
 
     div_0 = 0.002                                   # Initial Dividend
     fund_0 = fV                                     # Initial Fundamental Value
-    mult_Fund = mF
-    mult_Chart = mC
-    wealth_0_Fund = (N + 1) * mult_Fund          # Initial Fundamentalist Wealth
-    wealth_0_Chart = (N + 1) * mult_Chart        # Initial Chartist Wealth
+    wealth_0_Fund = (N + 1) * mF          # Initial Fundamentalist Wealth
+    wealth_0_Chart = (N + 1) * mC        # Initial Chartist Wealth
 
     dividends = zeros(N, T)         # Dividends of Risky Assets
     fund_val = zeros(N, T)          # Fundamental Values of Risky Assets
@@ -59,7 +57,7 @@ function modelHyperparameters(Time, N, kC, kF,
     expRet_CovMat_Chart = ones(N, N, T, kChart)         # Expected Return Covariance Array for Chartists
 
     fill!(expRet_CovMat_Fund, 1)
-    fill!(expRet_CovMat_Chart, 0.1)
+    fill!(expRet_CovMat_Chart, 1)
 
     expPriceChange_Fund = zeros(N, T, kFund)            # Fundamentalists Expected Price Change of Risky Assets
     expPriceReturn_Chart = zeros(N, T, kChart)          # Chartists Expected Price Return of Risky Assets
@@ -150,7 +148,7 @@ function modelHyperparameters(Time, N, kC, kF,
             
             # Set Initial Portfolio Weights
             wealthProp_Fund[ii, 1, k] = 1/(1 + N)
-            wealthInvest_Fund[ii, 1, k] = wealth_0_Fund * wealthProp_Fund[ii, 1, k] 
+            wealthInvest_Fund[ii, 1, k] = (wealth_0_Fund/3) * wealthProp_Fund[ii, 1, k] 
     
             # Set Initial Asset Demand 
             demand_Fund[ii, 1, k] = wealthInvest_Fund[ii, 1, k] / price[ii, 1]            
@@ -188,7 +186,7 @@ function modelHyperparameters(Time, N, kC, kF,
             # Set Initial Asset Demand
             demand_Chart[ii, 1, k] = wealthInvest_Chart[ii, 1, k] / price[ii, 1]            
     
-            expPriceReturn_Chart[ii, 1, k] = (ema_c * 0.0015)
+            expPriceReturn_Chart[ii, 1, k] = (ema_c * inChart)
             expRet_Chart[ii, 1, k] = expPriceReturn_Chart[ii, 1, k] + 
                                     (((1 + phi) * dividends[ii, 1]) / price[ii, 1])
     
@@ -608,7 +606,9 @@ stockMin = -5      # Min Stock Position
 
 fundamental_value = 10
 multiplierFund = 50
-multiplerChart = 10 
+multiplerChart = 10
+
+inExp_Chart = 0.01
 
 prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, wpChart, wpChart_rf, 
 wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, wFund, wChart, 
@@ -616,7 +616,7 @@ demFund, demChart, excDem = modelHyperparameters(timeEnd, n, numChart, numFund,
                                                  wMax, wMin, mRMax, mRMin, 
                                                  corrMax, corrMin, pWMax, pWMin, 
                                                  stockMax, stockMin, fundamental_value,
-                                                 multiplierFund, multiplerChart)
+                                                 multiplierFund, multiplerChart, inExp_Chart)
 
 # Plot Parameters 
 
