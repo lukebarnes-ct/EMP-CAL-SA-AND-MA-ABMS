@@ -8,7 +8,7 @@ using PrettyTables
 
 ### Parameters
 
-T = 2000             # Number of Timesteps
+T = 1500             # Number of Timesteps
 N = 3               # Number of Risky Assets
 kChart = 15         # Number of Chartists
 kFund = 15          # Number of Fundamentalists
@@ -35,10 +35,10 @@ stock_min = -5      # Min Stock Position
 
 ### Initialise Variables
 
-wealth_0_Fund = ((N + 1) * 20) * 3          # Initial Fundamentalist Wealth
-wealth_0_Chart = ((N + 1) * 20) * 1            # Initial Chartist Wealth
-div_0 = 0.002                               # Initial Dividend
-fund_0 = 2                                 # Initial Fundamental Value
+div_0 = 0.002                                   # Initial Dividend
+fund_0 = 2                                      # Initial Fundamental Value
+wealth_0_Fund = ((N + 1) * fund_0) * 30          # Initial Fundamentalist Wealth
+wealth_0_Chart = ((N + 1) * fund_0) * 10         # Initial Chartist Wealth
 
 dividends = zeros(N, T)         # Dividends of Risky Assets
 fund_val = zeros(N, T)          # Fundamental Values of Risky Assets
@@ -675,7 +675,7 @@ display(plotReturns(asset_Returns, T, kFund, kChart))
 
 function plotPrices(Prices, FValue, Time, kF, kC)
 
-    t = 1000:Time
+    t = 1:Time
 
     sz = 250 * N
 
@@ -868,7 +868,7 @@ function printOutput(bt, et, agent, type)
         pretty_table(dt[:, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]],
                     header = head)
         println("Excess Demand")
-        pretty_table(transpose(excessDemand_Optim[1, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]]),
+        pretty_table(transpose(sqrt.(excessDemand_Optim[1, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]])),
                     header = head)
     end
 end
