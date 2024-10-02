@@ -9,7 +9,8 @@ using PrettyTables
 function modelHyperparameters(Time, N, kC, kF,
                               w_max, w_min, mR_max, mR_min,
                               c_max, c_min, pW_max, pW_min,
-                              s_max, s_min, fV, mF, mC, inChart)
+                              s_max, s_min, fV, mF, mC, 
+                              inChart, wFact)
 
     ### Parameters
 
@@ -148,7 +149,7 @@ function modelHyperparameters(Time, N, kC, kF,
             
             # Set Initial Portfolio Weights
             wealthProp_Fund[ii, 1, k] = 1/(1 + N)
-            wealthInvest_Fund[ii, 1, k] = (wealth_0_Fund/3) * wealthProp_Fund[ii, 1, k] 
+            wealthInvest_Fund[ii, 1, k] = (wealth_0_Fund/wFact) * wealthProp_Fund[ii, 1, k] 
     
             # Set Initial Asset Demand 
             demand_Fund[ii, 1, k] = wealthInvest_Fund[ii, 1, k] / price[ii, 1]            
@@ -609,6 +610,7 @@ multiplierFund = 50
 multiplerChart = 10
 
 inExp_Chart = 0.01
+wealthFactor = 3.2
 
 prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, wpChart, wpChart_rf, 
 wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, wFund, wChart, 
@@ -616,7 +618,8 @@ demFund, demChart, excDem = modelHyperparameters(timeEnd, n, numChart, numFund,
                                                  wMax, wMin, mRMax, mRMin, 
                                                  corrMax, corrMin, pWMax, pWMin, 
                                                  stockMax, stockMin, fundamental_value,
-                                                 multiplierFund, multiplerChart, inExp_Chart)
+                                                 multiplierFund, multiplerChart, inExp_Chart,
+                                                 wealthFactor)
 
 # Plot Parameters 
 
