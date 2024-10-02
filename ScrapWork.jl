@@ -1073,3 +1073,13 @@ for a in fValues
     display(plotPrices(prices, fundValue, BT, ET, numFund, numChart))
         
 end
+
+##################################################################################
+
+if t > 2
+    resPrice = price[:, t-2]
+else
+    resPrice = price[:, t-1]
+end
+
+resOpt = nlsolve(optDemand, resPrice, autodiff = :forward)
