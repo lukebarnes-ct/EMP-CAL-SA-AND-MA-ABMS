@@ -7,7 +7,8 @@ using Optim
 using PrettyTables
 
 function modelHyperparameters(Time, N, kC, kF,
-                              w_max, w_min, mR_max, mR_min,
+                              w_max_Fund, w_min_Fund, w_max_Chart, w_min_Chart,
+                              mR_max, mR_min,
                               c_max, c_min, pW_max, pW_min,
                               s_max, s_min, fV, mF, mC, 
                               inChart, wFact)
@@ -24,8 +25,11 @@ function modelHyperparameters(Time, N, kC, kF,
     r = 0.0012          # Risk Free Rate
     lambda = 3          # Relative Risk Aversion
 
-    wind_max = w_max       # Max Exponential Moving Average Periods
-    wind_min = w_min       # Min Exponential Moving Average Periods
+    wind_max_Fund = w_max_Fund       # Fundamentalists Max Exponential Moving Average Periods
+    wind_min_Fund = w_min_Fund       # Fundamentalists Min Exponential Moving Average Periods
+
+    wind_max_Chart = w_max_Chart       # Chartists Max Exponential Moving Average Periods
+    wind_min_Chart = w_min_Chart       # Chartists Min Exponential Moving Average Periods
 
     meanR_max = mR_max     # Max Mean Reversion
     meanR_min = mR_min     # Min Mean Reversion
@@ -66,7 +70,7 @@ function modelHyperparameters(Time, N, kC, kF,
     for i in 1:N
         dividends[i, 1] = div_0         # Set Initial Dividend in Matrix
         fund_val[i, 1] = fund_0         # Set Initial Fundamental Value
-        price[i, 1] = fund_0 * 0.35     # Set Initial Asset Price
+        price[i, 1] = fund_0 * 0.48     # Set Initial Asset Price
     end
 
     # Set Seed for Reproducibility
@@ -76,8 +80,8 @@ function modelHyperparameters(Time, N, kC, kF,
     meanR = round.(rand(Uniform(meanR_min, meanR_max), kFund), digits = 2)
 
     # Agent's Exponential Moving Average Period
-    ema_wind_Fund = rand(wind_min:4:wind_max, kFund)
-    ema_wind_Chart = rand(wind_min:4:wind_max, kChart)
+    ema_wind_Fund = rand(wind_min_Fund:25:wind_max_Fund, kFund)
+    ema_wind_Chart = rand(wind_min_Chart:2:wind_max_Chart, kChart)
 
     # Agent's Expected Correlation Coefficients for the Risky Assets
     triAg = floor(Int, (N * (N - 1)) / (2))
@@ -169,8 +173,7 @@ function modelHyperparameters(Time, N, kC, kF,
     
         # Set Initial Wealth of Fundamentalists
     
-        wealth_Fund[k, 1] = wealthInvest_RF_Fund[k, 1] + 
-                            sum(wealthInvest_Fund[:, 1, k])   
+        wealth_Fund[k, 1] = wealth_0_Fund   
     end
     
     for k in 1:kChart
@@ -202,8 +205,7 @@ function modelHyperparameters(Time, N, kC, kF,
     
         # Set Initial Wealth of Chartists
     
-        wealth_Chart[k, 1] = wealthInvest_RF_Chart[k, 1] + 
-                             sum(wealthInvest_Chart[:, 1, k])          
+        wealth_Chart[k, 1] = wealth_0_Chart        
     end
     
     # Initialise Max Supply of each Risky Asset
@@ -387,7 +389,14 @@ function modelHyperparameters(Time, N, kC, kF,
         dividends[:, t] = (1 + phi .+ phi_sd * err) .* dividends[:, t-1]        # Expected Dividends for Next Time Period
         fund_val[:, t] = (1 + phi .+ phi_sd * err) .* fund_val[:, t-1]          # Expected Fundamental Value for Next Time Period
         
-        resPrice = price[:, t-1]
+        # resPrice = price[:, t-1]
+
+        if t > 2
+            resPrice = price[:, t-2]
+        else
+            resPrice = price[:, t-1]
+        end
+
         resOpt = optimize(optDemand, resPrice, NelderMead())
 
         # Determine the price that will Clear each market of Risky Assets
@@ -590,8 +599,11 @@ n = 3
 numFund = 15
 numChart = 15
 
-wMax = 96       # Max Exponential Moving Average Periods
-wMin = 24       # Min Exponential Moving Average Periods
+wMax_Fund = 100       # Max Exponential Moving Average Periods
+wMin_Fund = 50        # Min Exponential Moving Average Periods
+
+wMax_Chart = 100       # Max Exponential Moving Average Periods
+wMin_Chart = 25       # Min Exponential Moving Average Periods
 
 mRMax = 1.00     # Max Mean Reversion
 mRMin = 0.25     # Min Mean Reversion
@@ -606,7 +618,7 @@ stockMax = 2      # Max Stock Position
 stockMin = -5      # Min Stock Position
 
 fundamental_value = 10
-multiplierFund = 50
+multiplierFund = 48
 multiplerChart = 10
 
 inExp_Chart = 0.01
@@ -615,7 +627,8 @@ wealthFactor = 3.2
 prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, wpChart, wpChart_rf, 
 wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, wFund, wChart, 
 demFund, demChart, excDem = modelHyperparameters(timeEnd, n, numChart, numFund, 
-                                                 wMax, wMin, mRMax, mRMin, 
+                                                 wMax_Fund, wMin_Fund, wMax_Chart, wMin_Chart, 
+                                                 mRMax, mRMin, 
                                                  corrMax, corrMin, pWMax, pWMin, 
                                                  stockMax, stockMin, fundamental_value,
                                                  multiplierFund, multiplerChart, inExp_Chart,
@@ -624,7 +637,7 @@ demFund, demChart, excDem = modelHyperparameters(timeEnd, n, numChart, numFund,
 # Plot Parameters 
 
 BT = 1      ### Start Time Series Plot Here
-ET = timeEnd   ### End Time Series Plot Here
+ET = 500   ### End Time Series Plot Here
 
 # Plot Check Asset Returns
 
@@ -753,11 +766,13 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
 
     elseif n == 3
 
-        p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
-              Gamma = [$mRMin, $mRMax], Rho = [$corrMin, $corrMax], 
-              Tau = [$pWMin, $pWMax], Stock = [$stockMin, $stockMax],
-              EMA = [$wMin, $wMax]", 
-              xlabel = "T", ylabel = "Price", legend = :topleft)
+        p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, 
+                  KF = $kF, KC = $kC, 
+                  Gamma = [$mRMin, $mRMax], Rho = [$corrMin, $corrMax], 
+                  Tau = [$pWMin, $pWMax], Stock = [$stockMin, $stockMax],
+                  EMA_Fund = [$wMin_Fund, $wMax_Fund], 
+                  EMA_Chart = [$wMin_Chart, $wMax_Chart]", 
+                  xlabel = "T", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[1, t], 
             label = "Fundamental Value", linecolor=:red)
