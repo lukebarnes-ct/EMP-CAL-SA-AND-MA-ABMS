@@ -5,6 +5,12 @@ using Plots
 using Distributions
 using Optim
 using PrettyTables
+using ForwardDiff
+using NLsolve
+using JLD2
+
+# Load JSE Top 40 Index from .jld2 file
+@load "Data/jsetop40.jld2" weeklyData
 
 function modelHyperparameters(Time, N, kC, kF,
                               w_max_Fund, w_min_Fund, w_max_Chart, w_min_Chart,
@@ -70,7 +76,25 @@ function modelHyperparameters(Time, N, kC, kF,
     for i in 1:N
         dividends[i, 1] = div_0         # Set Initial Dividend in Matrix
         fund_val[i, 1] = fund_0         # Set Initial Fundamental Value
-        price[i, 1] = fund_0 * 0.48     # Set Initial Asset Price
+        # price[i, 1] = fund_0 * 0.48     # Set Initial Asset Price
+    end
+
+    if N == 2
+
+        price[:, 1] = [fund_0 * 0.55, fund_0 * 0.65]
+
+    elseif N == 3
+
+        price[:, 1] = [fund_0 * 0.55, fund_0 * 0.65, fund_0 * 0.51]
+
+    elseif N == 4
+
+        price[:, 1] = [fund_0 * 0.55, fund_0 * 0.65, fund_0 * 0.51, fund_0 * 0.51]
+
+    else
+
+        price[:, 1] = [fund_0 * 0.55, fund_0 * 0.65, fund_0 * 0.51, fund_0 * 0.51, fund_0 * 0.51]
+
     end
 
     # Set Seed for Reproducibility
@@ -389,15 +413,10 @@ function modelHyperparameters(Time, N, kC, kF,
         dividends[:, t] = (1 + phi .+ phi_sd * err) .* dividends[:, t-1]        # Expected Dividends for Next Time Period
         fund_val[:, t] = (1 + phi .+ phi_sd * err) .* fund_val[:, t-1]          # Expected Fundamental Value for Next Time Period
         
-        # resPrice = price[:, t-1]
-
-        if t > 2
-            resPrice = price[:, t-2]
-        else
-            resPrice = price[:, t-1]
-        end
+        resPrice = price[:, t-1]
 
         resOpt = optimize(optDemand, resPrice, NelderMead())
+        # resOpt = optimize(optDemand, resPrice, LBFGS())
 
         # Determine the price that will Clear each market of Risky Assets
         price[:, t] = Optim.minimizer(resOpt)
@@ -595,7 +614,7 @@ function modelHyperparameters(Time, N, kC, kF,
 end
 
 timeEnd = 1000
-n = 3
+n = 5
 numFund = 15
 numChart = 15
 
@@ -637,7 +656,7 @@ demFund, demChart, excDem = modelHyperparameters(timeEnd, n, numChart, numFund,
 # Plot Parameters 
 
 BT = 1      ### Start Time Series Plot Here
-ET = 500   ### End Time Series Plot Here
+ET = 565   ### End Time Series Plot Here
 
 # Plot Check Asset Returns
 
@@ -745,12 +764,17 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
 
     sz = 250 * n
 
+    wt = length(weeklyData)
+    jse = plot(1:wt, weeklyData, label = "JSE Top 40", title = "JSE Top 40 Index", 
+               xlabel = "T", ylabel = "Index Value", legend = :topleft)
+
     if n == 2
 
         p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
               Gamma = [$mRMin, $mRMax], Rho = [$corrMin, $corrMax], 
               Tau = [$pWMin, $pWMax], Stock = [$stockMin, $stockMax],
-              EMA = [$wMin, $wMax]", 
+              EMA_Fund = [$wMin_Fund, $wMax_Fund], 
+              EMA_Chart = [$wMin_Chart, $wMax_Chart]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[1, t], 
@@ -759,10 +783,9 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
         p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
                 xlabel = "T", ylabel = "Price", legend = :topleft)
 
-        plot!(t, FValue[2, t], 
-            label = "Fundamental Value", linecolor=:red)
+        plot!(t, FValue[2, t], label = "Fundamental Value", linecolor=:red)
 
-        plot(p1, p2, layout = (n, 1), size = (800, sz))
+        plot(p1, p2, jse, layout = (n+1, 1), size = (800, sz))
 
     elseif n == 3
 
@@ -789,14 +812,15 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
         plot!(t, FValue[3, t], 
             label = "Fundamental Value", linecolor=:red)
 
-        plot(p1, p2, p3, layout = (3, 1), size = (800, sz))
+        plot(p1, p2, p3, jse, layout = (n+1, 1), size = (800, sz))
 
     elseif n == 4
 
         p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
               Gamma = [$mRMin, $mRMax], Rho = [$corrMin, $corrMax], 
               Tau = [$pWMin, $pWMax], Stock = [$stockMin, $stockMax],
-              EMA = [$wMin, $wMax]", 
+              EMA_Fund = [$wMin_Fund, $wMax_Fund], 
+                  EMA_Chart = [$wMin_Chart, $wMax_Chart]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[1, t], 
@@ -820,14 +844,15 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
         plot!(t, FValue[4, t], 
               label = "Fundamental Value", linecolor=:red)
 
-        plot(p1, p2, p3, p4, layout = (n, 1), size = (800, sz))
+        plot(p1, p2, p3, p4, jse, layout = (n+1, 1), size = (800, sz))
 
     elseif n == 5
 
         p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
               Gamma = [$mRMin, $mRMax], Rho = [$corrMin, $corrMax], 
               Tau = [$pWMin, $pWMax], Stock = [$stockMin, $stockMax],
-              EMA = [$wMin, $wMax]", 
+              EMA_Fund = [$wMin_Fund, $wMax_Fund], 
+              EMA_Chart = [$wMin_Chart, $wMax_Chart]", 
               xlabel = "T", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[1, t], 
@@ -856,7 +881,7 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
 
         plot!(t, FValue[5, t], 
               label = "Fundamental Value", linecolor=:red)
-        plot(p1, p2, p3, p4, p5, layout = (n, 1), size = (800, sz))
+        plot(p1, p2, p3, p4, p5, jse, layout = (n+1, 1), size = (800, sz))
 
     end
 
