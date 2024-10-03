@@ -1083,3 +1083,15 @@ else
 end
 
 resOpt = nlsolve(optDemand, resPrice, autodiff = :forward)
+
+##################################################################################
+
+sum((wChart[:, 2] .* wpChart[1, 3, :]) ./ 10)
+
+##################################################################################
+
+wt = length(weeklyData)
+jse = plot(1:wt, weeklyData, label = "JSE Top 40", title = "JSE Top 40 Index", 
+           xlabel = "T", ylabel = "Index Value", legend = :topleft)
+
+plot(jse, layout = (1, 1), size = (800, 250))
