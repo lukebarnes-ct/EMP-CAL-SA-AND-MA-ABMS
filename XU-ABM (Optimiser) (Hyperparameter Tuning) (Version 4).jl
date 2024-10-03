@@ -7,6 +7,7 @@ using Optim
 using PrettyTables
 using ForwardDiff
 using NLsolve
+using NonlinearSolve
 
 function modelHyperparameters(Time, N, kC, kF,
                               w_max_Fund, w_min_Fund, w_max_Chart, w_min_Chart,
@@ -111,7 +112,7 @@ function modelHyperparameters(Time, N, kC, kF,
     demand_Fund = zeros(N, T, kFund)            # Fundamentalists Demand of Risky Assets
     demand_Chart = zeros(N, T, kChart)          # Chartists Demand of Risky Assets
 
-    excessDemand_Optim = zeros(1, T)
+    excessDemand_Optim = zeros(3, T)
 
     function getCovMat(retArr, coefMat)
 
@@ -216,13 +217,13 @@ function modelHyperparameters(Time, N, kC, kF,
     TT = 2
 
     # Find the price such that the excess demand is 0
-    function optDemand(assetPrice, f)
+    function optDemand(f, x::Vector{D}, p) where D<:AbstractFloat
         
         eR_Fund = zeros(N, 2, kFund)
         eR_Fund[:, 1, :] = expRet_Fund[:, TT-1, :]
         eR_Cov_Fund = ones(N, N, 2, kFund)
         eR_Cov_Fund[:, :, 1, :] = expRet_CovMat_Fund[:, :, TT-1, :]
-        pReturns = (assetPrice .- price[:, TT-1]) ./ price[:, TT-1]
+        pReturns = (x .- price[:, TT-1]) ./ price[:, TT-1]
         returns = pReturns .+ (dividends[:, TT] ./ price[:, TT-1])
 
         eP_Return = zeros(N, 2, kChart)
@@ -237,21 +238,16 @@ function modelHyperparameters(Time, N, kC, kF,
         wInvest_Fund = zeros(N, kFund)
         wInvest_Chart = zeros(N, kChart)
 
-        d_Fund = zeros(N, kFund, 2)
-        d_Fund[:, :, 1] = demand_Fund[:, TT-1, :]
-        d_Chart = zeros(N, kChart, 2)
-        d_Chart[:, :, 1] = demand_Chart[:, TT-1, :]
-
         for i in 1:N
 
             for f in 1:kFund
 
                 ePChange = (phi * fund_val[i, TT]) + 
-                        (meanR[f] * (fund_val[i, TT] - assetPrice[i])) 
+                        (meanR[f] * (fund_val[i, TT] - x[i])) 
 
                 # Fundamentalists Expected Return for the i-th Asset at time t
                 eR_Fund[i, 2, f] =  (ePChange + 
-                                    ((1 + phi) * dividends[i, TT])) / assetPrice[i]
+                                    ((1 + phi) * dividends[i, TT])) / x[i]
             
                 # Fundamentalists Exponential Moving Average Parameter
                 ema_f = exp(-1/ema_wind_Fund[f])
@@ -272,7 +268,7 @@ function modelHyperparameters(Time, N, kC, kF,
                 
                 # Chartists Expected Return for the i-th Asset at time t
                 eR_Chart[i, 2, c] = eP_Return[i, 2, c] + 
-                                    (((1 + phi) * dividends[i, TT])/assetPrice[i])
+                                    (((1 + phi) * dividends[i, TT])/x[i])
 
                 # Diagonal of Chartists Covariance Matrix of Expected Returns at time t
                 eR_Cov_Chart[i, i, 2, c] = (ema_c * eR_Cov_Chart[i, i, 1, c]) + 
@@ -333,54 +329,11 @@ function modelHyperparameters(Time, N, kC, kF,
 
         end
 
-        d_Fund[:, :, 2] = wInvest_Fund ./ assetPrice
-        d_Chart[:, :, 2] = wInvest_Chart ./ assetPrice
+        f[1] = sum((wealth_Chart[:, TT-1] .* wProp_Chart[1, :]) ./ x[1]) - assetSupply_max
+        f[2] = sum((wealth_Chart[:, TT-1] .* wProp_Chart[2, :]) ./ x[2]) - assetSupply_max
+        f[3] = sum((wealth_Chart[:, TT-1] .* wProp_Chart[3, :]) ./ x[3]) - assetSupply_max
 
-        for i in 1:N
-
-            for f in 1:kFund
-
-                dem = d_Fund[i, f, 2]
-
-                if dem > stock_max
-
-                    d_Fund[i, f, 2] = stock_max
-
-                elseif dem < stock_min
-
-                    d_Fund[i, f, 2] = stock_min
-
-                end
-
-            end
-
-            for c in 1:kChart
-
-                dem = d_Chart[i, c, 2]
-
-                if dem > stock_max
-
-                    d_Chart[i, c, 2] = stock_max
-
-                elseif dem < stock_min
-
-                    d_Chart[i, c, 2] = stock_min
-
-                end
-
-            end
-
-        end
-
-        totalDemand = sum((d_Fund[:, :, 2]), dims = 2) + 
-                    sum((d_Chart[:, :, 2]), dims = 2)
-
-        excessDemand = totalDemand .- assetSupply_max
-
-        f[1] = excessDemand[1]
-        f[2] = excessDemand[2]
-        f[3] = excessDemand[3]
-
+        println(f[1], " ", f[2], " ", f[3])
     end
 
     for t in 2:T
@@ -392,15 +345,18 @@ function modelHyperparameters(Time, N, kC, kF,
         dividends[:, t] = (1 + phi .+ phi_sd * err) .* dividends[:, t-1]        # Expected Dividends for Next Time Period
         fund_val[:, t] = (1 + phi .+ phi_sd * err) .* fund_val[:, t-1]          # Expected Fundamental Value for Next Time Period
         
-        resPrice = fund_val[:, 1] 
+        resPrice = D[10.0, 10.0, 10.0] 
 
         # resOpt = optimize(optDemand, resPrice, NelderMead())
         # resOpt = optimize(optDemand, resPrice, LBFGS())
 
         # Determine the price that will Clear each market of Risky Assets
         # price[:, t] = Optim.minimizer(resOpt)
-        resOpt = nlsolve(optDemand, resPrice)
-        price[:, t] = resOpt.zero
+        # resOpt = nlsolve(optDemand, resPrice)
+        # price[:, t] = resOpt.zero
+
+        prob = NonlinearProblem(optDemand, resPrice)
+        price[:, t] = solve(prob, NewtonRaphson())
 
         # excessDemand_Optim[1, t] = round(Optim.minimum(resOpt), digits = 3)
 
@@ -560,6 +516,8 @@ function modelHyperparameters(Time, N, kC, kF,
             end
 
         end
+
+        excessDemand_Optim[:, t] = (sum(demand_Fund[:, t, :], dims = 2) + sum(demand_Chart[:, t, :], dims = 2)) .- assetSupply_max
 
         # Update Fundamentalists Investment in the Risk-Free Asset
         wealthProp_RF_Fund[:, t] = (1 .- sum(wealthProp_Fund[:, t, :], dims = 1))
@@ -938,8 +896,8 @@ function printOutput(bt, et, agent, type)
         pretty_table(dt[:, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]],
                     header = head)
         println("Excess Demand")
-        pretty_table(transpose(sqrt.(excDem[1, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]])),
-                    header = head)
+        pretty_table(excDem[:, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]],
+                     header = head)
     end
 end
 
