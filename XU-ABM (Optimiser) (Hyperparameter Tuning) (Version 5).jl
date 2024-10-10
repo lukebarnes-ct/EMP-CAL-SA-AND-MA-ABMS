@@ -17,7 +17,7 @@ function modelHyperparameters(Time, N, kC, kF,
                               mR_max, mR_min,
                               c_max, c_min, pW_max, pW_min,
                               s_max, s_min, fV, mF, mC, 
-                              inChart, wFact)
+                              inChart, wFact, divPhi, divPhi_SD)
 
     ### Parameters
 
@@ -26,8 +26,8 @@ function modelHyperparameters(Time, N, kC, kF,
     kChart = kC         # Number of Chartists
     kFund = kF          # Number of Fundamentalists
 
-    phi = 0.002         # Dividend Growth Rate
-    phi_sd = 0.01       # Dividend Growth Rate Standard Deviation
+    phi = divPhi         # Dividend Growth Rate
+    phi_sd = divPhi_SD       # Dividend Growth Rate Standard Deviation
     r = 0.0012          # Risk Free Rate
     lambda = 3          # Relative Risk Aversion
 
@@ -91,10 +91,13 @@ function modelHyperparameters(Time, N, kC, kF,
 
         price[:, 1] = [fund_0 * 0.55, fund_0 * 0.65, fund_0 * 0.51, fund_0 * 0.51]
 
-    else
+    elseif N == 5
 
         price[:, 1] = [fund_0 * 0.55, fund_0 * 0.65, fund_0 * 0.51, fund_0 * 0.51, fund_0 * 0.51]
 
+    else
+
+        price[:, 1] = fund_val[:, 1] .* 0.5
     end
 
     # Set Seed for Reproducibility
@@ -643,6 +646,9 @@ multiplerChart = 10
 inExp_Chart = 0.01
 wealthFactor = 3.2
 
+dividendPhi = 0.0025
+dividendPhi_SD = 0.0125
+
 prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, wpChart, wpChart_rf, 
 wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, wFund, wChart, 
 demFund, demChart, excDem = modelHyperparameters(timeEnd, n, numChart, numFund, 
@@ -651,12 +657,15 @@ demFund, demChart, excDem = modelHyperparameters(timeEnd, n, numChart, numFund,
                                                  corrMax, corrMin, pWMax, pWMin, 
                                                  stockMax, stockMin, fundamental_value,
                                                  multiplierFund, multiplerChart, inExp_Chart,
-                                                 wealthFactor)
+                                                 wealthFactor, dividendPhi, dividendPhi_SD)
 
 # Plot Parameters 
 
-BT = 200      ### Start Time Series Plot Here
-ET = 764   ### End Time Series Plot Here
+BT = 100      ### Start Time Series Plot Here
+ET = BT + 564   ### End Time Series Plot Here
+
+# BT = 1      ### Start Time Series Plot Here
+# ET = timeEnd   ### End Time Series Plot Here
 
 # Plot Check Asset Returns
 
@@ -763,6 +772,84 @@ function plotReturns(Returns, bt, et, kF, kC)
         hline!([mean(Returns[5, t])], label = round(mean(Returns[5, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
 
         plot(p1, p2, p3, p4, p5, jse, layout = (n+1, 1), size = (800, sz))
+
+    elseif n == 6
+
+        p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
+              xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[1, t])], label = round(mean(Returns[1, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+                
+        hline!([mean(Returns[2, t])], label = round(mean(Returns[2, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p3 = plot(t, Returns[3, t], label = "Returns", title = "Asset 3, KF = $kF, KC = $kC", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[3, t])], label = round(mean(Returns[3, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p4 = plot(t, Returns[4, t], label = "Returns", title = "Asset 4, KF = $kF, KC = $kC", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[4, t])], label = round(mean(Returns[4, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p5 = plot(t, Returns[5, t], label = "Returns", title = "Asset 5, KF = $kF, KC = $kC", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[5, t])], label = round(mean(Returns[5, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p6 = plot(t, Returns[6, t], label = "Returns", title = "Asset 6, KF = $kF, KC = $kC", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[6, t])], label = round(mean(Returns[6, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+        
+        plot(p1, p2, p3, p4, p5, p6, jse, layout = (n+1, 1), size = (800, sz))
+
+    elseif n == 8
+
+        p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
+              xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[1, t])], label = round(mean(Returns[1, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+                
+        hline!([mean(Returns[2, t])], label = round(mean(Returns[2, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p3 = plot(t, Returns[3, t], label = "Returns", title = "Asset 3, KF = $kF, KC = $kC", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[3, t])], label = round(mean(Returns[3, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p4 = plot(t, Returns[4, t], label = "Returns", title = "Asset 4, KF = $kF, KC = $kC", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[4, t])], label = round(mean(Returns[4, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p5 = plot(t, Returns[5, t], label = "Returns", title = "Asset 5, KF = $kF, KC = $kC", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[5, t])], label = round(mean(Returns[5, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p6 = plot(t, Returns[6, t], label = "Returns", title = "Asset 6, KF = $kF, KC = $kC", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[6, t])], label = round(mean(Returns[6, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+        
+        p7 = plot(t, Returns[7, t], label = "Returns", title = "Asset 7, KF = $kF, KC = $kC", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[7, t])], label = round(mean(Returns[7, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p8 = plot(t, Returns[8, t], label = "Returns", title = "Asset 8, KF = $kF, KC = $kC", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[8, t])], label = round(mean(Returns[8, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        plot(p1, p2, p3, p4, p5, p6, p7, p8, jse, layout = (n+1, 1), size = (800, sz))
 
     end
 
@@ -897,6 +984,105 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
               label = "Fundamental Value", linecolor=:red)
         plot(p1, p2, p3, p4, p5, jse, layout = (n+1, 1), size = (800, sz))
 
+    elseif n == 6
+
+        p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
+              Gamma = [$mRMin, $mRMax], Rho = [$corrMin, $corrMax], 
+              Tau = [$pWMin, $pWMax], Stock = [$stockMin, $stockMax],
+              EMA_Fund = [$wMin_Fund, $wMax_Fund], 
+              EMA_Chart = [$wMin_Chart, $wMax_Chart]", 
+              xlabel = "Week", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[1, t], 
+            label = "Fundamental Value", linecolor=:red)
+
+        p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
+                xlabel = "Week", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[2, t], 
+            label = "Fundamental Value", linecolor=:red)
+
+        p3 = plot(t, Prices[3, t], label = "Price", title = "Asset 3", 
+                xlabel = "Week", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[3, t], 
+            label = "Fundamental Value", linecolor=:red)
+
+        p4 = plot(t, Prices[4, t], label = "Price", title = "Asset 4", 
+            xlabel = "Week", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[4, t], 
+              label = "Fundamental Value", linecolor=:red)
+
+        p5 = plot(t, Prices[5, t], label = "Price", title = "Asset 5", 
+            xlabel = "Week", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[5, t], 
+              label = "Fundamental Value", linecolor=:red)
+
+        p6 = plot(t, Prices[6, t], label = "Price", title = "Asset 6", 
+            xlabel = "Week", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[6, t], 
+              label = "Fundamental Value", linecolor=:red)
+
+        plot(p1, p2, p3, p4, p5, p6, jse, layout = (n+1, 1), size = (800, sz))
+
+    elseif n == 8
+
+        p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
+              Gamma = [$mRMin, $mRMax], Rho = [$corrMin, $corrMax], 
+              Tau = [$pWMin, $pWMax], Stock = [$stockMin, $stockMax],
+              EMA_Fund = [$wMin_Fund, $wMax_Fund], 
+              EMA_Chart = [$wMin_Chart, $wMax_Chart]", 
+              xlabel = "Week", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[1, t], 
+            label = "Fundamental Value", linecolor=:red)
+
+        p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
+                xlabel = "Week", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[2, t], 
+            label = "Fundamental Value", linecolor=:red)
+
+        p3 = plot(t, Prices[3, t], label = "Price", title = "Asset 3", 
+                xlabel = "Week", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[3, t], 
+            label = "Fundamental Value", linecolor=:red)
+
+        p4 = plot(t, Prices[4, t], label = "Price", title = "Asset 4", 
+            xlabel = "Week", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[4, t], 
+              label = "Fundamental Value", linecolor=:red)
+
+        p5 = plot(t, Prices[5, t], label = "Price", title = "Asset 5", 
+            xlabel = "Week", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[5, t], 
+              label = "Fundamental Value", linecolor=:red)
+
+        p6 = plot(t, Prices[6, t], label = "Price", title = "Asset 6", 
+            xlabel = "Week", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[6, t], 
+              label = "Fundamental Value", linecolor=:red)
+
+        p7 = plot(t, Prices[7, t], label = "Price", title = "Asset 7", 
+            xlabel = "Week", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[7, t], 
+              label = "Fundamental Value", linecolor=:red)
+
+        p8 = plot(t, Prices[8, t], label = "Price", title = "Asset 8", 
+            xlabel = "Week", ylabel = "Price", legend = :topleft)
+
+        plot!(t, FValue[8, t], 
+              label = "Fundamental Value", linecolor=:red)
+              
+        plot(p1, p2, p3, p4, p5, p6, p7, p8, jse, layout = (n+1, 1), size = (800, sz))
     end
 
 end
