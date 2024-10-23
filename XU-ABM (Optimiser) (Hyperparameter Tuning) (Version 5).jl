@@ -27,9 +27,9 @@ function modelHyperparameters(Time, N, kC, kF,
     kFund = kF          # Number of Fundamentalists
 
     phi = divPhi         # Dividend Growth Rate
-    phi_sd = divPhi_SD       # Dividend Growth Rate Standard Deviation
-    r = 0.0012          # Risk Free Rate
-    lambda = 3          # Relative Risk Aversion
+    phi_sd = divPhi_SD   # Dividend Growth Rate Standard Deviation
+    r = 0.0012           # Risk Free Rate
+    lambda = 3           # Relative Risk Aversion
 
     wind_max_Fund = w_max_Fund       # Fundamentalists Max Exponential Moving Average Periods
     wind_min_Fund = w_min_Fund       # Fundamentalists Min Exponential Moving Average Periods
@@ -135,8 +135,6 @@ function modelHyperparameters(Time, N, kC, kF,
 
     demand_Fund = zeros(N, T, kFund)            # Fundamentalists Demand of Risky Assets
     demand_Chart = zeros(N, T, kChart)          # Chartists Demand of Risky Assets
-
-    excessDemand_Optim = zeros(1, T)
 
     function getCovMat(retArr, coefMat)
 
@@ -424,8 +422,6 @@ function modelHyperparameters(Time, N, kC, kF,
         # Determine the price that will Clear each market of Risky Assets
         price[:, t] = Optim.minimizer(resOpt)
 
-        excessDemand_Optim[1, t] = round(Optim.minimum(resOpt), digits = 3)
-
         # Calculate Price Returns
         price_returns[:, t] = ((price[:, t] - price[:, t-1]) ./ price[:, t-1])
 
@@ -611,12 +607,11 @@ function modelHyperparameters(Time, N, kC, kF,
            expRet_Fund, expRet_Chart, 
            wealthProp_Fund, wealthProp_RF_Fund, wealthProp_Chart, wealthProp_RF_Chart,
            wealthInvest_Fund, wealthInvest_RF_Fund, wealthInvest_Chart, wealthInvest_RF_Chart,
-           wealth_Fund, wealth_Chart, 
-           demand_Fund, demand_Chart, excessDemand_Optim
+           wealth_Fund, wealth_Chart
 
 end
 
-timeEnd = 1130
+timeEnd = 765
 n = 5
 numFund = 15
 numChart = 15
@@ -628,9 +623,9 @@ wMax_Chart = 100       # Max Exponential Moving Average Periods
 wMin_Chart = 25       # Min Exponential Moving Average Periods
 
 mRMax = 1.00     # Max Mean Reversion
-mRMin = 0.25     # Min Mean Reversion
+mRMin = 0.00     # Min Mean Reversion
 
-corrMax = 0.60      # Max Expected Correlation Coefficient
+corrMax = 1.00      # Max Expected Correlation Coefficient
 corrMin = -0.60     # Min Expected Correlation Coefficient
 
 pWMax = 0.95    # Max Wealth Investment Proportion
@@ -646,12 +641,13 @@ multiplerChart = 10
 inExp_Chart = 0.01
 wealthFactor = 3.2
 
-dividendPhi = 0.0025
+dividendPhi = 0.002
 dividendPhi_SD = 0.0125
 
-prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, wpChart, wpChart_rf, 
-wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, wFund, wChart, 
-demFund, demChart, excDem = modelHyperparameters(timeEnd, n, numChart, numFund, 
+prices, returns, fundValue, pRet, 
+erFund, erChart, wpFund, wpFund_rf, 
+wpChart, wpChart_rf, wInvFund, wInvFund_rf, 
+wInvChart, wInvChart_rf, wFund, wChart= modelHyperparameters(timeEnd, n, numChart, numFund, 
                                                  wMax_Fund, wMin_Fund, wMax_Chart, wMin_Chart, 
                                                  mRMax, mRMin, 
                                                  corrMax, corrMin, pWMax, pWMin, 
@@ -866,7 +862,7 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
     sz = 250 * n
 
     wt = length(weeklyData)
-    jse = plot(1:wt, weeklyData, label = "JSE Top 40", title = "JSE Top 40 Index", 
+    jse = plot(1:wt, weeklyData./1000, label = "JSE Top 40", title = "JSE Top 40 Index", 
                xlabel = "Week", ylabel = "Index Value", legend = :topleft)
 
     if n == 2
@@ -1148,23 +1144,6 @@ function printOutput(bt, et, agent, type)
         println("Price Return")
         pretty_table(pRet[:, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]],
                     header = head)
-
-    elseif type == "Demand"
-        println("Fundamentalists Demand")
-        df = reshape(sum(demFund, dims = 3), n, timeEnd)
-        pretty_table(df[:, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]],
-                    header = head)
-        println("Chartists Demand")
-        dc = reshape(sum(demChart, dims = 3), n, timeEnd)
-        pretty_table(dc[:, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]],
-                    header = head)
-        println("Total Demand")
-        dt = reshape(sum(demFund, dims = 3) .+ sum(demChart, dims = 3), n, timeEnd)
-        pretty_table(dt[:, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]],
-                    header = head)
-        println("Excess Demand")
-        pretty_table(transpose(sqrt.(excDem[1, [bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]])),
-                    header = head)
     end
 end
 
@@ -1173,4 +1152,3 @@ printOutput(BT, ET, 5, "Prop")
 printOutput(BT, ET, 5, "Invest")
 printOutput(BT, ET, 5, "Wealth")
 printOutput(BT, ET, 5, "Price")
-printOutput(BT, ET, 5, "Demand")
