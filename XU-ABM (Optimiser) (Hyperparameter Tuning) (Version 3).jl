@@ -667,12 +667,12 @@ function plotReturns(Returns, bt, et, kF, kC)
     if n == 2
 
         p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
-              xlabel = "T", ylabel = "Returns", legend = :topleft)
+              xlabel = "Week", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
         p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
-                xlabel = "T", ylabel = "Returns", legend = :topleft)
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
                 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
@@ -681,17 +681,17 @@ function plotReturns(Returns, bt, et, kF, kC)
     elseif n == 3
 
         p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
-              xlabel = "T", ylabel = "Returns", legend = :topleft)
+              xlabel = "Week", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
         p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
-                xlabel = "T", ylabel = "Returns", legend = :topleft)
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
                 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
         p3 = plot(t, Returns[3, t], label = "Returns", title = "Asset 3, KF = $kF, KC = $kC", 
-                xlabel = "T", ylabel = "Returns", legend = :topleft)
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
@@ -700,22 +700,22 @@ function plotReturns(Returns, bt, et, kF, kC)
     elseif n == 4
 
         p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
-              xlabel = "T", ylabel = "Returns", legend = :topleft)
+              xlabel = "Week", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
         p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
-                xlabel = "T", ylabel = "Returns", legend = :topleft)
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
                 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
         p3 = plot(t, Returns[3, t], label = "Returns", title = "Asset 3, KF = $kF, KC = $kC", 
-                xlabel = "T", ylabel = "Returns", legend = :topleft)
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
         p4 = plot(t, Returns[4, t], label = "Returns", title = "Asset 4, KF = $kF, KC = $kC", 
-                xlabel = "T", ylabel = "Returns", legend = :topleft)
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
@@ -724,27 +724,27 @@ function plotReturns(Returns, bt, et, kF, kC)
     elseif n == 5
 
         p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, KF = $kF, KC = $kC", 
-              xlabel = "T", ylabel = "Returns", legend = :topleft)
+              xlabel = "Week", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
         p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2, KF = $kF, KC = $kC", 
-                xlabel = "T", ylabel = "Returns", legend = :topleft)
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
                 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
         p3 = plot(t, Returns[3, t], label = "Returns", title = "Asset 3, KF = $kF, KC = $kC", 
-                xlabel = "T", ylabel = "Returns", legend = :topleft)
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
         p4 = plot(t, Returns[4, t], label = "Returns", title = "Asset 4, KF = $kF, KC = $kC", 
-                xlabel = "T", ylabel = "Returns", legend = :topleft)
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
         p5 = plot(t, Returns[5, t], label = "Returns", title = "Asset 5, KF = $kF, KC = $kC", 
-                xlabel = "T", ylabel = "Returns", legend = :topleft)
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
 
         hline!([0.00], label = false, color =:black, lw = 1, linestyle =:dash)
 
@@ -766,7 +766,7 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
 
     wt = length(weeklyData)
     jse = plot(1:wt, weeklyData, label = "JSE Top 40", title = "JSE Top 40 Index", 
-               xlabel = "T", ylabel = "Index Value", legend = :topleft)
+               xlabel = "Week", ylabel = "Index Value", legend = :topleft)
 
     if n == 2
 
@@ -775,13 +775,13 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
               Tau = [$pWMin, $pWMax], Stock = [$stockMin, $stockMax],
               EMA_Fund = [$wMin_Fund, $wMax_Fund], 
               EMA_Chart = [$wMin_Chart, $wMax_Chart]", 
-              xlabel = "T", ylabel = "Price", legend = :topleft)
+              xlabel = "Week", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[1, t], 
             label = "Fundamental Value", linecolor=:red)
 
         p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
-                xlabel = "T", ylabel = "Price", legend = :topleft)
+                xlabel = "Week", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[2, t], label = "Fundamental Value", linecolor=:red)
 
@@ -795,19 +795,19 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
                   Tau = [$pWMin, $pWMax], Stock = [$stockMin, $stockMax],
                   EMA_Fund = [$wMin_Fund, $wMax_Fund], 
                   EMA_Chart = [$wMin_Chart, $wMax_Chart]", 
-                  xlabel = "T", ylabel = "Price", legend = :topleft)
+                  xlabel = "Week", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[1, t], 
             label = "Fundamental Value", linecolor=:red)
 
         p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
-                xlabel = "T", ylabel = "Price", legend = :topleft)
+                xlabel = "Week", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[2, t], 
             label = "Fundamental Value", linecolor=:red)
 
         p3 = plot(t, Prices[3, t], label = "Price", title = "Asset 3", 
-                xlabel = "T", ylabel = "Price", legend = :topleft)
+                xlabel = "Week", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[3, t], 
             label = "Fundamental Value", linecolor=:red)
@@ -821,25 +821,25 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
               Tau = [$pWMin, $pWMax], Stock = [$stockMin, $stockMax],
               EMA_Fund = [$wMin_Fund, $wMax_Fund], 
                   EMA_Chart = [$wMin_Chart, $wMax_Chart]", 
-              xlabel = "T", ylabel = "Price", legend = :topleft)
+              xlabel = "Week", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[1, t], 
             label = "Fundamental Value", linecolor=:red)
 
         p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
-                xlabel = "T", ylabel = "Price", legend = :topleft)
+                xlabel = "Week", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[2, t], 
             label = "Fundamental Value", linecolor=:red)
 
         p3 = plot(t, Prices[3, t], label = "Price", title = "Asset 3", 
-                xlabel = "T", ylabel = "Price", legend = :topleft)
+                xlabel = "Week", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[3, t], 
             label = "Fundamental Value", linecolor=:red)
 
         p4 = plot(t, Prices[4, t], label = "Price", title = "Asset 4", 
-            xlabel = "T", ylabel = "Price", legend = :topleft)
+            xlabel = "Week", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[4, t], 
               label = "Fundamental Value", linecolor=:red)
@@ -853,31 +853,31 @@ function plotPrices(Prices, FValue, bt, et, kF, kC)
               Tau = [$pWMin, $pWMax], Stock = [$stockMin, $stockMax],
               EMA_Fund = [$wMin_Fund, $wMax_Fund], 
               EMA_Chart = [$wMin_Chart, $wMax_Chart]", 
-              xlabel = "T", ylabel = "Price", legend = :topleft)
+              xlabel = "Week", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[1, t], 
             label = "Fundamental Value", linecolor=:red)
 
         p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
-                xlabel = "T", ylabel = "Price", legend = :topleft)
+                xlabel = "Week", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[2, t], 
             label = "Fundamental Value", linecolor=:red)
 
         p3 = plot(t, Prices[3, t], label = "Price", title = "Asset 3", 
-                xlabel = "T", ylabel = "Price", legend = :topleft)
+                xlabel = "Week", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[3, t], 
             label = "Fundamental Value", linecolor=:red)
 
         p4 = plot(t, Prices[4, t], label = "Price", title = "Asset 4", 
-            xlabel = "T", ylabel = "Price", legend = :topleft)
+            xlabel = "Week", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[4, t], 
               label = "Fundamental Value", linecolor=:red)
 
         p5 = plot(t, Prices[5, t], label = "Price", title = "Asset 5", 
-            xlabel = "T", ylabel = "Price", legend = :topleft)
+            xlabel = "Week", ylabel = "Price", legend = :topleft)
 
         plot!(t, FValue[5, t], 
               label = "Fundamental Value", linecolor=:red)

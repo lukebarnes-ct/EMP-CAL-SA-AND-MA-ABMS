@@ -632,7 +632,7 @@ pWMax = 0.95    # Max Wealth Investment Proportion
 pWMin = -0.95   # Min Wealth Investment Proportion 
 
 stockMax = 2      # Max Stock Position
-stockMin = -5      # Min Stock Position
+stockMin = -4      # Min Stock Position
 
 fundamental_value = 10
 multiplierFund = 48
