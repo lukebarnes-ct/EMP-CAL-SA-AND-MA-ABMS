@@ -410,7 +410,7 @@ function modelHyperparameters(Time, N, kC, kF,
     for t in 2:T
 
         TT = t
-        println("Time is: ", TT)
+        # println("Time is: ", TT)
 
         err = rand(Normal(0, 1), N)                                             # Standard Normal Error Term
         dividends[:, t] = (1 + phi .+ phi_sd * err) .* dividends[:, t-1]        # Expected Dividends for Next Time Period
@@ -615,7 +615,7 @@ function modelHyperparameters(Time, N, kC, kF,
 
 end
 
-timeEnd = 1130
+timeEnd = 765
 n = 5
 numFund = 15
 numChart = 15
@@ -627,7 +627,7 @@ wMax_Chart = 100       # Max Exponential Moving Average Periods
 wMin_Chart = 25       # Min Exponential Moving Average Periods
 
 mRMax = 1.00     # Max Mean Reversion
-mRMin = 0.25     # Min Mean Reversion
+mRMin = 0.00     # Min Mean Reversion
 
 corrMax = 0.60      # Max Expected Correlation Coefficient
 corrMin = -0.60     # Min Expected Correlation Coefficient
@@ -636,7 +636,7 @@ pWMax = 0.95    # Max Wealth Investment Proportion
 pWMin = -0.95   # Min Wealth Investment Proportion 
 
 stockMax = 2      # Max Stock Position
-stockMin = -5      # Min Stock Position
+stockMin = -4      # Min Stock Position
 
 fundamental_value = 10
 multiplierFund = 48
@@ -1122,11 +1122,30 @@ function printOutput(bt, et, agent, type)
     end
 end
 
+function findAVGMSE(p, j)
+
+    scaledJSE = j./1000
+    mseP1 = sum((p[1, :] .- scaledJSE).^2)
+    mseP2 = sum((p[2, :] .- scaledJSE).^2)
+    mseP3 = sum((p[3, :] .- scaledJSE).^2)
+    mseP4 = sum((p[4, :] .- scaledJSE).^2)
+    mseP5 = sum((p[5, :] .- scaledJSE).^2)
+
+    totMSE = mseP1 + mseP2 + mseP3 + mseP4 + mseP5
+
+    avgMSE = totMSE / 5
+
+    return avgMSE
+end
+
 ####################################################################################
 
-minMeanRev = 0.0:0.125:0.875
+minMeanRev = [0.0, 0.25, 0.5, 0.75]
+mseOne = zeros(3, length(minMeanRev))
 
-for a in minMeanRev
+mkdir("Plots/MeanR")
+
+@time for a in minMeanRev
 
     println("Minimum Mean Reversion: ", a)
 
@@ -1140,6 +1159,11 @@ for a in minMeanRev
                                          multiplierFund, multiplerChart, inExp_Chart,
                                          wealthFactor, dividendPhi, dividendPhi_SD)
 
+    index = findfirst(x -> x == a, minMeanRev)
+    mseOne[1, index] = findAVGMSE(prices[:, 1:565], weeklyData)
+    mseOne[2, index] = findAVGMSE(prices[:, 101:665], weeklyData)
+    mseOne[3, index] = findAVGMSE(prices[:, 201:765], weeklyData)
+
     function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
     
         t = bt:et
@@ -1149,12 +1173,8 @@ for a in minMeanRev
         wt = length(weeklyData)
         jse = plot(1:wt, weeklyData, label = "JSE Top 40", title = "JSE Top 40 Index", 
                    xlabel = "Week", ylabel = "Index Value", legend = :topleft)
-        
-        p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, KF = $kF, KC = $kC, 
-                   Gamma = [$mRMin, $mRMax], Rho = [$corrMin, $corrMax], 
-                   Tau = [$pWMin, $pWMax], Stock = [$stockMin, $stockMax],
-                   EMA_Fund = [$wMin_Fund, $wMax_Fund], 
-                   EMA_Chart = [$wMin_Chart, $wMax_Chart]", 
+
+        p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, Minimum Mean Reversion: $a", 
                    xlabel = "Week", ylabel = "Price", legend = :topleft)
      
         plot!(t, FValue[1, t], 
@@ -1189,5 +1209,610 @@ for a in minMeanRev
     end
 
     display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
+
+    savefig("Plots/MeanR/$a.pdf")
+
+end
+
+mkdir("Data/XU_Calibration")
+@save "Data/XU_Calibration/MinMeanRev_MSE.jld2" mseOne
+
+####################################################################################
+
+minCorr = [-1.0, -0.8, -0.6, -0.4, -0.2, 0.0]
+maxCorr = [0.2, 0.4, 0.6, 0.8, 1]
+
+mkdir("Plots/Corr")
+
+@time for a in minCorr
+
+    println("Minimum Correlation: ", a)
+
+    for b in maxCorr
+
+        println("Maximum Correlation: ", b)
+
+        prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, 
+        wpChart, wpChart_rf, wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, 
+        wFund, wChart = modelHyperparameters(timeEnd, n, numChart, numFund, 
+                                            wMax_Fund, wMin_Fund, wMax_Chart, wMin_Chart, 
+                                            mRMax, mRMin, 
+                                            b, a, pWMax, pWMin, 
+                                            stockMax, stockMin, fundamental_value,
+                                            multiplierFund, multiplerChart, inExp_Chart,
+                                            wealthFactor, dividendPhi, dividendPhi_SD)
+
+        function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
+        
+            t = bt:et
+                                            
+            sz = 250 * n
+                                            
+            wt = length(weeklyData)
+            jse = plot(1:wt, weeklyData, label = "JSE Top 40", title = "JSE Top 40 Index", 
+                    xlabel = "Week", ylabel = "Index Value", legend = :topleft)
+            
+            p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, Min Corr: $a, Max Corr: $b", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[1, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[2, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p3 = plot(t, Prices[3, t], label = "Price", title = "Asset 3", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[3, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p4 = plot(t, Prices[4, t], label = "Price", title = "Asset 4", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[4, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p5 = plot(t, Prices[5, t], label = "Price", title = "Asset 5", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[5, t], 
+                label = "Fundamental Value", linecolor=:red)
+
+            plot(p1, p2, p3, p4, p5, jse, layout = (6, 1), size = (800, sz))
+                                            
+        end
+
+        display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
+
+        savefig("Plots/Corr/$a-$b.pdf")
+    end
+
+end
+
+####################################################################################
+
+minProp = [-0.95, -0.75, -0.5, -0.25, 0.0]
+maxProp = [0.5, 0.75, 0.95]
+
+mkdir("Plots/Prop")
+
+@time for a in minProp
+
+    println("Minimum Investment Proportions: ", a)
+
+    for b in maxProp
+
+        println("Maximum Investment Proportions: ", b)
+
+        prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, 
+        wpChart, wpChart_rf, wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, 
+        wFund, wChart = modelHyperparameters(timeEnd, n, numChart, numFund, 
+                                            wMax_Fund, wMin_Fund, wMax_Chart, wMin_Chart, 
+                                            mRMax, mRMin, 
+                                            corrMax, corrMin, b, a, 
+                                            stockMax, stockMin, fundamental_value,
+                                            multiplierFund, multiplerChart, inExp_Chart,
+                                            wealthFactor, dividendPhi, dividendPhi_SD)
+
+        function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
+        
+            t = bt:et
+                                            
+            sz = 250 * n
+                                            
+            wt = length(weeklyData)
+            jse = plot(1:wt, weeklyData, label = "JSE Top 40", title = "JSE Top 40 Index", 
+                    xlabel = "Week", ylabel = "Index Value", legend = :topleft)
+            
+            p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, Min Prop: $a, Max Prop: $b", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[1, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[2, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p3 = plot(t, Prices[3, t], label = "Price", title = "Asset 3", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[3, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p4 = plot(t, Prices[4, t], label = "Price", title = "Asset 4", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[4, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p5 = plot(t, Prices[5, t], label = "Price", title = "Asset 5", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[5, t], 
+                label = "Fundamental Value", linecolor=:red)
+
+            plot(p1, p2, p3, p4, p5, jse, layout = (6, 1), size = (800, sz))
+                                            
+        end
+
+        display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
+
+        savefig("Plots/Prop/$a-$b.pdf")
+    end
+
+end
+
+####################################################################################
+
+minStock = [-5, -2, -1, 0]
+maxStock = [2, 5, 10, 20]
+
+mkdir("Plots/Stock")
+
+@time for a in minStock
+
+    println("Minimum Stock Demand: ", a)
+
+    for b in maxStock
+
+        println("Maximum Stock Demand: ", b)
+
+        prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, 
+        wpChart, wpChart_rf, wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, 
+        wFund, wChart = modelHyperparameters(timeEnd, n, numChart, numFund, 
+                                            wMax_Fund, wMin_Fund, wMax_Chart, wMin_Chart, 
+                                            mRMax, mRMin, 
+                                            corrMax, corrMin, pWMax, pWMin, 
+                                            b, a, fundamental_value,
+                                            multiplierFund, multiplerChart, inExp_Chart,
+                                            wealthFactor, dividendPhi, dividendPhi_SD)
+
+        function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
+        
+            t = bt:et
+                                            
+            sz = 250 * n
+                                            
+            wt = length(weeklyData)
+            jse = plot(1:wt, weeklyData, label = "JSE Top 40", title = "JSE Top 40 Index", 
+                    xlabel = "Week", ylabel = "Index Value", legend = :topleft)
+            
+            p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, Min Stock: $a, Max Stock: $b", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[1, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[2, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p3 = plot(t, Prices[3, t], label = "Price", title = "Asset 3", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[3, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p4 = plot(t, Prices[4, t], label = "Price", title = "Asset 4", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[4, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p5 = plot(t, Prices[5, t], label = "Price", title = "Asset 5", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[5, t], 
+                label = "Fundamental Value", linecolor=:red)
+
+            plot(p1, p2, p3, p4, p5, jse, layout = (6, 1), size = (800, sz))
+                                            
+        end
+
+        display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
+
+        savefig("Plots/Stock/$a-$b.pdf")
+    end
+
+end
+
+####################################################################################
+
+chartists = [5, 10, 15, 20]
+fundamentalists = [5, 10, 15, 20]
+
+mkdir("Plots/Agents")
+
+@time for a in chartists
+
+    println("Number of Chartists: ", a)
+
+    for b in fundamentalists
+
+        println("Number of Fundamentalists: ", b)
+
+        prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, 
+        wpChart, wpChart_rf, wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, 
+        wFund, wChart = modelHyperparameters(timeEnd, n, a, b, 
+                                            wMax_Fund, wMin_Fund, wMax_Chart, wMin_Chart, 
+                                            mRMax, mRMin, 
+                                            corrMax, corrMin, pWMax, pWMin, 
+                                            stockMax, stockMin, fundamental_value,
+                                            multiplierFund, multiplerChart, inExp_Chart,
+                                            wealthFactor, dividendPhi, dividendPhi_SD)
+
+        function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
+        
+            t = bt:et
+                                            
+            sz = 250 * n
+                                            
+            wt = length(weeklyData)
+            jse = plot(1:wt, weeklyData, label = "JSE Top 40", title = "JSE Top 40 Index", 
+                    xlabel = "Week", ylabel = "Index Value", legend = :topleft)
+            
+            p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, Chartists: $a, Fundamentalists: $b", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[1, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[2, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p3 = plot(t, Prices[3, t], label = "Price", title = "Asset 3", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[3, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p4 = plot(t, Prices[4, t], label = "Price", title = "Asset 4", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[4, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p5 = plot(t, Prices[5, t], label = "Price", title = "Asset 5", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[5, t], 
+                label = "Fundamental Value", linecolor=:red)
+
+            plot(p1, p2, p3, p4, p5, jse, layout = (6, 1), size = (800, sz))
+                                            
+        end
+
+        display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
+
+        savefig("Plots/Agents/$a-$b.pdf")
+    end
+
+end
+
+####################################################################################
+
+### Fundamentalists
+
+minWind = [25, 50, 75]
+maxWind = [100, 125, 150]
+
+mkdir("Plots/Fund_Window")
+
+@time for a in minWind
+
+    println("Minimum Window Fundamentalists: ", a)
+
+    for b in maxWind
+
+        println("Maximum Window Fundamentalists: ", b)
+
+        prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, 
+        wpChart, wpChart_rf, wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, 
+        wFund, wChart = modelHyperparameters(timeEnd, n, numChart, numFund, 
+                                            b, a, wMax_Chart, wMin_Chart, 
+                                            mRMax, mRMin, 
+                                            corrMax, corrMin, pWMax, pWMin, 
+                                            stockMax, stockMin, fundamental_value,
+                                            multiplierFund, multiplerChart, inExp_Chart,
+                                            wealthFactor, dividendPhi, dividendPhi_SD)
+
+        function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
+        
+            t = bt:et
+                                            
+            sz = 250 * n
+                                            
+            wt = length(weeklyData)
+            jse = plot(1:wt, weeklyData, label = "JSE Top 40", title = "JSE Top 40 Index", 
+                    xlabel = "Week", ylabel = "Index Value", legend = :topleft)
+            
+            p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, Min Window Fund: $a, Max Window Fund: $b", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[1, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[2, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p3 = plot(t, Prices[3, t], label = "Price", title = "Asset 3", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[3, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p4 = plot(t, Prices[4, t], label = "Price", title = "Asset 4", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[4, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p5 = plot(t, Prices[5, t], label = "Price", title = "Asset 5", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[5, t], 
+                label = "Fundamental Value", linecolor=:red)
+
+            plot(p1, p2, p3, p4, p5, jse, layout = (6, 1), size = (800, sz))
+                                            
+        end
+
+        display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
+
+        savefig("Plots/Fund_Window/$a-$b.pdf")
+    end
+
+end
+
+####################################################################################
+
+### Chartists
+
+minWind = [15, 25, 35]
+maxWind = [75, 100, 125]
+
+mkdir("Plots/Chart_Window")
+
+@time for a in minWind
+
+    println("Minimum Window Chartists: ", a)
+
+    for b in maxWind
+
+        println("Maximum Window Chartists: ", b)
+
+        prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, 
+        wpChart, wpChart_rf, wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, 
+        wFund, wChart = modelHyperparameters(timeEnd, n, numChart, numFund, 
+                                            wMax_Fund, wMin_Fund, b, a, 
+                                            mRMax, mRMin, 
+                                            corrMax, corrMin, pWMax, pWMin, 
+                                            stockMax, stockMin, fundamental_value,
+                                            multiplierFund, multiplerChart, inExp_Chart,
+                                            wealthFactor, dividendPhi, dividendPhi_SD)
+
+        function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
+        
+            t = bt:et
+                                            
+            sz = 250 * n
+                                            
+            wt = length(weeklyData)
+            jse = plot(1:wt, weeklyData, label = "JSE Top 40", title = "JSE Top 40 Index", 
+                    xlabel = "Week", ylabel = "Index Value", legend = :topleft)
+            
+            p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, Min Window Chart: $a, Max Window Chart: $b", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[1, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[2, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p3 = plot(t, Prices[3, t], label = "Price", title = "Asset 3", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[3, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p4 = plot(t, Prices[4, t], label = "Price", title = "Asset 4", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[4, t], 
+                label = "Fundamental Value", linecolor=:red)
+        
+            p5 = plot(t, Prices[5, t], label = "Price", title = "Asset 5", 
+                    xlabel = "Week", ylabel = "Price", legend = :topleft)
+        
+            plot!(t, FValue[5, t], 
+                label = "Fundamental Value", linecolor=:red)
+
+            plot(p1, p2, p3, p4, p5, jse, layout = (6, 1), size = (800, sz))
+                                            
+        end
+
+        display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
+
+        savefig("Plots/Chart_Window/$a-$b.pdf")
+    end
+
+end
+
+####################################################################################
+
+divGrowth = [0.001, 0.0015, 0.002, 0.0025, 0.003, 0.0035]
+
+mkdir("Plots/DivGrowth")
+
+@time for a in divGrowth
+
+    println("Dividend Growth: ", a)
+
+    prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, 
+    wpChart, wpChart_rf, wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, 
+    wFund, wChart = modelHyperparameters(timeEnd, n, numChart, numFund, 
+                                         wMax_Fund, wMin_Fund, wMax_Chart, wMin_Chart, 
+                                         mRMax, mRMin, 
+                                         corrMax, corrMin, pWMax, pWMin, 
+                                         stockMax, stockMin, fundamental_value,
+                                         multiplierFund, multiplerChart, inExp_Chart,
+                                         wealthFactor, a, dividendPhi_SD)
+
+    function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
+    
+        t = bt:et
+                                        
+        sz = 250 * n
+                                        
+        wt = length(weeklyData)
+        jse = plot(1:wt, weeklyData, label = "JSE Top 40", title = "JSE Top 40 Index", 
+                   xlabel = "Week", ylabel = "Index Value", legend = :topleft)
+        
+        p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, Dividend Growth Rate: $a", 
+                   xlabel = "Week", ylabel = "Price", legend = :topleft)
+     
+        plot!(t, FValue[1, t], 
+              label = "Fundamental Value", linecolor=:red)
+     
+        p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
+                  xlabel = "Week", ylabel = "Price", legend = :topleft)
+     
+        plot!(t, FValue[2, t], 
+              label = "Fundamental Value", linecolor=:red)
+     
+        p3 = plot(t, Prices[3, t], label = "Price", title = "Asset 3", 
+                  xlabel = "Week", ylabel = "Price", legend = :topleft)
+     
+        plot!(t, FValue[3, t], 
+              label = "Fundamental Value", linecolor=:red)
+     
+        p4 = plot(t, Prices[4, t], label = "Price", title = "Asset 4", 
+                  xlabel = "Week", ylabel = "Price", legend = :topleft)
+     
+        plot!(t, FValue[4, t], 
+              label = "Fundamental Value", linecolor=:red)
+     
+        p5 = plot(t, Prices[5, t], label = "Price", title = "Asset 5", 
+                  xlabel = "Week", ylabel = "Price", legend = :topleft)
+     
+        plot!(t, FValue[5, t], 
+              label = "Fundamental Value", linecolor=:red)
+
+        plot(p1, p2, p3, p4, p5, jse, layout = (6, 1), size = (800, sz))
+                                        
+    end
+
+    display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
+
+    savefig("Plots/DivGrowth/$a.pdf")
+
+end
+
+####################################################################################
+
+divSD = [0.01, 0.0125, 0.015, 0.0175, 0.02, 0.025]
+
+mkdir("Plots/DivSD")
+
+@time for a in divSD
+
+    println("Dividend Standard Deviation: ", a)
+
+    prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, 
+    wpChart, wpChart_rf, wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, 
+    wFund, wChart = modelHyperparameters(timeEnd, n, numChart, numFund, 
+                                         wMax_Fund, wMin_Fund, wMax_Chart, wMin_Chart, 
+                                         mRMax, mRMin, 
+                                         corrMax, corrMin, pWMax, pWMin, 
+                                         stockMax, stockMin, fundamental_value,
+                                         multiplierFund, multiplerChart, inExp_Chart,
+                                         wealthFactor, dividendPhi, a)
+
+    function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
+    
+        t = bt:et
+                                        
+        sz = 250 * n
+                                        
+        wt = length(weeklyData)
+        jse = plot(1:wt, weeklyData, label = "JSE Top 40", title = "JSE Top 40 Index", 
+                   xlabel = "Week", ylabel = "Index Value", legend = :topleft)
+        
+        p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1, Dividend Standard Deviation: $a", 
+                   xlabel = "Week", ylabel = "Price", legend = :topleft)
+     
+        plot!(t, FValue[1, t], 
+              label = "Fundamental Value", linecolor=:red)
+     
+        p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
+                  xlabel = "Week", ylabel = "Price", legend = :topleft)
+     
+        plot!(t, FValue[2, t], 
+              label = "Fundamental Value", linecolor=:red)
+     
+        p3 = plot(t, Prices[3, t], label = "Price", title = "Asset 3", 
+                  xlabel = "Week", ylabel = "Price", legend = :topleft)
+     
+        plot!(t, FValue[3, t], 
+              label = "Fundamental Value", linecolor=:red)
+     
+        p4 = plot(t, Prices[4, t], label = "Price", title = "Asset 4", 
+                  xlabel = "Week", ylabel = "Price", legend = :topleft)
+     
+        plot!(t, FValue[4, t], 
+              label = "Fundamental Value", linecolor=:red)
+     
+        p5 = plot(t, Prices[5, t], label = "Price", title = "Asset 5", 
+                  xlabel = "Week", ylabel = "Price", legend = :topleft)
+     
+        plot!(t, FValue[5, t], 
+              label = "Fundamental Value", linecolor=:red)
+
+        plot(p1, p2, p3, p4, p5, jse, layout = (6, 1), size = (800, sz))
+                                        
+    end
+
+    display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
+
+    savefig("Plots/DivSD/$a.pdf")
 
 end
