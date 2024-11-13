@@ -8,6 +8,7 @@ using PrettyTables
 using ForwardDiff
 using NLsolve
 using JLD2
+using Base.Threads
 
 # Load JSE Top 40 Index from .jld2 file
 @load "Data/jsetop40.jld2" weeklyData
@@ -1122,7 +1123,7 @@ function printOutput(bt, et, agent, type)
     end
 end
 
-function findAVGMSE(p, j)
+function findPriceMSE(p, j)
 
     scaledJSE = j./1000
     mseP1 = sum((p[1, :] .- scaledJSE).^2)
@@ -1138,16 +1139,39 @@ function findAVGMSE(p, j)
     return avgMSE
 end
 
+lengthJSE = length(weeklyData)
+returnsJSE = zeros(lengthJSE)
+
+for i in 2:lengthJSE
+
+    returnsJSE[i] = ((weeklyData[i] - weeklyData[i-1]) ./ weeklyData[i-1])
+
+end
+
+function findReturnMSE(r)
+
+    mseP1 = sum((r[1, :] .- returnsJSE).^2)
+    mseP2 = sum((r[2, :] .- returnsJSE).^2)
+    mseP3 = sum((r[3, :] .- returnsJSE).^2)
+    mseP4 = sum((r[4, :] .- returnsJSE).^2)
+    mseP5 = sum((r[5, :] .- returnsJSE).^2)
+
+    totMSE = mseP1 + mseP2 + mseP3 + mseP4 + mseP5
+
+    avgMSE = totMSE / 5
+
+    return avgMSE
+end
+
 ####################################################################################
 
 minMeanRev = [0.0, 0.25, 0.5, 0.75]
-mseOne = zeros(3, length(minMeanRev))
+msePricesMR = zeros(3, length(minMeanRev))
+mseReturnsMR = zeros(3, length(minMeanRev))
 
-mkdir("Plots/MeanR")
+# mkdir("Plots/XU_Calibration/MeanR")
 
 @time for a in minMeanRev
-
-    println("Minimum Mean Reversion: ", a)
 
     prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, 
     wpChart, wpChart_rf, wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, 
@@ -1160,9 +1184,13 @@ mkdir("Plots/MeanR")
                                          wealthFactor, dividendPhi, dividendPhi_SD)
 
     index = findfirst(x -> x == a, minMeanRev)
-    mseOne[1, index] = findAVGMSE(prices[:, 1:565], weeklyData)
-    mseOne[2, index] = findAVGMSE(prices[:, 101:665], weeklyData)
-    mseOne[3, index] = findAVGMSE(prices[:, 201:765], weeklyData)
+    msePricesMR[1, index] = findPriceMSE(prices[:, 1:565], weeklyData)
+    msePricesMR[2, index] = findPriceMSE(prices[:, 101:665], weeklyData)
+    msePricesMR[3, index] = findPriceMSE(prices[:, 201:765], weeklyData)
+
+    mseReturnsMR[1, index] = findReturnMSE(returns[:, 1:565])
+    mseReturnsMR[2, index] = findReturnMSE(returns[:, 101:665])
+    mseReturnsMR[3, index] = findReturnMSE(returns[:, 201:765])
 
     function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
     
@@ -1210,19 +1238,67 @@ mkdir("Plots/MeanR")
 
     display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
 
-    savefig("Plots/MeanR/$a.pdf")
+    savefig("Plots/XU_Calibration/MeanR/$a [Prices].pdf")
+
+    function plotReturnsLoop(Returns, bt, et, kF, kC)
+
+        t = bt:et
+    
+        sz = 250 * (n+1)
+    
+        jse = plot(1:lengthJSE, returnsJSE, label = "JSE Top 40", title = "JSE Top 40 Index", 
+                   xlabel = "Week", ylabel = "Index Return", legend = :topleft)
+        hline!([mean(returnsJSE)], label = round(mean(returnsJSE), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+        p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, Minimum Mean Reversion: $a", 
+        xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[1, t])], label = round(mean(Returns[1, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+                
+        hline!([mean(Returns[2, t])], label = round(mean(Returns[2, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p3 = plot(t, Returns[3, t], label = "Returns", title = "Asset 3", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[3, t])], label = round(mean(Returns[3, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p4 = plot(t, Returns[4, t], label = "Returns", title = "Asset 4", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[4, t])], label = round(mean(Returns[4, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p5 = plot(t, Returns[5, t], label = "Returns", title = "Asset 5", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[5, t])], label = round(mean(Returns[5, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        plot(p1, p2, p3, p4, p5, jse, layout = (n+1, 1), size = (800, sz))
+    
+    end
+
+    display(plotReturnsLoop(returns, 1, timeEnd, numFund, numChart))
+
+    savefig("Plots/XU_Calibration/MeanR/$a [Returns].pdf")
+
+    println("Minimum Mean Reversion: ", a)
 
 end
 
-mkdir("Data/XU_Calibration")
-@save "Data/XU_Calibration/MinMeanRev_MSE.jld2" mseOne
+@save "Data/XU_Calibration/MinMeanRev_PriceMSE.jld2" msePricesMR
+@save "Data/XU_Calibration/MinMeanRev_ReturnsMSE.jld2" mseReturnsMR
 
 ####################################################################################
 
 minCorr = [-1.0, -0.8, -0.6, -0.4, -0.2, 0.0]
 maxCorr = [0.2, 0.4, 0.6, 0.8, 1]
 
-mkdir("Plots/Corr")
+msePricesCorr = zeros(3, length(minCorr), length(maxCorr))
+mseReturnsCorr = zeros(3, length(minCorr), length(maxCorr))
+
+# mkdir("Plots/XU_Calibration/Corr")
 
 @time for a in minCorr
 
@@ -1241,6 +1317,16 @@ mkdir("Plots/Corr")
                                             stockMax, stockMin, fundamental_value,
                                             multiplierFund, multiplerChart, inExp_Chart,
                                             wealthFactor, dividendPhi, dividendPhi_SD)
+        
+            indexOne = findfirst(x -> x == a, minCorr)
+            indexTwo = findfirst(y -> y == b, maxCorr)
+            msePricesCorr[1, indexOne, indexTwo] = findPriceMSE(prices[:, 1:565], weeklyData)
+            msePricesCorr[2, indexOne, indexTwo] = findPriceMSE(prices[:, 101:665], weeklyData)
+            msePricesCorr[3, indexOne, indexTwo] = findPriceMSE(prices[:, 201:765], weeklyData)
+
+            mseReturnsCorr[1, indexOne, indexTwo] = findReturnMSE(returns[:, 1:565])
+            mseReturnsCorr[2, indexOne, indexTwo] = findReturnMSE(returns[:, 101:665])
+            mseReturnsCorr[3, indexOne, indexTwo] = findReturnMSE(returns[:, 201:765])
 
         function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
         
@@ -1288,25 +1374,72 @@ mkdir("Plots/Corr")
 
         display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
 
-        savefig("Plots/Corr/$a-$b.pdf")
+        savefig("Plots/XU_Calibration/Corr/$a-$b [Prices].pdf")
+
+        function plotReturnsLoop(Returns, bt, et, kF, kC)
+
+            t = bt:et
+        
+            sz = 250 * (n+1)
+        
+            jse = plot(1:lengthJSE, returnsJSE, label = "JSE Top 40", title = "JSE Top 40 Index", 
+                       xlabel = "Week", ylabel = "Index Return", legend = :topleft)
+            hline!([mean(returnsJSE)], label = round(mean(returnsJSE), digits = 4), color =:black, lw = 1, linestyle =:dash)
+        
+            p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, Min Corr: $a, Max Corr: $b", 
+            xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[1, t])], label = round(mean(Returns[1, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+                    
+            hline!([mean(Returns[2, t])], label = round(mean(Returns[2, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p3 = plot(t, Returns[3, t], label = "Returns", title = "Asset 3", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[3, t])], label = round(mean(Returns[3, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p4 = plot(t, Returns[4, t], label = "Returns", title = "Asset 4", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[4, t])], label = round(mean(Returns[4, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p5 = plot(t, Returns[5, t], label = "Returns", title = "Asset 5", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[5, t])], label = round(mean(Returns[5, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            plot(p1, p2, p3, p4, p5, jse, layout = (n+1, 1), size = (800, sz))
+        
+        end
+
+        display(plotReturnsLoop(returns, 1, timeEnd, numFund, numChart))
+
+        savefig("Plots/XU_Calibration/Corr/$a-$b [Returns].pdf")
     end
 
 end
+
+@save "Data/XU_Calibration/Corr_PriceMSE.jld2" msePricesCorr
+@save "Data/XU_Calibration/Corr_ReturnsMSE.jld2" mseReturnsCorr
 
 ####################################################################################
 
 minProp = [-0.95, -0.75, -0.5, -0.25, 0.0]
 maxProp = [0.5, 0.75, 0.95]
 
-mkdir("Plots/Prop")
+msePricesProp = zeros(3, length(minProp), length(maxProp))
+mseReturnsProp = zeros(3, length(minProp), length(maxProp))
+
+# mkdir("Plots/XU_Calibration/Prop")
 
 @time for a in minProp
 
-    println("Minimum Investment Proportions: ", a)
-
     for b in maxProp
 
-        println("Maximum Investment Proportions: ", b)
+        println("Minimum Investment Proportions: ", a, " Maximum Investment Proportions: ", b)
 
         prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, 
         wpChart, wpChart_rf, wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, 
@@ -1317,6 +1450,16 @@ mkdir("Plots/Prop")
                                             stockMax, stockMin, fundamental_value,
                                             multiplierFund, multiplerChart, inExp_Chart,
                                             wealthFactor, dividendPhi, dividendPhi_SD)
+
+        indexOne = findfirst(x -> x == a, minProp)
+        indexTwo = findfirst(x -> x == b, maxProp)
+        msePricesProp[1, indexOne, indexTwo] = findPriceMSE(prices[:, 1:565], weeklyData)
+        msePricesProp[2, indexOne, indexTwo] = findPriceMSE(prices[:, 101:665], weeklyData)
+        msePricesProp[3, indexOne, indexTwo] = findPriceMSE(prices[:, 201:765], weeklyData)
+
+        mseReturnsProp[1, indexOne, indexTwo] = findReturnMSE(returns[:, 1:565])
+        mseReturnsProp[2, indexOne, indexTwo] = findReturnMSE(returns[:, 101:665])
+        mseReturnsProp[3, indexOne, indexTwo] = findReturnMSE(returns[:, 201:765])
 
         function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
         
@@ -1364,25 +1507,72 @@ mkdir("Plots/Prop")
 
         display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
 
-        savefig("Plots/Prop/$a-$b.pdf")
+        savefig("Plots/XU_Calibration/Prop/$a-$b [Prices].pdf")
+
+        function plotReturnsLoop(Returns, bt, et, kF, kC)
+
+            t = bt:et
+        
+            sz = 250 * (n+1)
+        
+            jse = plot(1:lengthJSE, returnsJSE, label = "JSE Top 40", title = "JSE Top 40 Index", 
+                       xlabel = "Week", ylabel = "Index Return", legend = :topleft)
+            hline!([mean(returnsJSE)], label = round(mean(returnsJSE), digits = 4), color =:black, lw = 1, linestyle =:dash)
+        
+            p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, Min Prop: $a, Max Prop: $b", 
+            xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[1, t])], label = round(mean(Returns[1, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+                    
+            hline!([mean(Returns[2, t])], label = round(mean(Returns[2, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p3 = plot(t, Returns[3, t], label = "Returns", title = "Asset 3", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[3, t])], label = round(mean(Returns[3, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p4 = plot(t, Returns[4, t], label = "Returns", title = "Asset 4", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[4, t])], label = round(mean(Returns[4, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p5 = plot(t, Returns[5, t], label = "Returns", title = "Asset 5", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[5, t])], label = round(mean(Returns[5, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            plot(p1, p2, p3, p4, p5, jse, layout = (n+1, 1), size = (800, sz))
+        
+        end
+
+        display(plotReturnsLoop(returns, 1, timeEnd, numFund, numChart))
+
+        savefig("Plots/XU_Calibration/Prop/$a-$b [Returns].pdf")
     end
 
 end
 
+@save "Data/XU_Calibration/Prop_PriceMSE.jld2" msePricesProp
+@save "Data/XU_Calibration/Prop_ReturnsMSE.jld2" mseReturnsProp
+
 ####################################################################################
 
-minStock = [-5, -2, -1, 0]
-maxStock = [2, 5, 10, 20]
+minStock = [-4, -2, -1, 0]
+maxStock = [2, 4, 6, 10, 20]
 
-mkdir("Plots/Stock")
+msePricesStock = zeros(3, length(minStock), length(maxStock))
+mseReturnsStock = zeros(3, length(minStock), length(maxStock))
+
+# mkdir("Plots/XU_Calibration/Stock")
 
 @time for a in minStock
 
-    println("Minimum Stock Demand: ", a)
-
     for b in maxStock
 
-        println("Maximum Stock Demand: ", b)
+        println("Minimum Stock Demand: ", a, " Maximum Stock Demand: ", b)
 
         prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, 
         wpChart, wpChart_rf, wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, 
@@ -1393,6 +1583,16 @@ mkdir("Plots/Stock")
                                             b, a, fundamental_value,
                                             multiplierFund, multiplerChart, inExp_Chart,
                                             wealthFactor, dividendPhi, dividendPhi_SD)
+
+        indexOne = findfirst(x -> x == a, minStock)
+        indexTwo = findfirst(x -> x == b, maxStock)
+        msePricesStock[1, indexOne, indexTwo] = findPriceMSE(prices[:, 1:565], weeklyData)
+        msePricesStock[2, indexOne, indexTwo] = findPriceMSE(prices[:, 101:665], weeklyData)
+        msePricesStock[3, indexOne, indexTwo] = findPriceMSE(prices[:, 201:765], weeklyData)
+
+        mseReturnsStock[1, indexOne, indexTwo] = findReturnMSE(returns[:, 1:565])
+        mseReturnsStock[2, indexOne, indexTwo] = findReturnMSE(returns[:, 101:665])
+        mseReturnsStock[3, indexOne, indexTwo] = findReturnMSE(returns[:, 201:765])
 
         function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
         
@@ -1440,25 +1640,72 @@ mkdir("Plots/Stock")
 
         display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
 
-        savefig("Plots/Stock/$a-$b.pdf")
+        savefig("Plots/XU_Calibration/Stock/$a-$b [Prices].pdf")
+
+        function plotReturnsLoop(Returns, bt, et, kF, kC)
+
+            t = bt:et
+        
+            sz = 250 * (n+1)
+        
+            jse = plot(1:lengthJSE, returnsJSE, label = "JSE Top 40", title = "JSE Top 40 Index", 
+                       xlabel = "Week", ylabel = "Index Return", legend = :topleft)
+            hline!([mean(returnsJSE)], label = round(mean(returnsJSE), digits = 4), color =:black, lw = 1, linestyle =:dash)
+        
+            p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, Min Stock: $a, Max Stock: $b", 
+            xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[1, t])], label = round(mean(Returns[1, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+                    
+            hline!([mean(Returns[2, t])], label = round(mean(Returns[2, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p3 = plot(t, Returns[3, t], label = "Returns", title = "Asset 3", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[3, t])], label = round(mean(Returns[3, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p4 = plot(t, Returns[4, t], label = "Returns", title = "Asset 4", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[4, t])], label = round(mean(Returns[4, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p5 = plot(t, Returns[5, t], label = "Returns", title = "Asset 5", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[5, t])], label = round(mean(Returns[5, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            plot(p1, p2, p3, p4, p5, jse, layout = (n+1, 1), size = (800, sz))
+        
+        end
+
+        display(plotReturnsLoop(returns, 1, timeEnd, numFund, numChart))
+
+        savefig("Plots/XU_Calibration/Stock/$a-$b [Returns].pdf")
     end
 
 end
+
+@save "Data/XU_Calibration/Stock_PriceMSE.jld2" msePricesStock
+@save "Data/XU_Calibration/Stock_ReturnsMSE.jld2" mseReturnsStock
 
 ####################################################################################
 
 chartists = [5, 10, 15, 20]
 fundamentalists = [5, 10, 15, 20]
 
-mkdir("Plots/Agents")
+msePricesAgents = zeros(3, length(chartists), length(fundamentalists))
+mseReturnsAgents = zeros(3, length(chartists), length(fundamentalists))
+
+# mkdir("Plots/XU_Calibration/Agents")
 
 @time for a in chartists
 
-    println("Number of Chartists: ", a)
-
     for b in fundamentalists
 
-        println("Number of Fundamentalists: ", b)
+        println("Number of Chartists: ", a, " Number of Fundamentalists: ", b)
 
         prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, 
         wpChart, wpChart_rf, wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, 
@@ -1469,6 +1716,16 @@ mkdir("Plots/Agents")
                                             stockMax, stockMin, fundamental_value,
                                             multiplierFund, multiplerChart, inExp_Chart,
                                             wealthFactor, dividendPhi, dividendPhi_SD)
+
+        indexOne = findfirst(x -> x == a, chartists)
+        indexTwo = findfirst(x -> x == b, fundamentalists)
+        msePricesAgents[1, indexOne, indexTwo] = findPriceMSE(prices[:, 1:565], weeklyData)
+        msePricesAgents[2, indexOne, indexTwo] = findPriceMSE(prices[:, 101:665], weeklyData)
+        msePricesAgents[3, indexOne, indexTwo] = findPriceMSE(prices[:, 201:765], weeklyData)
+
+        mseReturnsAgents[1, indexOne, indexTwo] = findReturnMSE(returns[:, 1:565])
+        mseReturnsAgents[2, indexOne, indexTwo] = findReturnMSE(returns[:, 101:665])
+        mseReturnsAgents[3, indexOne, indexTwo] = findReturnMSE(returns[:, 201:765])
 
         function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
         
@@ -1516,10 +1773,56 @@ mkdir("Plots/Agents")
 
         display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
 
-        savefig("Plots/Agents/$a-$b.pdf")
+        savefig("Plots/XU_Calibration/Agents/$a-$b [Prices].pdf")
+
+        function plotReturnsLoop(Returns, bt, et, kF, kC)
+
+            t = bt:et
+        
+            sz = 250 * (n+1)
+        
+            jse = plot(1:lengthJSE, returnsJSE, label = "JSE Top 40", title = "JSE Top 40 Index", 
+                       xlabel = "Week", ylabel = "Index Return", legend = :topleft)
+            hline!([mean(returnsJSE)], label = round(mean(returnsJSE), digits = 4), color =:black, lw = 1, linestyle =:dash)
+        
+            p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, Chartists: $a, Fundamentalists: $b", 
+            xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[1, t])], label = round(mean(Returns[1, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+                    
+            hline!([mean(Returns[2, t])], label = round(mean(Returns[2, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p3 = plot(t, Returns[3, t], label = "Returns", title = "Asset 3", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[3, t])], label = round(mean(Returns[3, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p4 = plot(t, Returns[4, t], label = "Returns", title = "Asset 4", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[4, t])], label = round(mean(Returns[4, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p5 = plot(t, Returns[5, t], label = "Returns", title = "Asset 5", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[5, t])], label = round(mean(Returns[5, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            plot(p1, p2, p3, p4, p5, jse, layout = (n+1, 1), size = (800, sz))
+        
+        end
+
+        display(plotReturnsLoop(returns, 1, timeEnd, numFund, numChart))
+
+        savefig("Plots/XU_Calibration/Agents/$a-$b [Returns].pdf")
     end
 
 end
+
+@save "Data/XU_Calibration/Agents_PriceMSE.jld2" msePricesAgents
+@save "Data/XU_Calibration/Agents_ReturnsMSE.jld2" mseReturnsAgents
 
 ####################################################################################
 
@@ -1528,15 +1831,16 @@ end
 minWind = [25, 50, 75]
 maxWind = [100, 125, 150]
 
-mkdir("Plots/Fund_Window")
+msePricesFundWind = zeros(3, length(minWind), length(maxWind))
+mseReturnsFundWind = zeros(3, length(minWind), length(maxWind))
+
+# mkdir("Plots/XU_Calibration/Fund_Window")
 
 @time for a in minWind
 
-    println("Minimum Window Fundamentalists: ", a)
-
     for b in maxWind
 
-        println("Maximum Window Fundamentalists: ", b)
+        println("Minimum Window Fundamentalists: ", a, " Maximum Window Fundamentalists: ", b)
 
         prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, 
         wpChart, wpChart_rf, wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, 
@@ -1547,6 +1851,16 @@ mkdir("Plots/Fund_Window")
                                             stockMax, stockMin, fundamental_value,
                                             multiplierFund, multiplerChart, inExp_Chart,
                                             wealthFactor, dividendPhi, dividendPhi_SD)
+
+        indexOne = findfirst(x -> x == a, minWind)
+        indexTwo = findfirst(x -> x == b, maxWind)
+        msePricesFundWind[1, indexOne, indexTwo] = findPriceMSE(prices[:, 1:565], weeklyData)
+        msePricesFundWind[2, indexOne, indexTwo] = findPriceMSE(prices[:, 101:665], weeklyData)
+        msePricesFundWind[3, indexOne, indexTwo] = findPriceMSE(prices[:, 201:765], weeklyData)
+
+        mseReturnsFundWind[1, indexOne, indexTwo] = findReturnMSE(returns[:, 1:565])
+        mseReturnsFundWind[2, indexOne, indexTwo] = findReturnMSE(returns[:, 101:665])
+        mseReturnsFundWind[3, indexOne, indexTwo] = findReturnMSE(returns[:, 201:765])
 
         function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
         
@@ -1594,10 +1908,56 @@ mkdir("Plots/Fund_Window")
 
         display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
 
-        savefig("Plots/Fund_Window/$a-$b.pdf")
+        savefig("Plots/XU_Calibration/Fund_Window/$a-$b [Prices].pdf")
+
+        function plotReturnsLoop(Returns, bt, et, kF, kC)
+
+            t = bt:et
+        
+            sz = 250 * (n+1)
+        
+            jse = plot(1:lengthJSE, returnsJSE, label = "JSE Top 40", title = "JSE Top 40 Index", 
+                       xlabel = "Week", ylabel = "Index Return", legend = :topleft)
+            hline!([mean(returnsJSE)], label = round(mean(returnsJSE), digits = 4), color =:black, lw = 1, linestyle =:dash)
+        
+            p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, Min Window Fund: $a, Max Window Fund: $b", 
+            xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[1, t])], label = round(mean(Returns[1, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+                    
+            hline!([mean(Returns[2, t])], label = round(mean(Returns[2, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p3 = plot(t, Returns[3, t], label = "Returns", title = "Asset 3", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[3, t])], label = round(mean(Returns[3, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p4 = plot(t, Returns[4, t], label = "Returns", title = "Asset 4", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[4, t])], label = round(mean(Returns[4, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p5 = plot(t, Returns[5, t], label = "Returns", title = "Asset 5", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[5, t])], label = round(mean(Returns[5, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            plot(p1, p2, p3, p4, p5, jse, layout = (n+1, 1), size = (800, sz))
+        
+        end
+
+        display(plotReturnsLoop(returns, 1, timeEnd, numFund, numChart))
+
+        savefig("Plots/XU_Calibration/Fund_Window/$a-$b [Returns].pdf")
     end
 
 end
+
+@save "Data/XU_Calibration/Fund_Window_PriceMSE.jld2" msePricesFundWind
+@save "Data/XU_Calibration/Fund_Window_ReturnsMSE.jld2" mseReturnsFundWind
 
 ####################################################################################
 
@@ -1606,15 +1966,16 @@ end
 minWind = [15, 25, 35]
 maxWind = [75, 100, 125]
 
-mkdir("Plots/Chart_Window")
+msePricesChartWind = zeros(3, length(minWind), length(maxWind))
+mseReturnsChartWind = zeros(3, length(minWind), length(maxWind))
+
+# mkdir("Plots/XU_Calibration/Chart_Window")
 
 @time for a in minWind
 
-    println("Minimum Window Chartists: ", a)
-
     for b in maxWind
 
-        println("Maximum Window Chartists: ", b)
+        println("Minimum Window Chartists: ", a, " Maximum Window Chartists: ", b)
 
         prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, 
         wpChart, wpChart_rf, wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, 
@@ -1625,6 +1986,16 @@ mkdir("Plots/Chart_Window")
                                             stockMax, stockMin, fundamental_value,
                                             multiplierFund, multiplerChart, inExp_Chart,
                                             wealthFactor, dividendPhi, dividendPhi_SD)
+
+        indexOne = findfirst(x -> x == a, minWind)
+        indexTwo = findfirst(x -> x == b, maxWind)
+        msePricesChartWind[1, indexOne, indexTwo] = findPriceMSE(prices[:, 1:565], weeklyData)
+        msePricesChartWind[2, indexOne, indexTwo] = findPriceMSE(prices[:, 101:665], weeklyData)
+        msePricesChartWind[3, indexOne, indexTwo] = findPriceMSE(prices[:, 201:765], weeklyData)
+
+        mseReturnsChartWind[1, indexOne, indexTwo] = findReturnMSE(returns[:, 1:565])
+        mseReturnsChartWind[2, indexOne, indexTwo] = findReturnMSE(returns[:, 101:665])
+        mseReturnsChartWind[3, indexOne, indexTwo] = findReturnMSE(returns[:, 201:765])
 
         function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
         
@@ -1672,20 +2043,67 @@ mkdir("Plots/Chart_Window")
 
         display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
 
-        savefig("Plots/Chart_Window/$a-$b.pdf")
+        savefig("Plots/XU_Calibration/Chart_Window/$a-$b [Prices].pdf")
+
+        function plotReturnsLoop(Returns, bt, et, kF, kC)
+
+            t = bt:et
+        
+            sz = 250 * (n+1)
+        
+            jse = plot(1:lengthJSE, returnsJSE, label = "JSE Top 40", title = "JSE Top 40 Index", 
+                       xlabel = "Week", ylabel = "Index Return", legend = :topleft)
+            hline!([mean(returnsJSE)], label = round(mean(returnsJSE), digits = 4), color =:black, lw = 1, linestyle =:dash)
+        
+            p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, Min Window Fund: $a, Max Window Fund: $b", 
+            xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[1, t])], label = round(mean(Returns[1, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+                    
+            hline!([mean(Returns[2, t])], label = round(mean(Returns[2, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p3 = plot(t, Returns[3, t], label = "Returns", title = "Asset 3", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[3, t])], label = round(mean(Returns[3, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p4 = plot(t, Returns[4, t], label = "Returns", title = "Asset 4", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[4, t])], label = round(mean(Returns[4, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            p5 = plot(t, Returns[5, t], label = "Returns", title = "Asset 5", 
+                    xlabel = "Week", ylabel = "Returns", legend = :topleft)
+    
+            hline!([mean(Returns[5, t])], label = round(mean(Returns[5, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+            plot(p1, p2, p3, p4, p5, jse, layout = (n+1, 1), size = (800, sz))
+        
+        end
+
+        display(plotReturnsLoop(returns, 1, timeEnd, numFund, numChart))
+
+        savefig("Plots/XU_Calibration/Chart_Window/$a-$b [Returns].pdf")
     end
 
 end
+
+@save "Data/XU_Calibration/Chart_Window_PriceMSE.jld2" msePricesChartWind
+@save "Data/XU_Calibration/Chart_Window_ReturnsMSE.jld2" mseReturnsChartWind
 
 ####################################################################################
 
 divGrowth = [0.001, 0.0015, 0.002, 0.0025, 0.003, 0.0035]
 
-mkdir("Plots/DivGrowth")
+msePricesDivGrowth = zeros(3, length(divGrowth))
+mseReturnsDivGrowth = zeros(3, length(divGrowth))
+
+# mkdir("Plots/XU_Calibration/DivGrowth")
 
 @time for a in divGrowth
-
-    println("Dividend Growth: ", a)
 
     prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, 
     wpChart, wpChart_rf, wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, 
@@ -1696,6 +2114,15 @@ mkdir("Plots/DivGrowth")
                                          stockMax, stockMin, fundamental_value,
                                          multiplierFund, multiplerChart, inExp_Chart,
                                          wealthFactor, a, dividendPhi_SD)
+
+    index = findfirst(x -> x == a, divGrowth)
+    msePricesDivGrowth[1, index] = findPriceMSE(prices[:, 1:565], weeklyData)
+    msePricesDivGrowth[2, index] = findPriceMSE(prices[:, 101:665], weeklyData)
+    msePricesDivGrowth[3, index] = findPriceMSE(prices[:, 201:765], weeklyData)
+
+    mseReturnsDivGrowth[1, index] = findReturnMSE(returns[:, 1:565])
+    mseReturnsDivGrowth[2, index] = findReturnMSE(returns[:, 101:665])
+    mseReturnsDivGrowth[3, index] = findReturnMSE(returns[:, 201:765])
 
     function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
     
@@ -1743,19 +2170,68 @@ mkdir("Plots/DivGrowth")
 
     display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
 
-    savefig("Plots/DivGrowth/$a.pdf")
+    savefig("Plots/XU_Calibration/DivGrowth/$a [Prices].pdf")
+
+    function plotReturnsLoop(Returns, bt, et, kF, kC)
+
+        t = bt:et
+    
+        sz = 250 * (n+1)
+    
+        jse = plot(1:lengthJSE, returnsJSE, label = "JSE Top 40", title = "JSE Top 40 Index", 
+                   xlabel = "Week", ylabel = "Index Return", legend = :topleft)
+        hline!([mean(returnsJSE)], label = round(mean(returnsJSE), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+        p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, Dividend Growth Rate: $a", 
+        xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[1, t])], label = round(mean(Returns[1, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+                
+        hline!([mean(Returns[2, t])], label = round(mean(Returns[2, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p3 = plot(t, Returns[3, t], label = "Returns", title = "Asset 3", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[3, t])], label = round(mean(Returns[3, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p4 = plot(t, Returns[4, t], label = "Returns", title = "Asset 4", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[4, t])], label = round(mean(Returns[4, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p5 = plot(t, Returns[5, t], label = "Returns", title = "Asset 5", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[5, t])], label = round(mean(Returns[5, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        plot(p1, p2, p3, p4, p5, jse, layout = (n+1, 1), size = (800, sz))
+    
+    end
+
+    display(plotReturnsLoop(returns, 1, timeEnd, numFund, numChart))
+
+    savefig("Plots/XU_Calibration/DivGrowth/$a [Returns].pdf")
+
+    println("Dividend Growth: ", a)
 
 end
+
+@save "Data/XU_Calibration/MinMeanRev_PriceMSE.jld2" msePricesDivGrowth
+@save "Data/XU_Calibration/MinMeanRev_ReturnsMSE.jld2" mseReturnsDivGrowth
 
 ####################################################################################
 
 divSD = [0.01, 0.0125, 0.015, 0.0175, 0.02, 0.025]
 
-mkdir("Plots/DivSD")
+msePricesDivSD = zeros(3, length(divSD))
+mseReturnsDivSD = zeros(3, length(divSD))
+
+# mkdir("Plots/XU_Calibration/DivSD")
 
 @time for a in divSD
-
-    println("Dividend Standard Deviation: ", a)
 
     prices, returns, fundValue, pRet, erFund, erChart, wpFund, wpFund_rf, 
     wpChart, wpChart_rf, wInvFund, wInvFund_rf, wInvChart, wInvChart_rf, 
@@ -1766,6 +2242,15 @@ mkdir("Plots/DivSD")
                                          stockMax, stockMin, fundamental_value,
                                          multiplierFund, multiplerChart, inExp_Chart,
                                          wealthFactor, dividendPhi, a)
+
+    index = findfirst(x -> x == a, divSD)
+    msePricesDivSD[1, index] = findPriceMSE(prices[:, 1:565], weeklyData)
+    msePricesDivSD[2, index] = findPriceMSE(prices[:, 101:665], weeklyData)
+    msePricesDivSD[3, index] = findPriceMSE(prices[:, 201:765], weeklyData)
+
+    mseReturnsDivSD[1, index] = findReturnMSE(returns[:, 1:565])
+    mseReturnsDivSD[2, index] = findReturnMSE(returns[:, 101:665])
+    mseReturnsDivSD[3, index] = findReturnMSE(returns[:, 201:765])
 
     function plotPricesLoop(Prices, FValue, bt, et, kF, kC)
     
@@ -1813,6 +2298,56 @@ mkdir("Plots/DivSD")
 
     display(plotPricesLoop(prices, fundValue, 1, timeEnd, numFund, numChart))
 
-    savefig("Plots/DivSD/$a.pdf")
+    savefig("Plots/XU_Calibration/DivSD/$a [Prices].pdf")
+
+    function plotReturnsLoop(Returns, bt, et, kF, kC)
+
+        t = bt:et
+    
+        sz = 250 * (n+1)
+    
+        jse = plot(1:lengthJSE, returnsJSE, label = "JSE Top 40", title = "JSE Top 40 Index", 
+                   xlabel = "Week", ylabel = "Index Return", legend = :topleft)
+        hline!([mean(returnsJSE)], label = round(mean(returnsJSE), digits = 4), color =:black, lw = 1, linestyle =:dash)
+    
+        p1 = plot(t, Returns[1, t], label = "Returns", title = "Asset 1, Dividend Standard Deviation: $a", 
+        xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[1, t])], label = round(mean(Returns[1, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p2 = plot(t, Returns[2, t], label = "Returns", title = "Asset 2", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+                
+        hline!([mean(Returns[2, t])], label = round(mean(Returns[2, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p3 = plot(t, Returns[3, t], label = "Returns", title = "Asset 3", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[3, t])], label = round(mean(Returns[3, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p4 = plot(t, Returns[4, t], label = "Returns", title = "Asset 4", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[4, t])], label = round(mean(Returns[4, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        p5 = plot(t, Returns[5, t], label = "Returns", title = "Asset 5", 
+                xlabel = "Week", ylabel = "Returns", legend = :topleft)
+
+        hline!([mean(Returns[5, t])], label = round(mean(Returns[5, t]), digits = 4), color =:black, lw = 1, linestyle =:dash)
+
+        plot(p1, p2, p3, p4, p5, jse, layout = (n+1, 1), size = (800, sz))
+    
+    end
+
+    display(plotReturnsLoop(returns, 1, timeEnd, numFund, numChart))
+
+    savefig("Plots/XU_Calibration/DivSD/$a [Returns].pdf")
+
+    println("Dividend Standard Deviation: ", a)
 
 end
+
+@save "Data/XU_Calibration/DivSD_PriceMSE.jld2" msePricesDivSD
+@save "Data/XU_Calibration/DivSD_ReturnsMSE.jld2" mseReturnsDivSD
+
+####################################################################################
