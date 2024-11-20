@@ -1095,3 +1095,125 @@ jse = plot(1:wt, weeklyData, label = "JSE Top 40", title = "JSE Top 40 Index",
            xlabel = "T", ylabel = "Index Value", legend = :topleft)
 
 plot(jse, layout = (1, 1), size = (800, 250))
+
+##################################################################################
+
+### Parameters
+
+    # Number of Timesteps
+    T = 10000
+
+    # Dividend Mean
+    yBar = 1
+
+    # Risk Free Rate
+    r = 0.001
+    
+    # Strength of Fundamentalists Mean Reversion Beliefs
+    nu = 1
+
+    # Strength of Trend-Following Chartists Technical Beliefs
+    g = 1.89
+
+    sigmaDelta = 0
+    sigmaSq = 1
+    sigmaEps = 10
+    
+    # Strength of Memory
+    eta = 0
+
+    # Speculators Sensitivity to Mispricing
+    alpha = 2000
+    
+    # Intensity of Choice
+    beta = 2
+
+    # Risk Aversion
+    lambda = 1/sigmaSq
+
+    # Fundamental Value
+    pStar = yBar/r
+
+    ### Initialise Variables and Matrices
+
+    # Dividends of the Risky Asset
+    dividends = zeros(T)
+    
+    # Prices of the Risky Asset
+    price = zeros(T)
+
+    # Total Returns of Risky Assets
+    returns = zeros(T)
+
+    # Fundamentalists Expected Return of the Risky Asset
+    expRet_Fund = zeros(T)
+
+    # Chartists Expected Return of the Risky Asset
+    expRet_Chart = zeros(T)
+
+    # Fundamentalists Demand of the Risky Asset
+    demand_Fund = zeros(T)
+
+    # Chartists Demand of the Risky Asset
+    demand_Chart = zeros(T)
+
+    # Accumulated Profits by Fundamentalists
+    accProf_Fund = zeros(T)
+
+    # Accumulated Profits by Chartists
+    accProf_Chart = zeros(T)
+
+    # Percentage of Fundamentalists
+    n_Fund = zeros(T)
+
+    # Percentage of Chartists
+    n_Chart = zeros(T)
+
+    for i in 1:2
+        dividends[i] = yBar
+        price[i] = 1000
+        expRet_Fund[i] = 1000
+        expRet_Chart[i] = 1000
+    end
+
+    t = 4
+        # Delta Error Term
+        delta = rand(Normal(0, sigmaDelta), 1)[1]
+
+        dividends[t] = yBar .+ delta
+
+        # Fundamentalists Expected Return at time t+1
+        expRet_Fund[t] = pStar + (nu * (price[t-1] - pStar))
+
+        # Chartists Expected Return at time t+1
+        expRet_Chart[t] = price[t-1] + (g * (price[t-1] - price[t-2]))
+
+        # Chartists Share of the Risky Asset market at time t
+        n_Chart[t] = (1/(1 + exp(beta * (accProf_Fund[t-1] - accProf_Chart[t-1])))) * exp(-((pStar - price[t-1])^2)/alpha)
+
+        # Fundamentalists Share of the Risky Asset market at time t
+        n_Fund[t] = 1 - n_Chart[t]
+
+        # Sigma Error Term
+        epsilon = rand(Normal(0, sigmaEps), 1)[1]
+
+        # Price of the Risky Asset at time t
+        price[t] = (1/(1 + r)) * ((n_Chart[t] * expRet_Chart[t]) + 
+                   (n_Fund[t] * expRet_Fund[t]) + 
+                    yBar) .+ epsilon
+
+        # Fundamentalists Demand of the Risky Asset at time t
+        demand_Fund[t] = (expRet_Fund[t] + dividends[t] - (1 + r) * price[t]) / (lambda * sigmaSq)
+
+        # Chartists Demand of the Risky Asset at time t
+        demand_Chart[t] = (expRet_Chart[t] + dividends[t] - (1 + r) * price[t]) / (lambda * sigmaSq)
+
+        # Accumulated Profits by Fundamentalists at time t
+        accProf_Fund[t] = (price[t] + dividends[t] - (1 + r) * price[t-1]) * demand_Fund[t-1] + 
+        (eta * accProf_Fund[t-1])
+
+        # Accumulated Profits by Chartists at time t
+        accProf_Chart = (price[t] + dividends[t] - (1 + r) * price[t-1]) * demand_Chart[t-1] + 
+        (eta * accProf_Chart[t-1])
+
+        returns[t] = ((price[t] - price[t-1]) / price[t-1]) + (dividends[t] / price[t-1])
