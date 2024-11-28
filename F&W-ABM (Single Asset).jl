@@ -1,5 +1,5 @@
 
-##### Gaunersdorfer & Hommes 2000 Agent Based Model 
+##### Franke & Westerhoff 2012 Agent Based Model 
 
 using Random
 using Plots
@@ -32,7 +32,7 @@ end
 
 #################################################################################
 
-function ghABM(Time, p1)
+function fwABM(Time)
 
     ### Parameters
 
@@ -42,37 +42,23 @@ function ghABM(Time, p1)
     # Number of Timesteps
     T = Time
 
-    # Risk Free Rate
-    r = 0.002
-    
-    # Strength of Fundamentalists Mean Reversion Beliefs
-    nu = 1
-
-    # Strength of Trend-Following Chartists Technical Beliefs
-    g = 2
-
-    sigmaDelta = 1
-    sigmaSq = 1
-    sigmaEps = 1
+    mu = 0.01
+    beta = 1
+    chi = 1.5
+    phi = 0.12
+    sigma_C = 2.087
+    sigma_F = 0.758
+    alpha_0 = -0.327
+    alpha_N = 1.79
+    alpha_P = 18.43
 
     # Dividend Growth Rate
     phi = 0.002
     phiSD = 0.015
-    
-    # Strength of Memory
-    eta = 0.5
-
-    # Speculators Sensitivity to Mispricing
-    alpha = 2000
-    
-    # Intensity of Choice
-    beta = 2
-
-    # Risk Aversion
-    lambda = 1/sigmaSq
 
     # Fundamental Value
     fundValue = zeros(T)
+    fundValue[1] = 10
 
     ### Initialise Variables and Matrices
 
@@ -81,15 +67,10 @@ function ghABM(Time, p1)
     
     # Prices of the Risky Asset
     price = zeros(T)
+    price[1] = 10
 
     # Total Returns of Risky Assets
     returns = zeros(T)
-
-    # Fundamentalists Expected Return of the Risky Asset
-    expRet_Fund = zeros(T)
-
-    # Chartists Expected Return of the Risky Asset
-    expRet_Chart = zeros(T)
 
     # Fundamentalists Demand of the Risky Asset
     demand_Fund = zeros(T)
@@ -97,11 +78,9 @@ function ghABM(Time, p1)
     # Chartists Demand of the Risky Asset
     demand_Chart = zeros(T)
 
-    # Accumulated Profits by Fundamentalists
-    accProf_Fund = zeros(T)
+    # Relative Fitness
 
-    # Accumulated Profits by Chartists
-    accProf_Chart = zeros(T)
+    relFit = zeros(T)
 
     # Percentage of Fundamentalists
     n_Fund = zeros(T)
@@ -109,62 +88,40 @@ function ghABM(Time, p1)
     # Percentage of Chartists
     n_Chart = zeros(T)
 
-    for i in 1:2
-        dividends[i] = p1 * 0.001
-        price[i] = p1
-        fundValue[i] = p1
-        expRet_Fund[i] = p1
-        expRet_Chart[i] = p1
-    end
+    for t in 2:T
 
-    for t in 3:T
+        price[t] = price[t-1] + mu * (n_Chart[t-1] * demand_Chart[t-1] + n_Fund[t-1] * demand_Fund[t-1])
 
-        # Delta Error Term
-        delta = rand(Normal(0, sigmaDelta), 1)[1]
+        # fundValue[t] =  (1 + phi + (phiSD * delta)) * fundValue[t-1]
+        fundValue[t] =  10
 
-        dividends[t] =  (1 + phi + (phiSD * delta)) * dividends[t-1]
+        # Chartists Demand of the Risky Asset at time t
 
-        fundValue[t] =  (1 + phi + (phiSD * delta)) * fundValue[t-1]
+        error_C = rand(Normal(0, sigma_C), 1)[1]
 
-        # Fundamentalists Expected Return at time t+1
-        expRet_Fund[t] = fundValue[t] + (nu * (price[t-1] - fundValue[t]))
+        demand_Chart[t] = chi * (price[t] - price[t-1]) + error_C
 
-        # Chartists Expected Return at time t+1
-        expRet_Chart[t] = price[t-1] + (g * (price[t-1] - price[t-2]))
+        # Fundamentalists Demand of the Risky Asset at time t
+
+        error_F = rand(Normal(0, sigma_F), 1)[1]
+
+        demand_Fund[t] = phi * (fundValue[t] - price[t]) + error_F
 
         # Chartists Share of the Risky Asset market at time t
-        n_Chart[t] = (1/(1 + exp(beta * (accProf_Fund[t-1] - accProf_Chart[t-1])))) * exp(-((fundValue[t] - price[t-1])^2)/alpha)
+        n_Chart[t] = 1/(1 + exp(-beta * relFit[t-1]))
 
         # Fundamentalists Share of the Risky Asset market at time t
         n_Fund[t] = 1 - n_Chart[t]
 
-        # Sigma Error Term
-        epsilon = rand(Normal(0, sigmaEps), 1)[1]
+        # Relative Fitness at time t
+        relFit[t] = alpha_0 + alpha_N * (n_Fund[t] - n_Chart[t]) + alpha_P * (price[t] - fundValue[t])^2
 
-        # Price of the Risky Asset at time t
-        price[t] = (1/(1 + r)) * ((n_Chart[t] * expRet_Chart[t]) + 
-                   (n_Fund[t] * expRet_Fund[t]) + 
-                    dividends[t]) .+ epsilon
-
-        # Fundamentalists Demand of the Risky Asset at time t
-        demand_Fund[t] = (expRet_Fund[t] + dividends[t] - (1 + r) * price[t]) / (lambda * sigmaSq)
-
-        # Chartists Demand of the Risky Asset at time t
-        demand_Chart[t] = (expRet_Chart[t] + dividends[t] - (1 + r) * price[t]) / (lambda * sigmaSq)
-
-        # Accumulated Profits by Fundamentalists at time t
-        accProf_Fund[t] = (price[t] + dividends[t] - (1 + r) * price[t-1]) * demand_Fund[t-1] + 
-        (eta * accProf_Fund[t-1])
-
-        # Accumulated Profits by Chartists at time t
-        accProf_Chart[t] = (price[t] + dividends[t] - (1 + r) * price[t-1]) * demand_Chart[t-1] + 
-        (eta * accProf_Chart[t-1])
-
-        returns[t] = ((price[t] - price[t-1]) / price[t-1]) + (dividends[t] / price[t-1])
+        returns[t] = ((price[t] - price[t-1]) / price[t-1]) * 20
+        # returns[t] = log(price[t]/price[t-1])
     end
     
-    return price, fundValue, returns, expRet_Fund, expRet_Chart, 
-    n_Fund, n_Chart, demand_Fund, demand_Chart, accProf_Fund, accProf_Chart
+    return price, fundValue, returns, n_Fund, n_Chart, 
+    demand_Fund, demand_Chart, relFit
 
 end
 
@@ -172,11 +129,13 @@ end
 
 # Review Output from model and FINAL Parameters
 
-plotStart = 101
-plotEnd = 665
+timeEnd = 10000
 
-prices, fv, returns, expFund, expChart, numFund, numChart, 
-demFund, demChart, aProfFund, aProfChart = ghABM(timeEnd, 11500)
+plotStart = 8501
+plotEnd = 9065
+
+prices, fv, returns, numFund, numChart, 
+demFund, demChart, relativeFitness = fwABM(timeEnd)
 
 display(plotPrices(prices, fv, plotStart, plotEnd))
 display(plotReturns(returns, plotStart, plotEnd))
@@ -187,15 +146,7 @@ function printOutput(bt, et, type)
 
     lt = length(bt:et)
 
-    if type == "ER"
-        println("Fundamentalists Expected Return")
-        pretty_table(transpose(expFund[[bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]]),
-                    header = head)
-        println("Chartists Expected Return")
-        pretty_table(transpose(expChart[[bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]]),
-                    header = head)
-
-    elseif type == "Prop"
+    if type == "Prop"
         println("Fundamentalists Proportion")
         pretty_table(transpose(numFund[[bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]]),
                     header = head)
@@ -210,13 +161,6 @@ function printOutput(bt, et, type)
         println("Chartists Demand")
         pretty_table(transpose(demChart[[bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]]),
                     header = head)
-    elseif type == "Profit"
-        println("Fundamentalists Profit")
-        pretty_table(transpose(aProfFund[[bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]]),
-        header = head)
-        println("Chartists Profit")
-        pretty_table(transpose(aProfChart[[bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]]),
-                    header = head)
 
     elseif type == "Price"
         println("Price")
@@ -228,13 +172,9 @@ function printOutput(bt, et, type)
     end
 end
 
-printOutput(plotStart, plotEnd, "ER")
 printOutput(plotStart, plotEnd, "Prop")
 printOutput(plotStart, plotEnd, "Demand")
-printOutput(plotStart, plotEnd, "Profit")
 printOutput(plotStart, plotEnd, "Price")
-
-timeEnd = 13300
 
 ###############################################################################
 
@@ -285,7 +225,7 @@ function plotPrices(Prices, FValue, bt, et)
                tick_direction = :none, color = "purple1", lw = 1.5, 
                gridlinewidth = 1.5, gridstyle = :dash)
 
-    p1 = plot(t, Prices[t], label = "Price", title = "Risky Asset", 
+    p1 = plot(t, exp.(Prices[t]), label = "Price", title = "Risky Asset", 
               xlabel = "Week", ylabel = "Price", legend = false, framestyle = :box, 
               tick_direction = :none, color = "darkorange2", lw = 1.5, 
               gridlinewidth = 1.5, gridstyle = :dash)
@@ -300,7 +240,7 @@ function plotPrices(Prices, FValue, bt, et)
 
 end
 
-display(plotPrices(prices, plotStart, plotEnd))
+display(plotPrices(prices, fv, plotStart, plotEnd))
 
 ###############################################################################
 
@@ -309,6 +249,7 @@ display(plotPrices(prices, plotStart, plotEnd))
 function plotReturns(Returns, bt, et)
 
     t = bt:et
+    m = mean(Returns[t])
 
     jse = plot(1:lengthJSE, returnsJSE, title = "JSE Top 40 Index", label = false, 
                xlabel = "Week", ylabel = "Return", legend = :topleft, framestyle = :box, 
@@ -323,7 +264,7 @@ function plotReturns(Returns, bt, et)
               tick_direction = :none, color = "darkorange2", ylim = (-0.15, 0.25), 
               grid = (:y, :auto), gridlinewidth = 1.5, gridalpha = 0.125)
 
-    hline!([mean(Returns[t])], label = round(mean(Returns[t]), digits = 4), 
+    hline!([m], label = round(m, digits = 4), 
             color =:black, lw = 1, linestyle =:dash)
 
     plot(p1, jse, layout = (2, 1), size = (900, 900), 
@@ -432,63 +373,7 @@ display(plotAutoCorrelations(returns, plotStart, plotEnd))
 
 ###############################################################################
 
-# For Loop Plots
-
-gs = 2:0.5:6
-
-nu = 1
-g = 2
-
-for g in gs
-
-    prices, returns = ghABM(timeEnd, nu, g)
-
-    function plotPrices(Prices, bt, et)
-
-            t = bt:et
-        
-            jse = plot(1:lengthJSE, weeklyData, label = "JSE Top 40", title = "JSE Top 40 Index", 
-                    xlabel = "Week", ylabel = "Price", legend = false, 
-                    yformatter = x -> @sprintf("%.0f", x), framestyle = :box, 
-                    tick_direction = :none, color = "purple1", lw = 1.5, 
-                    gridlinewidth = 1.5, gridstyle = :dash)
-        
-            p1 = plot(t, Prices[t], label = "Price", title = "Risky Asset, g = $g", 
-                    xlabel = "Week", ylabel = "Price", legend = false, framestyle = :box, 
-                    tick_direction = :none, color = "darkorange2", lw = 1.5, 
-                    gridlinewidth = 1.5, gridstyle = :dash)
-        
-            plot(p1, jse, layout = (2, 1), size = (900, 900), 
-                margin = 2mm)
-        
-    end
-
-    function plotReturns(Returns, bt, et)
-
-            t = bt:et
-        
-            jse = plot(1:lengthJSE, returnsJSE, title = "JSE Top 40 Index", label = false, 
-                    xlabel = "Week", ylabel = "Return", legend = :topleft, framestyle = :box, 
-                    tick_direction = :none, color = "purple1", ylim = (-0.15, 0.25), 
-                    grid = (:y, :auto), gridlinewidth = 1.5, gridalpha = 0.125)
-        
-            hline!([mean(returnsJSE)], label = round(mean(returnsJSE), digits = 4), 
-                    color =:black, lw = 1, linestyle =:dash)
-        
-            p1 = plot(t, Returns[t], label = false, title = "Risky Asset, g = $g", 
-                    xlabel = "Week", ylabel = "Returns", legend = :topleft, framestyle = :box, 
-                    tick_direction = :none, color = "darkorange2", ylim = (-0.15, 0.25), 
-                    grid = (:y, :auto), gridlinewidth = 1.5, gridalpha = 0.125)
-        
-            hline!([mean(Returns)], label = round(mean(Returns), digits = 4), 
-                    color =:black, lw = 1, linestyle =:dash)
-        
-            plot(p1, jse, layout = (2, 1), size = (900, 900), 
-            margin = 2mm)
-        
-    end
-
-    display(plotPrices(prices, plotStart, plotEnd))
-    display(plotReturns(returns, plotStart, plotEnd))
-
-end
+plot(plotStart:plotEnd, numChart[plotStart:plotEnd], label = "Price", title = "Number of Fundamentalists", 
+              xlabel = "Week", ylabel = "Fundamentalists (%)", legend = false, framestyle = :box, 
+              tick_direction = :none, color = "darkorange2", lw = 1.5, 
+              gridlinewidth = 1.5, gridstyle = :dash)

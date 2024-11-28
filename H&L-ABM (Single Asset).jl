@@ -69,7 +69,8 @@ function hlABM(Time, n1, n2, mu, gamma, delta, alpha)
 
     # Chartist Variance Influence
     b2 = 1
-    b = b2/sigma_C
+    # b = b2/sigma_C
+    b = 1
 
     # Demand Parameters
     a1 = 0.8
@@ -174,6 +175,12 @@ function hlABM(Time, n1, n2, mu, gamma, delta, alpha)
         # Fundamentalists Demand at time t
         demand_Fund[t] = (expRet_Fund[t]) / (a1 * expVar_Fund[t])
 
+        # Sample Mean at time t
+        u[t] = (delta * u[t-1]) + ((1 - delta) * price[t])
+
+        # Sample Variance at time t
+        v[t] = (delta * v[t-1]) + (delta * (1 - delta) * (price[t] - u[t-1])^2)
+
         # Chartists Expected Return at time t + 1
         expRet_Chart[t] = (gamma * (price[t] - u[t])) - ((R - 1) * (price[t] - in_Fund))
 
@@ -182,15 +189,10 @@ function hlABM(Time, n1, n2, mu, gamma, delta, alpha)
 
         # Chartists Demand at time t
         demand_Chart[t] = (expRet_Chart[t]) / (a2 * expVar_Chart[t])
-
-        # Sample Mean at time t
-        u[t] = (delta * u[t-1]) + ((1 - delta) * price[t])
-
-        # Sample Variance at time t
-        v[t] = (delta * v[t-1]) + (delta * (1 - delta) * (price[t] - u[t-1])^2)
+        
     end
 
-    return price, fundValue, returns, demand_Fund, demand_Chart
+    return price, fundValue, returns, demand_Fund, demand_Chart, expRet_Fund, expRet_Chart, excGain
 
 end
 
@@ -217,7 +219,7 @@ DELTA = 0.85
 # Fundamentalist Price Adjustment Speed
 ALPHA = 0.1
 
-prices, fv, returns, demFund, demChart = hlABM(timeEnd, 20, 20, MU, GAMMA, DELTA, ALPHA)
+prices, fv, returns, demFund, demChart, expFund, expChart, exG = hlABM(timeEnd, 20, 20, MU, GAMMA, DELTA, ALPHA)
 
 ###############################################################################
 
@@ -304,7 +306,7 @@ function plotReturns(Returns, bt, et)
 
     p1 = plot(t, Returns[t], label = false, title = "Risky Asset", 
               xlabel = "Week", ylabel = "Returns", legend = :topleft, framestyle = :box, 
-              tick_direction = :none, color = "darkorange2", ylim = (-0.15, 0.25), 
+              tick_direction = :none, color = "darkorange2", ylim = (-0.05, 0.05), 
               grid = (:y, :auto), gridlinewidth = 1.5, gridalpha = 0.125)
 
     hline!([m], label = round(m, digits = 4), 
@@ -325,21 +327,24 @@ function plotReturnDistribution(Returns, bt, et)
 
     t = bt:et
 
-    xVals = range(-0.15, stop = 0.15, length = 60)
+    xVals_JSE = range(-0.15, stop = 0.15, length = 60)
+    binSize_JSE = xVals_JSE
+
+    xVals = range(-0.05, stop = 0.05, length = 60)
     binSize = xVals
 
-    jse = histogram(returnsJSE, bins = binSize, title = "JSE Top 40 Index",
+    jse = histogram(returnsJSE, bins = binSize_JSE, title = "JSE Top 40 Index",
     xlabel = "Returns", ylabel = "Density", xlim = (-0.15, 0.15), normalize = :pdf,
     label = false, color = "purple1", alpha = 0.5, framestyle = :box, 
     tick_direction = :none, grid = (:y, :auto), gridlinewidth = 1.5, 
     gridalpha = 0.125)
 
-    jseDensity = pdf.(Normal(mean(returnsJSE), std(returnsJSE)), xVals)
+    jseDensity = pdf.(Normal(mean(returnsJSE), std(returnsJSE)), xVals_JSE)
 
-    plot!(xVals, jseDensity, label = false, lw = 2.5, color = "purple1")
+    plot!(xVals_JSE, jseDensity, label = false, lw = 2.5, color = "purple1")
 
     p1 = histogram(Returns[t], bins = binSize, title = "Risky Asset", 
-    xlabel = "Returns", ylabel = "Density", xlim = (-0.15, 0.15), normalize = :pdf,
+    xlabel = "Returns", ylabel = "Density", xlim = (-0.05, 0.05), normalize = :pdf,
     label = false, color = "darkorange2", alpha = 0.5, framestyle = :box, 
     tick_direction = :none, grid = (:y, :auto), gridlinewidth = 1.5, 
     gridalpha = 0.125)
@@ -415,3 +420,52 @@ end
 display(plotAutoCorrelations(returns, plotStart, plotEnd))
 
 ###############################################################################
+
+tt = 1:10
+bt = 9201
+et = 9765
+prices[tt]
+
+fv[tt]
+returns[tt]
+demFund[tt]
+
+function printOutput(bt, et, type)
+
+    head = ["$bt", "$bt+1", "$bt+2", "$bt+3", "$bt+4", "$et-4", "$et-3", "$et-2", "$et-1", "$et"]
+
+    lt = length(bt:et)
+
+    if type == "Demand"
+        println("Fundamentalists Demand")
+        pretty_table(transpose(demFund[[bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]]),
+                    header = head)
+        println("Chartists Demand")
+        pretty_table(transpose(demChart[[bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]]),
+                    header = head)
+
+    elseif type == "ER"
+        println("Fundamentalists Expected Return")
+        pretty_table(transpose(expFund[[bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]]),
+                    header = head)
+        println("Chartists Expected Return")
+        pretty_table(transpose(expChart[[bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]]),
+                    header = head)
+
+
+    elseif type == "Price"
+        println("Price")
+        pretty_table(transpose(prices[[bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]]),
+                    header = head)
+        println("Return")
+        pretty_table(transpose(returns[[bt, bt+1, bt+2, bt+3, bt+4, et-4, et-3, et-2, et-1, et]]),
+                    header = head)
+    end
+end
+
+printOutput(bt, et, "Demand")
+printOutput(bt, et, "ER")
+printOutput(bt, et, "Price")
+
+display(plotPrices(prices, fv, bt, et))
+display(plotReturns(returns, bt, et))
