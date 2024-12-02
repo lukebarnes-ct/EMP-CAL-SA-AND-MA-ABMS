@@ -1,4 +1,4 @@
-### Load JSE TOP40
+### Load Bombay Stock Exchange Sensex Index (BSESN)
 
 using XLSX
 using JLD2
@@ -8,7 +8,7 @@ using Dates
 file_path = "Data/BRICs-EOD-Compact-2005-2015.xlsx"
 
 file = XLSX.openxlsx(file_path)
-sheet = file[2]
+sheet = file[4]
 
 dates = Date("2005-01-01"):Day(1):Date("2016-04-29")
 
@@ -31,10 +31,9 @@ dailyPrices = dropmissing(dailyPrices, :Price)
 weeklyPrices = combine(groupby(dailyPrices, [:Year, :Week]), 
 :Price => last => :WeeklyClosingPrice)
 
-weekly_JSETOP40_Data = vec(weeklyPrices.WeeklyClosingPrice)
-daily_JSETOP40_Data = Float64.(vec(dailyPrices.Price))
+weekly_BSESN_Data = vec(weeklyPrices.WeeklyClosingPrice)
+daily_BSESN_Data = Float64.(vec(dailyPrices.Price))
 
 # Save daily and weekly price vectors to a .jld2 file
-@save "Data/jsetop40_weekly.jld2" weekly_JSETOP40_Data
-@save "Data/jsetop40_daily.jld2" daily_JSETOP40_Data
-
+@save "Data/bsesn_weekly.jld2" weekly_BSESN_Data
+@save "Data/bsesn_daily.jld2" daily_BSESN_Data
