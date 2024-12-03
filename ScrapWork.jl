@@ -1217,3 +1217,62 @@ plot(jse, layout = (1, 1), size = (800, 250))
         (eta * accProf_Chart[t-1])
 
         returns[t] = ((price[t] - price[t-1]) / price[t-1]) + (dividends[t] / price[t-1])
+
+        n1 = n - 1
+        p = [mean(price[i:i+n1]) for i in 1:n:length(price) if i+n1 <= length(price)]
+        div = [mean(dividends[i:i+n1]) for i in 1:n:length(dividends) if i+n1 <= length(dividends)]
+    
+        r = zeros(T)
+    
+        for t in 2:665
+    
+            r[t] = ((p[t] - p[t-1]) / p[t-1]) + (div[t] / p[t-1])
+    
+        end
+
+##################################################################################
+
+sf = filter(row -> row.WeeklyClosingPrice >= 52, weeklyPrices)
+yyy = 104:116
+weeklyPrices[yyy, :]
+weekly_JSETOP40_Data[yyy]
+filter(row -> row.Week == 1 && row.Year == 2008, dailyPrices)
+
+##################################################################################
+
+t = plotStart:plotEnd_Daily_JSE
+plot(t, prices[t], label = "Price", title = "Risky Asset", 
+              xlabel = "Week", ylabel = "Price", legend = false, framestyle = :box, 
+              tick_direction = :none, color = "darkorange2", lw = 1.5, 
+              gridlinewidth = 1.5, gridstyle = :dash)
+
+pf =  plot(t, fv[t], label = "Fundamental Value",
+    xlabel = "Week", ylabel = "FV", legend = false, framestyle = :box, 
+    tick_direction = :none, color = "red", lw = 1.5, 
+    gridlinewidth = 1.5, gridstyle = :dash)
+
+    plot(1:lengthJSE_Daily, daily_JSETOP40_Data, label = "JSE Top 40", title = "JSE Top 40 Index", 
+    xlabel = "Day", ylabel = "Price", legend = false, 
+    yformatter = x -> @sprintf("%.0f", x), framestyle = :box, 
+    tick_direction = :none, color = "purple1", lw = 1.5, 
+    gridlinewidth = 1.5, gridstyle = :dash)
+
+    weekly_JSETOP40_Data[100:110]
+
+    plot(1:lengthJSE_Weekly, weekly_JSETOP40_Data, label = "JSE Top 40", title = "JSE Top 40 Index", 
+    xlabel = "Week", ylabel = "Price", legend = false, 
+    yformatter = x -> @sprintf("%.0f", x), framestyle = :box, 
+    tick_direction = :none, color = "purple1", lw = 1.5, 
+    gridlinewidth = 1.5, gridstyle = :dash)
+
+    plot(1:lengthSSE50_Daily, daily_SSE50_Data, label = "SSE 50", title = "SSE 50 Index", 
+    xlabel = "Day", ylabel = "Price", legend = false, 
+    yformatter = x -> @sprintf("%.0f", x), framestyle = :box, 
+    tick_direction = :none, color = "purple1", lw = 1.5, 
+    gridlinewidth = 1.5, gridstyle = :dash)
+
+    plot(1:lengthSSE50_Weekly, weekly_SSE50_Data, label = "SSE 50", title = "SSE 50 Index", 
+               xlabel = "Week", ylabel = "Price", legend = false, 
+               yformatter = x -> @sprintf("%.0f", x), framestyle = :box, 
+               tick_direction = :none, color = "purple1", lw = 1.5, 
+               gridlinewidth = 1.5, gridstyle = :dash)

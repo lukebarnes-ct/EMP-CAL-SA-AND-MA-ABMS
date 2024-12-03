@@ -24,6 +24,17 @@ dailyPrices.Week = Dates.week.(dailyPrices.Date)
 # Add Year
 dailyPrices.Year = Dates.year.(dailyPrices.Date)
 
+# Add month
+dailyPrices.Month = Dates.month.(dailyPrices.Date)
+
+for row in eachrow(dailyPrices)
+    if row.Week == 1 && row.Month == 12
+        row.Year += 1
+    elseif row.Week >= 52 && row.Month == 1
+        row.Year -= 1
+    end
+end
+
 # Remove rows with missing values
 dailyPrices = dropmissing(dailyPrices, :Price)
 
