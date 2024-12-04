@@ -13,6 +13,7 @@ using Plots.PlotMeasures
 using StatsBase
 using TypedTables
 using StatsPlots
+using Subscripts
 
 # Load JSE Top 40 Index from .jld2 file
 @load "Data/jsetop40_weekly.jld2" weekly_JSETOP40_Data
@@ -28,14 +29,59 @@ using StatsPlots
 
 #################################################################################
 
-# Calculate the returns of the JSE Top 40 Price Data
+# Calculate the Daily and Weekly Returns of the 
+# JSE Top 40 Price Data, 
+# SSE50 Price Data and 
+# BSESN Price Data
 
-lengthJSE = length(weeklyData)
-returnsJSE = zeros(lengthJSE)
+lengthJSE_Daily = length(daily_JSETOP40_Data)
+lengthJSE_Weekly = length(weekly_JSETOP40_Data)
+returnsJSE_Daily = zeros(lengthJSE_Daily)
+returnsJSE_Weekly = zeros(lengthJSE_Weekly)
 
-for i in 2:lengthJSE
+lengthSSE50_Daily = length(daily_SSE50_Data)
+lengthSSE50_Weekly = length(weekly_SSE50_Data)
+returnsSSE50_Daily = zeros(lengthSSE50_Daily)
+returnsSSE50_Weekly = zeros(lengthSSE50_Weekly)
 
-    returnsJSE[i] = ((weeklyData[i] - weeklyData[i-1]) ./ weeklyData[i-1])
+lengthBSESN_Daily = length(daily_BSESN_Data)
+lengthBSESN_Weekly = length(weekly_BSESN_Data)
+returnsBSESN_Daily = zeros(lengthBSESN_Daily)
+returnsBSESN_Weekly = zeros(lengthBSESN_Weekly)
+
+for i in 2:lengthJSE_Daily
+
+    returnsJSE_Daily[i] = ((daily_JSETOP40_Data[i] - daily_JSETOP40_Data[i-1]) ./ daily_JSETOP40_Data[i-1])
+
+end
+
+for i in 2:lengthJSE_Weekly
+
+    returnsJSE_Weekly[i] = ((weekly_JSETOP40_Data[i] - weekly_JSETOP40_Data[i-1]) ./ weekly_JSETOP40_Data[i-1])
+
+end
+
+for i in 2:lengthSSE50_Daily
+
+    returnsSSE50_Daily[i] = ((daily_SSE50_Data[i] - daily_SSE50_Data[i-1]) ./ daily_SSE50_Data[i-1])
+
+end
+
+for i in 2:lengthSSE50_Weekly
+
+    returnsSSE50_Weekly[i] = ((weekly_SSE50_Data[i] - weekly_SSE50_Data[i-1]) ./ weekly_SSE50_Data[i-1])
+
+end
+
+for i in 2:lengthBSESN_Daily
+
+    returnsBSESN_Daily[i] = ((daily_BSESN_Data[i] - daily_BSESN_Data[i-1]) ./ daily_BSESN_Data[i-1])
+
+end
+
+for i in 2:lengthBSESN_Weekly
+
+    returnsBSESN_Weekly[i] = ((weekly_BSESN_Data[i] - weekly_BSESN_Data[i-1]) ./ weekly_BSESN_Data[i-1])
 
 end
 
@@ -453,9 +499,9 @@ function plotReturns(Returns, bt, et, index, timescale)
 
 end
 
-display(plotReturns(prices, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
-display(plotReturns(prices, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
-display(plotReturns(prices, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
+display(plotReturns(returns, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
+display(plotReturns(returns, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
+display(plotReturns(returns, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
 
 ###############################################################################
 
@@ -567,9 +613,9 @@ function plotReturnDistribution(Returns, bt, et, index, timescale)
 
 end
 
-display(plotReturnDistribution(prices, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
-display(plotReturnDistribution(prices, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
-display(plotReturnDistribution(prices, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
+display(plotReturnDistribution(returns, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
+display(plotReturnDistribution(returns, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
+display(plotReturnDistribution(returns, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
 
 ###############################################################################
 
@@ -798,9 +844,9 @@ function plotAutoCorrelations(Returns, bt, et, index, timescale)
 
 end
 
-display(plotAutoCorrelations(prices, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
-display(plotAutoCorrelations(prices, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
-display(plotAutoCorrelations(prices, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
+display(plotAutoCorrelations(returns, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
+display(plotAutoCorrelations(returns, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
+display(plotAutoCorrelations(returns, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
 
 ###############################################################################
 
@@ -851,3 +897,15 @@ end
 printOutput(bt, et, "Demand")
 printOutput(bt, et, "ER")
 printOutput(bt, et, "Price")
+
+printOutput(plotStart, plotEnd_Daily_JSE, "ER")
+printOutput(plotStart, plotEnd_Daily_JSE, "Demand")
+printOutput(plotStart, plotEnd_Daily_JSE, "Price")
+
+printOutput(plotStart, plotEnd_Daily_SSE50, "ER")
+printOutput(plotStart, plotEnd_Daily_SSE50, "Demand")
+printOutput(plotStart, plotEnd_Daily_SSE50, "Price")
+
+printOutput(plotStart, plotEnd_Daily_BSESN, "ER")
+printOutput(plotStart, plotEnd_Daily_BSESN, "Demand")
+printOutput(plotStart, plotEnd_Daily_BSESN, "Price")

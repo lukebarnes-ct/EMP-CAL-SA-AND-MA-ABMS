@@ -512,9 +512,9 @@ function plotReturns(Returns, bt, et, index, timescale)
 
 end
 
-display(plotReturns(prices, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
-display(plotReturns(prices, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
-display(plotReturns(prices, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
+display(plotReturns(returns, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
+display(plotReturns(returns, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
+display(plotReturns(returns, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
 
 ###############################################################################
 
@@ -626,9 +626,9 @@ function plotReturnDistribution(Returns, bt, et, index, timescale)
 
 end
 
-display(plotReturnDistribution(prices, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
-display(plotReturnDistribution(prices, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
-display(plotReturnDistribution(prices, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
+display(plotReturnDistribution(returns, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
+display(plotReturnDistribution(returns, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
+display(plotReturnDistribution(returns, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
 
 ###############################################################################
 
@@ -857,9 +857,9 @@ function plotAutoCorrelations(Returns, bt, et, index, timescale)
 
 end
 
-display(plotAutoCorrelations(prices, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
-display(plotAutoCorrelations(prices, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
-display(plotAutoCorrelations(prices, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
+display(plotAutoCorrelations(returns, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
+display(plotAutoCorrelations(returns, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
+display(plotAutoCorrelations(returns, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
 
 ###############################################################################
 

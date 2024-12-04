@@ -13,6 +13,7 @@ using Plots.PlotMeasures
 using StatsBase
 using TypedTables
 using StatsPlots
+using Subscripts
 
 # Load JSE Top 40 Index from .jld2 file
 @load "Data/jsetop40_weekly.jld2" weekly_JSETOP40_Data
@@ -185,14 +186,13 @@ end
 
 timeEnd = 10000
 
-plotStart = 8501
-plotEnd = 9065
+plotStart_Daily = 1001
+plotEnd_Daily_JSE = plotStart_Daily - 1 + lengthJSE_Daily 
+plotEnd_Daily_SSE50 = plotStart_Daily - 1 + lengthSSE50_Daily
+plotEnd_Daily_BSESN = plotStart_Daily - 1 + lengthBSESN_Daily
 
 prices, fv, returns, numFund, numChart, 
 demFund, demChart, relativeFitness = fwABM(timeEnd)
-
-display(plotPrices(prices, fv, plotStart, plotEnd))
-display(plotReturns(returns, plotStart, plotEnd))
 
 function printOutput(bt, et, type)
 
@@ -226,9 +226,17 @@ function printOutput(bt, et, type)
     end
 end
 
-printOutput(plotStart, plotEnd, "Prop")
-printOutput(plotStart, plotEnd, "Demand")
-printOutput(plotStart, plotEnd, "Price")
+printOutput(plotStart, plotEnd_Daily_JSE, "Prop")
+printOutput(plotStart, plotEnd_Daily_JSE, "Demand")
+printOutput(plotStart, plotEnd_Daily_JSE, "Price")
+
+printOutput(plotStart, plotEnd_Daily_SSE50, "Prop")
+printOutput(plotStart, plotEnd_Daily_SSE50, "Demand")
+printOutput(plotStart, plotEnd_Daily_SSE50, "Price")
+
+printOutput(plotStart, plotEnd_Daily_BSESN, "Prop")
+printOutput(plotStart, plotEnd_Daily_BSESN, "Demand")
+printOutput(plotStart, plotEnd_Daily_BSESN, "Price")
 
 ###############################################################################
 
@@ -263,9 +271,9 @@ function descriptiveStatistics(Returns, bt, et, indexReturns)
     return descStat
 end
 
-returnStatisticsJSE = descriptiveStatistics(returns, plotStart, plotEnd_Daily_JSE, returnsJSE_Daily)
-returnStatisticsSSE = descriptiveStatistics(returns, plotStart, plotEnd_Daily_SSE50, returnsSSE50_Daily)
-returnStatisticsBSE = descriptiveStatistics(returns, plotStart, plotEnd_Daily_BSESN, returnsBSESN_Daily)
+returnStatisticsJSE = descriptiveStatistics(returns, plotStart_Daily, plotEnd_Daily_JSE, returnsJSE_Daily)
+returnStatisticsSSE = descriptiveStatistics(returns, plotStart_Daily, plotEnd_Daily_SSE50, returnsSSE50_Daily)
+returnStatisticsBSE = descriptiveStatistics(returns, plotStart_Daily, plotEnd_Daily_BSESN, returnsBSESN_Daily)
 
 ###############################################################################
 
@@ -354,9 +362,9 @@ function plotPrices(Prices, FValue, bt, et, index, timescale)
 
 end
 
-display(plotPrices(prices, fv, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
-display(plotPrices(prices, fv, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
-display(plotPrices(prices, fv, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily"))
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily"))
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily"))
 
 ###############################################################################
 
@@ -453,9 +461,9 @@ function plotReturns(Returns, bt, et, index, timescale)
 
 end
 
-display(plotReturns(prices, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
-display(plotReturns(prices, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
-display(plotReturns(prices, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
+display(plotReturns(returns, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily"))
+display(plotReturns(returns, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily"))
+display(plotReturns(returns, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily"))
 
 ###############################################################################
 
@@ -567,9 +575,9 @@ function plotReturnDistribution(Returns, bt, et, index, timescale)
 
 end
 
-display(plotReturnDistribution(prices, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
-display(plotReturnDistribution(prices, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
-display(plotReturnDistribution(prices, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
+display(plotReturnDistribution(returns, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily"))
+display(plotReturnDistribution(returns, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily"))
+display(plotReturnDistribution(returns, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily"))
 
 ###############################################################################
 
@@ -798,13 +806,13 @@ function plotAutoCorrelations(Returns, bt, et, index, timescale)
 
 end
 
-display(plotAutoCorrelations(prices, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
-display(plotAutoCorrelations(prices, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
-display(plotAutoCorrelations(prices, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
+display(plotAutoCorrelations(returns, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily"))
+display(plotAutoCorrelations(returns, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily"))
+display(plotAutoCorrelations(returns, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily"))
 
 ###############################################################################
 
-plot(plotStart:plotEnd, numChart[plotStart:plotEnd], label = "Price", title = "Number of Fundamentalists", 
+plot(plotStart_Daily:plotEnd_Daily_JSE, numChart[plotStart_Daily:plotEnd_Daily_JSE], label = "Price", title = "Number of Fundamentalists", 
               xlabel = "Week", ylabel = "Fundamentalists (%)", legend = false, framestyle = :box, 
               tick_direction = :none, color = "darkorange2", lw = 1.5, 
               gridlinewidth = 1.5, gridstyle = :dash)
