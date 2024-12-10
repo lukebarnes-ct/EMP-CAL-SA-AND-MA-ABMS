@@ -16,75 +16,32 @@ using StatsPlots
 using LaTeXStrings
 using Subscripts
 
-# Load JSE Top 40 Index from .jld2 file
+# Load JSE Top 40 Index and Log Returns from .jld2 file
 @load "Data/jsetop40_weekly.jld2" weekly_JSETOP40_Data
 @load "Data/jsetop40_daily.jld2" daily_JSETOP40_Data
+@load "Data/jsetop40_weekly_LogReturns.jld2" returnsJSE_Weekly
+@load "Data/jsetop40_daily_LogReturns.jld2" returnsJSE_Daily
 
-# Load SSE 50 Index from .jld2 file
+# Load SSE 50 Index and Log Returns from .jld2 file
 @load "Data/sse50_weekly.jld2" weekly_SSE50_Data
 @load "Data/sse50_daily.jld2" daily_SSE50_Data
+@load "Data/sse50_weekly_LogReturns.jld2" returnsSSE50_Weekly
+@load "Data/sse50_daily_LogReturns.jld2" returnsSSE50_Daily
 
-# Load BSE Sensex Index from .jld2 file
+# Load BSE Sensex Index and Log Returns from .jld2 file
 @load "Data/bsesn_weekly.jld2" weekly_BSESN_Data
 @load "Data/bsesn_daily.jld2" daily_BSESN_Data
-
-#################################################################################
-
-# Calculate the Daily and Weekly Returns of the 
-# JSE Top 40 Price Data, 
-# SSE50 Price Data and 
-# BSESN Price Data
+@load "Data/bsesn_weekly_LogReturns.jld2" returnsBSESN_Weekly
+@load "Data/bsesn_daily_LogReturns.jld2" returnsBSESN_Daily
 
 lengthJSE_Daily = length(daily_JSETOP40_Data)
 lengthJSE_Weekly = length(weekly_JSETOP40_Data)
-returnsJSE_Daily = zeros(lengthJSE_Daily)
-returnsJSE_Weekly = zeros(lengthJSE_Weekly)
 
 lengthSSE50_Daily = length(daily_SSE50_Data)
 lengthSSE50_Weekly = length(weekly_SSE50_Data)
-returnsSSE50_Daily = zeros(lengthSSE50_Daily)
-returnsSSE50_Weekly = zeros(lengthSSE50_Weekly)
 
 lengthBSESN_Daily = length(daily_BSESN_Data)
 lengthBSESN_Weekly = length(weekly_BSESN_Data)
-returnsBSESN_Daily = zeros(lengthBSESN_Daily)
-returnsBSESN_Weekly = zeros(lengthBSESN_Weekly)
-
-for i in 2:lengthJSE_Daily
-
-    returnsJSE_Daily[i] = ((daily_JSETOP40_Data[i] - daily_JSETOP40_Data[i-1]) ./ daily_JSETOP40_Data[i-1])
-
-end
-
-for i in 2:lengthJSE_Weekly
-
-    returnsJSE_Weekly[i] = ((weekly_JSETOP40_Data[i] - weekly_JSETOP40_Data[i-1]) ./ weekly_JSETOP40_Data[i-1])
-
-end
-
-for i in 2:lengthSSE50_Daily
-
-    returnsSSE50_Daily[i] = ((daily_SSE50_Data[i] - daily_SSE50_Data[i-1]) ./ daily_SSE50_Data[i-1])
-
-end
-
-for i in 2:lengthSSE50_Weekly
-
-    returnsSSE50_Weekly[i] = ((weekly_SSE50_Data[i] - weekly_SSE50_Data[i-1]) ./ weekly_SSE50_Data[i-1])
-
-end
-
-for i in 2:lengthBSESN_Daily
-
-    returnsBSESN_Daily[i] = ((daily_BSESN_Data[i] - daily_BSESN_Data[i-1]) ./ daily_BSESN_Data[i-1])
-
-end
-
-for i in 2:lengthBSESN_Weekly
-
-    returnsBSESN_Weekly[i] = ((weekly_BSESN_Data[i] - weekly_BSESN_Data[i-1]) ./ weekly_BSESN_Data[i-1])
-
-end
 
 #################################################################################
 
@@ -231,7 +188,10 @@ plotEnd_Daily_SSE50 = plotStart_Daily - 1 + lengthSSE50_Daily
 plotEnd_Daily_BSESN = plotStart_Daily - 1 + lengthBSESN_Daily
 
 plotStart_Weekly = 101
-plotEnd_Weekly = 665
+plotEnd_Weekly_JSE = plotStart_Weekly - 1 + lengthJSE_Weekly 
+plotEnd_Weekly_SSE50 = plotStart_Weekly - 1 + lengthSSE50_Weekly
+plotEnd_Weekly_BSESN = plotStart_Weekly - 1 + lengthBSESN_Weekly
+
 
 prices, fv, returns, expFund, expChart, numFund, numChart, 
 demFund, demChart, aProfFund, aProfChart = ghABM(timeEnd, 11500)
@@ -322,9 +282,13 @@ function descriptiveStatistics(Returns, bt, et, indexReturns)
     return descStat
 end
 
-returnStatisticsJSE = descriptiveStatistics(returns, plotStart, plotEnd_Daily_JSE, returnsJSE_Daily)
-returnStatisticsSSE = descriptiveStatistics(returns, plotStart, plotEnd_Daily_SSE50, returnsSSE50_Daily)
-returnStatisticsBSE = descriptiveStatistics(returns, plotStart, plotEnd_Daily_BSESN, returnsBSESN_Daily)
+returnStatisticsJSE = descriptiveStatistics(returns, plotStart_Daily, plotEnd_Daily_JSE, returnsJSE_Daily)
+returnStatisticsSSE = descriptiveStatistics(returns, plotStart_Daily, plotEnd_Daily_SSE50, returnsSSE50_Daily)
+returnStatisticsBSE = descriptiveStatistics(returns, plotStart_Daily, plotEnd_Daily_BSESN, returnsBSESN_Daily)
+
+returnStatisticsJSE_Weekly = descriptiveStatistics(returns, plotStart_Weekly, plotEnd_Weekly_JSE, returnsJSE_Weekly)
+returnStatisticsSSE_Weekly = descriptiveStatistics(returns, plotStart_Weekly, plotEnd_Weekly_SSE50, returnsSSE50_Weekly)
+returnStatisticsBSE_Weekly = descriptiveStatistics(returns, plotStart_Weekly, plotEnd_Weekly_BSESN, returnsBSESN_Weekly)
 
 ###############################################################################
 
