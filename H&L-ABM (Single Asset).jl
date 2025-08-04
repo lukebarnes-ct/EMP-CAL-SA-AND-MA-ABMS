@@ -214,8 +214,15 @@ end
 
 timeEnd = 10000
 
-plotStart = 1001
-plotEnd = 1565
+plotStart_Daily = 1001
+plotEnd_Daily_JSE = plotStart_Daily - 1 + lengthJSE_Daily 
+plotEnd_Daily_SSE50 = plotStart_Daily - 1 + lengthSSE50_Daily
+plotEnd_Daily_BSESN = plotStart_Daily - 1 + lengthBSESN_Daily
+
+plotStart_Weekly = 1001
+plotEnd_Weekly_JSE = plotStart_Weekly - 1 + lengthJSE_Weekly 
+plotEnd_Weekly_SSE50 = plotStart_Weekly - 1 + lengthSSE50_Weekly
+plotEnd_Weekly_BSESN = plotStart_Weekly - 1 + lengthBSESN_Weekly
 
 ### Hyperparameters
 
@@ -266,9 +273,13 @@ function descriptiveStatistics(Returns, bt, et, indexReturns)
     return descStat
 end
 
-returnStatisticsJSE = descriptiveStatistics(returns, plotStart, plotEnd_Daily_JSE, returnsJSE_Daily)
-returnStatisticsSSE = descriptiveStatistics(returns, plotStart, plotEnd_Daily_SSE50, returnsSSE50_Daily)
-returnStatisticsBSE = descriptiveStatistics(returns, plotStart, plotEnd_Daily_BSESN, returnsBSESN_Daily)
+returnStatisticsJSE = descriptiveStatistics(returns, plotStart_Daily, plotEnd_Daily_JSE, returnsJSE_Daily)
+returnStatisticsSSE = descriptiveStatistics(returns, plotStart_Daily, plotEnd_Daily_SSE50, returnsSSE50_Daily)
+returnStatisticsBSE = descriptiveStatistics(returns, plotStart_Daily, plotEnd_Daily_BSESN, returnsBSESN_Daily)
+
+returnStatisticsJSE_Weekly = descriptiveStatistics(returns, plotStart_Weekly, plotEnd_Weekly_JSE, returnsJSE_Weekly)
+returnStatisticsSSE_Weekly = descriptiveStatistics(returns, plotStart_Weekly, plotEnd_Weekly_SSE50, returnsSSE50_Weekly)
+returnStatisticsBSE_Weekly = descriptiveStatistics(returns, plotStart_Weekly, plotEnd_Weekly_BSESN, returnsBSESN_Weekly)
 
 ###############################################################################
 
@@ -276,7 +287,7 @@ returnStatisticsBSE = descriptiveStatistics(returns, plotStart, plotEnd_Daily_BS
 
 default(fontfamily = "ComputerModern")
 
-function plotPrices(Prices, FValue, bt, et, index, timescale)
+function plotPrices(Prices, FValue, bt, et, index, timescale, plotFV)
 
     t = bt:et
 
@@ -342,24 +353,69 @@ function plotPrices(Prices, FValue, bt, et, index, timescale)
 
     end
 
-    p1 = plot(t, Prices[t], label = "Price", title = "Risky Asset", 
-              xlabel = "Day", ylabel = "Price", legend = false, framestyle = :box, 
-              tick_direction = :none, color = "darkorange2", lw = 1.5, 
-              gridlinewidth = 1.5, gridstyle = :dash)
+    if timescale == "Daily"
 
-    pf =  plot(t, FValue[t], label = "Fundamental Value",
-    xlabel = "Week", ylabel = "FV", legend = false, framestyle = :box, 
-    tick_direction = :none, color = "red", lw = 1.5, 
-    gridlinewidth = 1.5, gridstyle = :dash)
+        p1 = plot(t, Prices[t], label = "Price", title = "Risky Asset", 
+        xlabel = "Day", ylabel = "Price", legend = false, framestyle = :box, 
+        tick_direction = :none, color = "darkorange2", lw = 1.5, 
+        gridlinewidth = 1.5, gridstyle = :dash)
 
-    plot(p1, pf, indexPlot, layout = (3, 1), size = (900, 900), 
-         margin = 2mm)
+        if plotFV == true
+
+            pf =  plot(t, FValue[t], label = "Fundamental Value",
+            xlabel = "Day", ylabel = "FV", legend = false, framestyle = :box, 
+            tick_direction = :none, color = "red", lw = 1.5, 
+            gridlinewidth = 1.5, gridstyle = :dash)
+
+            plot(p1, pf, indexPlot, layout = (3, 1), size = (900, 900), 
+            margin = 2mm)
+
+        else
+
+            plot(p1, indexPlot, layout = (2, 1), size = (900, 900), 
+            margin = 2mm)
+
+        end
+
+    elseif timescale == "Weekly"
+
+        p1 = plot(t, Prices[t], label = "Price", title = "Risky Asset", 
+        xlabel = "Week", ylabel = "Price", legend = false, framestyle = :box, 
+        tick_direction = :none, color = "darkorange2", lw = 1.5, 
+        gridlinewidth = 1.5, gridstyle = :dash)
+
+        if plotFV == true
+
+            pf =  plot(t, FValue[t], label = "Fundamental Value",
+            xlabel = "Week", ylabel = "FV", legend = false, framestyle = :box, 
+            tick_direction = :none, color = "red", lw = 1.5, 
+            gridlinewidth = 1.5, gridstyle = :dash)
+
+            plot(p1, pf, indexPlot, layout = (3, 1), size = (900, 900), 
+            margin = 2mm)
+
+        else
+
+            plot(p1, indexPlot, layout = (2, 1), size = (900, 900), 
+            margin = 2mm)
+
+        end
+
+    end
 
 end
 
-display(plotPrices(prices, fv, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
-display(plotPrices(prices, fv, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
-display(plotPrices(prices, fv, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
+# With Fundamental Value
+
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily", true))
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily", true))
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily", true))
+
+# Without Fundamental Value
+
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily", false))
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily", false))
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily", false))
 
 ###############################################################################
 
@@ -373,7 +429,7 @@ function plotReturns(Returns, bt, et, index, timescale)
 
         if timescale == "Daily"
 
-            indexPlot = plot(1:lengthJSE_Daily, returnsJSE_Daily, label = "JSE Top 40", title = "JSE Top 40 Index", 
+            indexPlot = plot(1:lengthJSE_Daily, returnsJSE_Daily, label = false, title = "JSE Top 40 Index", 
             xlabel = "Day", ylabel = "Return", legend = :topleft, 
             framestyle = :box, tick_direction = :none, color = "purple1", 
             ylim = (-0.15, 0.25), grid = (:y, :auto), gridlinewidth = 1.5, gridalpha = 0.125)
@@ -383,7 +439,7 @@ function plotReturns(Returns, bt, et, index, timescale)
 
         elseif timescale == "Weekly"
 
-            indexPlot = plot(1:lengthJSE_Weekly, returnsJSE_Weekly, label = "JSE Top 40", title = "JSE Top 40 Index", 
+            indexPlot = plot(1:lengthJSE_Weekly, returnsJSE_Weekly, label = false, title = "JSE Top 40 Index", 
                xlabel = "Week", ylabel = "Return", legend = :topleft, 
                framestyle = :box, tick_direction = :none, color = "purple1", 
                ylim = (-0.15, 0.25), grid = (:y, :auto), gridlinewidth = 1.5, gridalpha = 0.125)
@@ -397,7 +453,7 @@ function plotReturns(Returns, bt, et, index, timescale)
 
         if timescale == "Daily"
 
-            indexPlot = plot(1:lengthSSE50_Daily, returnsSSE50_Daily, label = "SSE 50", title = "SSE 50 Index", 
+            indexPlot = plot(1:lengthSSE50_Daily, returnsSSE50_Daily, label = false, title = "SSE 50 Index", 
                xlabel = "Day", ylabel = "Return", legend = :topleft, 
                framestyle = :box, tick_direction = :none, color = "dodgerblue4", 
                ylim = (-0.15, 0.25), grid = (:y, :auto), gridlinewidth = 1.5, gridalpha = 0.125)
@@ -407,7 +463,7 @@ function plotReturns(Returns, bt, et, index, timescale)
 
         elseif timescale == "Weekly"
 
-            indexPlot = plot(1:lengthSSE50_Weekly, returnsSSE50_Weekly, label = "SSE 50", title = "SSE 50 Index", 
+            indexPlot = plot(1:lengthSSE50_Weekly, returnsSSE50_Weekly, label = false, title = "SSE 50 Index", 
                xlabel = "Week", ylabel = "Return", legend = :topleft, 
                framestyle = :box, tick_direction = :none, color = "dodgerblue4", 
                ylim = (-0.15, 0.25), grid = (:y, :auto), gridlinewidth = 1.5, gridalpha = 0.125)
@@ -421,7 +477,7 @@ function plotReturns(Returns, bt, et, index, timescale)
 
         if timescale == "Daily"
 
-            indexPlot = plot(1:lengthBSESN_Daily, returnsBSESN_Daily, label = "BSE Sensex", title = "BSE Sensex Index", 
+            indexPlot = plot(1:lengthBSESN_Daily, returnsBSESN_Daily, label = false, title = "BSE Sensex Index", 
                xlabel = "Day", ylabel = "Return", legend = :topleft, 
                framestyle = :box, tick_direction = :none, color = "deeppink2", 
                ylim = (-0.15, 0.25), grid = (:y, :auto), gridlinewidth = 1.5, gridalpha = 0.125)
@@ -431,7 +487,7 @@ function plotReturns(Returns, bt, et, index, timescale)
 
         elseif timescale == "Weekly"
 
-            indexPlot = plot(1:lengthBSESN_Weekly, returnsBSESN_Weekly, label = "BSE Sensex", title = "BSE Sensex Index", 
+            indexPlot = plot(1:lengthBSESN_Weekly, returnsBSESN_Weekly, label = false, title = "BSE Sensex Index", 
                xlabel = "Week", ylabel = "Return", legend = :topleft, 
                framestyle = :box, tick_direction = :none, color = "deeppink2", 
                ylim = (-0.15, 0.25), grid = (:y, :auto), gridlinewidth = 1.5, gridalpha = 0.125)
@@ -456,9 +512,9 @@ function plotReturns(Returns, bt, et, index, timescale)
 
 end
 
-display(plotReturns(returns, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
-display(plotReturns(returns, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
-display(plotReturns(returns, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
+display(plotReturns(returns, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily"))
+display(plotReturns(returns, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily"))
+display(plotReturns(returns, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily"))
 
 ###############################################################################
 
@@ -570,9 +626,9 @@ function plotReturnDistribution(Returns, bt, et, index, timescale)
 
 end
 
-display(plotReturnDistribution(returns, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
-display(plotReturnDistribution(returns, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
-display(plotReturnDistribution(returns, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
+display(plotReturnDistribution(returns, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily"))
+display(plotReturnDistribution(returns, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily"))
+display(plotReturnDistribution(returns, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily"))
 
 ###############################################################################
 
@@ -801,9 +857,9 @@ function plotAutoCorrelations(Returns, bt, et, index, timescale)
 
 end
 
-display(plotAutoCorrelations(returns, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
-display(plotAutoCorrelations(returns, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
-display(plotAutoCorrelations(returns, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
+display(plotAutoCorrelations(returns, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily"))
+display(plotAutoCorrelations(returns, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily"))
+display(plotAutoCorrelations(returns, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily"))
 
 ###############################################################################
 

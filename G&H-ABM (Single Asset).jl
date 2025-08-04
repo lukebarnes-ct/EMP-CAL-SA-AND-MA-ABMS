@@ -296,7 +296,7 @@ returnStatisticsBSE_Weekly = descriptiveStatistics(returns, plotStart_Weekly, pl
 
 default(fontfamily = "ComputerModern")
 
-function plotPrices(Prices, FValue, bt, et, index, timescale)
+function plotPrices(Prices, FValue, bt, et, index, timescale, plotFV)
 
     t = bt:et
 
@@ -362,24 +362,70 @@ function plotPrices(Prices, FValue, bt, et, index, timescale)
 
     end
 
-    p1 = plot(t, Prices[t], label = "Price", title = "Risky Asset", 
-              xlabel = "Day", ylabel = "Price", legend = false, framestyle = :box, 
-              tick_direction = :none, color = "darkorange2", lw = 1.5, 
-              gridlinewidth = 1.5, gridstyle = :dash)
+    if timescale == "Daily"
 
-    pf =  plot(t, FValue[t], label = "Fundamental Value",
-    xlabel = "Week", ylabel = "FV", legend = false, framestyle = :box, 
-    tick_direction = :none, color = "red", lw = 1.5, 
-    gridlinewidth = 1.5, gridstyle = :dash)
+        p1 = plot(t, Prices[t], label = "Price", title = "Risky Asset", 
+        xlabel = "Day", ylabel = "Price", legend = false, framestyle = :box, 
+        tick_direction = :none, color = "darkorange2", lw = 1.5, 
+        gridlinewidth = 1.5, gridstyle = :dash)
 
-    plot(p1, pf, indexPlot, layout = (3, 1), size = (900, 900), 
-         margin = 2mm)
+        if plotFV == true
+
+            pf =  plot(t, FValue[t], label = "Fundamental Value",
+            xlabel = "Day", ylabel = "FV", legend = false, framestyle = :box, 
+            tick_direction = :none, color = "red", lw = 1.5, 
+            gridlinewidth = 1.5, gridstyle = :dash)
+
+            plot(p1, pf, indexPlot, layout = (3, 1), size = (900, 900), 
+            margin = 2mm)
+
+        else
+
+            plot(p1, indexPlot, layout = (2, 1), size = (900, 900), 
+            margin = 2mm)
+
+        end
+
+    elseif timescale == "Weekly"
+
+        p1 = plot(t, Prices[t], label = "Price", title = "Risky Asset", 
+        xlabel = "Week", ylabel = "Price", legend = false, framestyle = :box, 
+        tick_direction = :none, color = "darkorange2", lw = 1.5, 
+        gridlinewidth = 1.5, gridstyle = :dash)
+
+        if plotFV == true
+
+            pf =  plot(t, FValue[t], label = "Fundamental Value",
+            xlabel = "Week", ylabel = "FV", legend = false, framestyle = :box, 
+            tick_direction = :none, color = "red", lw = 1.5, 
+            gridlinewidth = 1.5, gridstyle = :dash)
+
+            plot(p1, pf, indexPlot, layout = (3, 1), size = (900, 900), 
+            margin = 2mm)
+
+        else
+
+            plot(p1, indexPlot, layout = (2, 1), size = (900, 900), 
+            margin = 2mm)
+
+        end
+
+    end
 
 end
 
-display(plotPrices(prices, fv, plotStart, plotEnd_Daily_JSE, "JSE", "Daily"))
-display(plotPrices(prices, fv, plotStart, plotEnd_Daily_SSE50, "SSE", "Daily"))
-display(plotPrices(prices, fv, plotStart, plotEnd_Daily_BSESN, "BSE", "Daily"))
+# With Fundamental Value
+
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily", true))
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily", true))
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily", true))
+
+# Without Fundamental Value
+
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily", false))
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily", false))
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily", false))
+
 
 ###############################################################################
 

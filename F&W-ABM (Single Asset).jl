@@ -65,8 +65,8 @@ function fwABM(Time)
     alpha_P = 18.43
 
     # Dividend Growth Rate
-    phi = 0.002
-    phiSD = 0.015
+    # phi = 0.002
+    # phiSD = 0.015
 
     # Fundamental Value
     fundValue = zeros(T)
@@ -135,7 +135,7 @@ function fwABM(Time)
     return price, fundValue, returns, n_Fund, n_Chart, 
     demand_Fund, demand_Chart, relFit
 
-end
+end    
 
 ###############################################################################
 
@@ -147,6 +147,11 @@ plotStart_Daily = 1001
 plotEnd_Daily_JSE = plotStart_Daily - 1 + lengthJSE_Daily 
 plotEnd_Daily_SSE50 = plotStart_Daily - 1 + lengthSSE50_Daily
 plotEnd_Daily_BSESN = plotStart_Daily - 1 + lengthBSESN_Daily
+
+plotStart_Weekly = 1001
+plotEnd_Weekly_JSE = plotStart_Weekly - 1 + lengthJSE_Weekly 
+plotEnd_Weekly_SSE50 = plotStart_Weekly - 1 + lengthSSE50_Weekly
+plotEnd_Weekly_BSESN = plotStart_Weekly - 1 + lengthBSESN_Weekly
 
 prices, fv, returns, numFund, numChart, 
 demFund, demChart, relativeFitness = fwABM(timeEnd)
@@ -183,17 +188,17 @@ function printOutput(bt, et, type)
     end
 end
 
-printOutput(plotStart, plotEnd_Daily_JSE, "Prop")
-printOutput(plotStart, plotEnd_Daily_JSE, "Demand")
-printOutput(plotStart, plotEnd_Daily_JSE, "Price")
+printOutput(plotStart_Daily, plotEnd_Daily_JSE, "Prop")
+printOutput(plotStart_Daily, plotEnd_Daily_JSE, "Demand")
+printOutput(plotStart_Daily, plotEnd_Daily_JSE, "Price")
 
-printOutput(plotStart, plotEnd_Daily_SSE50, "Prop")
-printOutput(plotStart, plotEnd_Daily_SSE50, "Demand")
-printOutput(plotStart, plotEnd_Daily_SSE50, "Price")
+printOutput(plotStart_Daily, plotEnd_Daily_SSE50, "Prop")
+printOutput(plotStart_Daily, plotEnd_Daily_SSE50, "Demand")
+printOutput(plotStart_Daily, plotEnd_Daily_SSE50, "Price")
 
-printOutput(plotStart, plotEnd_Daily_BSESN, "Prop")
-printOutput(plotStart, plotEnd_Daily_BSESN, "Demand")
-printOutput(plotStart, plotEnd_Daily_BSESN, "Price")
+printOutput(plotStart_Daily, plotEnd_Daily_BSESN, "Prop")
+printOutput(plotStart_Daily, plotEnd_Daily_BSESN, "Demand")
+printOutput(plotStart_Daily, plotEnd_Daily_BSESN, "Price")
 
 ###############################################################################
 
@@ -232,13 +237,17 @@ returnStatisticsJSE = descriptiveStatistics(returns, plotStart_Daily, plotEnd_Da
 returnStatisticsSSE = descriptiveStatistics(returns, plotStart_Daily, plotEnd_Daily_SSE50, returnsSSE50_Daily)
 returnStatisticsBSE = descriptiveStatistics(returns, plotStart_Daily, plotEnd_Daily_BSESN, returnsBSESN_Daily)
 
+returnStatisticsJSE_Weekly = descriptiveStatistics(returns, plotStart_Weekly, plotEnd_Weekly_JSE, returnsJSE_Weekly)
+returnStatisticsSSE_Weekly = descriptiveStatistics(returns, plotStart_Weekly, plotEnd_Weekly_SSE50, returnsSSE50_Weekly)
+returnStatisticsBSE_Weekly = descriptiveStatistics(returns, plotStart_Weekly, plotEnd_Weekly_BSESN, returnsBSESN_Weekly)
+
 ###############################################################################
 
 # Price Plots
 
 default(fontfamily = "ComputerModern")
 
-function plotPrices(Prices, FValue, bt, et, index, timescale)
+function plotPrices(Prices, FValue, bt, et, index, timescale, plotFV)
 
     t = bt:et
 
@@ -304,24 +313,70 @@ function plotPrices(Prices, FValue, bt, et, index, timescale)
 
     end
 
-    p1 = plot(t, Prices[t], label = "Price", title = "Risky Asset", 
-              xlabel = "Day", ylabel = "Price", legend = false, framestyle = :box, 
-              tick_direction = :none, color = "darkorange2", lw = 1.5, 
-              gridlinewidth = 1.5, gridstyle = :dash)
+    if timescale == "Daily"
 
-    pf =  plot(t, FValue[t], label = "Fundamental Value",
-    xlabel = "Week", ylabel = "FV", legend = false, framestyle = :box, 
-    tick_direction = :none, color = "red", lw = 1.5, 
-    gridlinewidth = 1.5, gridstyle = :dash)
+        p1 = plot(t, Prices[t], label = "Price", title = "Risky Asset", 
+        xlabel = "Day", ylabel = "Price", legend = false, framestyle = :box, 
+        tick_direction = :none, color = "darkorange2", lw = 1.5, 
+        gridlinewidth = 1.5, gridstyle = :dash)
 
-    plot(p1, pf, indexPlot, layout = (3, 1), size = (900, 900), 
-         margin = 2mm)
+        if plotFV == true
+
+            pf =  plot(t, FValue[t], label = "Fundamental Value",
+            xlabel = "Day", ylabel = "FV", legend = false, framestyle = :box, 
+            tick_direction = :none, color = "red", lw = 1.5, 
+            gridlinewidth = 1.5, gridstyle = :dash)
+
+            plot(p1, pf, indexPlot, layout = (3, 1), size = (900, 900), 
+            margin = 2mm)
+
+        else
+
+            plot(p1, indexPlot, layout = (2, 1), size = (900, 900), 
+            margin = 2mm)
+
+        end
+
+    elseif timescale == "Weekly"
+
+        p1 = plot(t, Prices[t], label = "Price", title = "Risky Asset", 
+        xlabel = "Week", ylabel = "Price", legend = false, framestyle = :box, 
+        tick_direction = :none, color = "darkorange2", lw = 1.5, 
+        gridlinewidth = 1.5, gridstyle = :dash)
+
+        if plotFV == true
+
+            pf =  plot(t, FValue[t], label = "Fundamental Value",
+            xlabel = "Week", ylabel = "FV", legend = false, framestyle = :box, 
+            tick_direction = :none, color = "red", lw = 1.5, 
+            gridlinewidth = 1.5, gridstyle = :dash)
+
+            plot(p1, pf, indexPlot, layout = (3, 1), size = (900, 900), 
+            margin = 2mm)
+
+        else
+
+            plot(p1, indexPlot, layout = (2, 1), size = (900, 900), 
+            margin = 2mm)
+
+        end
+
+    end
 
 end
 
-display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily"))
-display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily"))
-display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily"))
+# With Fundamental Value
+
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily", true))
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily", true))
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily", true))
+
+# Without Fundamental Value
+
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily", false))
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily", false))
+display(plotPrices(prices, fv, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily", false))
+
 
 ###############################################################################
 
