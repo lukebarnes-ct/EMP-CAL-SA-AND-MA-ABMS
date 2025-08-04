@@ -1276,3 +1276,143 @@ pf =  plot(t, fv[t], label = "Fundamental Value",
                yformatter = x -> @sprintf("%.0f", x), framestyle = :box, 
                tick_direction = :none, color = "purple1", lw = 1.5, 
                gridlinewidth = 1.5, gridstyle = :dash)
+
+#########################################################################################
+
+mu = 0.01
+beta = 1
+chi = 1.5
+phi = 0.12
+sigma_C = 2.087
+sigma_F = 0.758
+alpha_0 = -0.327
+alpha_N = 1.79
+alpha_P = 18.43
+
+##########################################################################################
+
+sample1 = randn(100)
+sample2 = randn(100) .+ 0.5
+test = ApproximateTwoSampleKSTest(sample1, sample2)
+
+##########################################################################################
+
+b = 100
+s = 1000
+X = returnsJSE_Daily
+
+lenRet = length(X)
+numBlocks = ceil(Int, lenRet / b)
+blockStart = 1:(lenRet - b + 1)
+
+movingBlocks = [X[i:i + b - 1] for i in blockStart]
+
+bootSamples = zeros(lenRet, s)
+bootMoments = zeros(6, s)
+
+samInd = sample(blockStart, numBlocks, replace = true)
+samBlocks = [movingBlocks[i] for i in samInd]
+bootVect = vcat(map(collect, samBlocks)...)
+bootSamples[:, 1] = bootVect[1:lenRet]
+bootMoments[:, 1] = getBlockMoments(X, bootSamples[:, 1])
+
+round(hurst_exponent(Float64.(X), 1:19), digits = 4)
+
+Y = accumulate(+, randn(100))
+hurst_exponent(Y, 1:19)[1]
+
+##########################################################################################
+
+lowerBounds = [0, 0, 0, 0]
+upperBounds = [10, 10, 1, 1]
+
+opt = Opt(:LN_NELDERMEAD, 4)
+opt.xtol_rel = 1e-6
+opt.lower_bounds = lowerBounds
+opt.upper_bounds = upperBounds
+
+opt.min_objective = f_HL_MBB
+
+initialParameters = [2, 0.3, 0.85, 0.1]
+
+NLopt.optimize(opt, initialParameters)
+
+minx 
+
+xxx = f_HL(initialParameters, repetitions, "JSE", "Daily")[1]
+
+lowerBounds .+ rand.(upperBounds .- lowerBounds)
+rand.(upperBounds .- lowerBounds)
+upperBounds .- lowerBounds
+
+[rand() * (u - l) + l for (l, u) in zip(lowerBounds, upperBounds)]
+
+
+function nelderMeadSimulation(ABM, index, timescale, repetitions)
+    
+    if ABM == "H&L"
+
+        lowerBounds = [0, 0, 0, 0]
+        upperBounds = [10, 10, 1, 1]
+
+        bestMin = zeros(4, repetitions)
+
+        for i in 1:repetitions
+
+            println("Repetition $i")
+
+            opt = Opt(:LN_NELDERMEAD, 4)
+            opt.xtol_rel = 1e-7
+            opt.lower_bounds = lowerBounds
+            opt.upper_bounds = upperBounds
+
+            opt.min_objective = f_HL_MBB
+
+            initialParameters = [rand(MersenneTwister(i)) * (x - l) + l for (l, x) in zip(lowerBounds, upperBounds)]
+            println(initialParameters)
+            (minf, minx, ret) = NLopt.optimize(opt, initialParameters)
+
+            bestMin[:, i] = minx 
+
+            println(minf)
+            println(minx)
+
+        end
+
+        optParameters = mean(bestMin, dims = 2)
+
+    elseif ABM == "F&W"
+
+        
+
+    elseif ABM == "XU"
+
+        
+
+    end
+
+    return optParameters
+end
+
+counter = 1
+perturb = 0.05
+initialParameters = [12, 0.3, 0.85, 0.1]
+bestParameters = initialParameters
+
+newParameters = [x * (1 + rand(MersenneTwister(counter), Uniform(-perturb, perturb))) for x in bestParameters]
+newParameters = [clamp(x, lower, upper) for (x, lower, upper) in zip(newParameters, lowerBounds, upperBounds)]
+
+##########################################################################################
+
+function decay_iterations(x0::Float64, decay_rate::Float64, threshold::Float64)::Int
+    if decay_rate ≤ 0.0 || decay_rate ≥ 1.0
+        error("Decay rate must be between 0 and 1 (exclusive).")
+    end
+    if threshold >= x0
+        return 0
+    end
+    n = ceil(Int, log(threshold / x0) / log(decay_rate))
+    return n
+end
+
+decay_iterations(0.00001, 0.95, 1e-6)
