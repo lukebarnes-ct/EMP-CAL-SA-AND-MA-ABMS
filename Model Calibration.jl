@@ -213,9 +213,11 @@ end
 
 # Franke and Westerhoff ABM
 
-function fwABM(Time, n, mu, beta, chi, phi, sigma_C, sigma_F, alpha_0, alpha_N, alpha_P)
+function fwABM(Time, n, beta, chi, phi, sigma_C, sigma_F, alpha_0, alpha_N, alpha_P)
 
     ### Parameters
+
+    mu = 0.01
 
     # Set Seed for Reproducibility
     Random.seed!(n)
@@ -414,20 +416,19 @@ function getSimulatedMoments(par, N, ABM, index, timescale)
 
     elseif ABM == "F&W"
 
-        MU = par[1]
-        BETA = par[2]
-        CHI = par[3]
-        PHI = par[4]
-        SIGMA_C = par[5]
-        SIGMA_F = par[6]
-        ALPHA_0 = par[7]
-        ALPHA_N = par[8]
-        ALPHA_P = par[9]
+        BETA = par[1]
+        CHI = par[2]
+        PHI = par[3]
+        SIGMA_C = par[4]
+        SIGMA_F = par[5]
+        ALPHA_0 = par[6]
+        ALPHA_N = par[7]
+        ALPHA_P = par[8]
 
         for n in 1:N
 
             prices, fv, returns, demFund, demChart, 
-            expFund, expChart, exG = fwABM(timeEnd, n, MU, BETA, CHI, PHI, SIGMA_C, SIGMA_F, ALPHA_0, ALPHA_N, ALPHA_P)
+            expFund, expChart, exG = fwABM(timeEnd, n, BETA, CHI, PHI, SIGMA_C, SIGMA_F, ALPHA_0, ALPHA_N, ALPHA_P)
 
             moments = getMoments(returns, timeBegin, timeEnd, "Simulated", index, timescale)
 
@@ -564,8 +565,8 @@ function nelderMeadSimulation(ABM, threshold)
 
     elseif ABM == "F&W"
 
-        lowerBounds = [0, 0, 0, 0, 0, 0, -10, 0, 0]
-        upperBounds = [1, 1, 10, 10, 10, 10, 10, 10, 100]
+        lowerBounds = [0, 0, 0, 0, 0, 0, -100, 0, 0.01]
+        upperBounds = [0.1, 1, 10, 1000, 1000, 1000, 100, 100, 100]
 
         initialParameters = [rand() * (x - l) + l for (l, x) in zip(lowerBounds, upperBounds)]
 
@@ -579,6 +580,8 @@ function nelderMeadSimulation(ABM, threshold)
 
         bestParameters = currentParameters
         bestValue = currentValue
+
+        println("Best Value is: ", bestValue)
 
         minThreshold = opt.xtol_rel
 
@@ -600,6 +603,8 @@ function nelderMeadSimulation(ABM, threshold)
             optCurrent.min_objective = f_FW_MBB
 
             (currentValue, currentParameters, ret) = NLopt.optimize(optCurrent, newParameters)
+            
+            println(currentValue)
 
             if (currentValue < bestValue) || (currentValue - bestValue < threshold)
 
@@ -659,4 +664,20 @@ optParam_HL_JSE_Daily, optValue_HL_JSE_Daily = nelderMeadSimulation("H&L", 1)
 optParam_FW_JSE_Daily, optValue_FW_JSE_Daily = nelderMeadSimulation("F&W", 0.00001)
 
 ### Simulation works for H&L - implement for other ABMs
-### Implemented for F&W - simulatin gets stuck on Counter 19
+### Implemented for F&W - simulating gets stuck on Counter 19
+
+par = [0.09624890809011971, 0.45302257644532445, 9.707580471090601, 0.5508945869462822, 6.4414006371501245, 758.1136841678771, 29.113874289932546, 88.86763965754545]
+
+bestOBJ_JSE = f_FW(par, repetitions, index, timescale)
+
+simMom_FW = getSimulatedMoments(par, repetitions, "F&W", index, timescale)
+
+prices, fv, returns, demFund, demChart, 
+            expFund, expChart, exG = fwABM(10000, repetitions, 0.09624890809011971, 0.45302257644532445, 9.707580471090601, 0.5508945869462822, 6.4414006371501245, 758.1136841678771, 29.113874289932546, 88.86763965754545)
+
+any(isnan, prices)
+
+### There is seemingly an issue with the output of this model using these Parameters
+### Probably need to further constrain parameters, experiment with this.
+
+### Seemingly stumbled upon results that work F&W and calibrating to the Daily JSE Returns
