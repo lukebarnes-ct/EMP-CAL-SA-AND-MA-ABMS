@@ -1416,3 +1416,31 @@ function decay_iterations(x0::Float64, decay_rate::Float64, threshold::Float64):
 end
 
 decay_iterations(0.00001, 0.95, 1e-6)
+
+##########################################################################################
+
+### Simulation works for H&L - implement for other ABMs
+### Implemented for F&W - simulating gets stuck on Counter 19
+
+par = [0.09624890809011971, 0.45302257644532445, 9.707580471090601, 0.5508945869462822, 6.4414006371501245, 758.1136841678771, 29.113874289932546, 88.86763965754545]
+
+bestOBJ_JSE = f_FW(par, repetitions, index, timescale)
+
+simMom_FW = getSimulatedMoments(par, repetitions, "F&W", index, timescale)
+
+prices, fv, returns, demFund, demChart, 
+            expFund, expChart, exG = fwABM(10000, repetitions, 0.09624890809011971, 0.45302257644532445, 9.707580471090601, 0.5508945869462822, 6.4414006371501245, 758.1136841678771, 29.113874289932546, 88.86763965754545)
+
+any(isnan, prices)
+
+simMomentsJSE_Daily = getSimulatedMoments([2.1652601173749995, 0.14593493917215378, 1.0, 0.9372527766928516], 100, "H&L", "JSE", "Daily")
+objJSE_Daily = getObjectiveFunction(momentsJSE_Daily, simMomentsJSE_Daily, bootstrapMatrixJSE_Daily)
+
+### There is seemingly an issue with the output of this model using these Parameters
+### Probably need to further constrain parameters, experiment with this.
+
+### Seemingly stumbled upon results that work F&W and calibrating to the Daily JSE Returns
+
+returnStatisticsJSE_Weekly = descriptiveStatistics(returns, 1, timeEnd, returnsJSE_Weekly)
+
+returnStatisticsSSE50_Weekly = descriptiveStatistics(returns, 1, timeEnd, returnsSSE50_Weekly)
