@@ -227,16 +227,25 @@ plotEnd_Weekly_BSESN = plotStart_Weekly - 1 + lengthBSESN_Weekly
 ### Hyperparameters
 
 # Market Maker Price Adjustment Speed
-MU = 2
+# MU = 2
 
 # Chartist Extrapolation Rate
-GAMMA = 0.3
+# GAMMA = 0.3
 
 # Delta
-DELTA = 0.85
+# DELTA = 0.85
 
 # Fundamentalist Price Adjustment Speed
-ALPHA = 0.1
+# ALPHA = 0.1
+
+par = [2.1652601173749995, 0.14593493917215378, 1.0, 0.9372527766928516]
+par = [7.940640235139954, 9.583791601718158, 0.9725714966050134, 0.5047848572913415]
+par = [9.857206413616172, 9.901044140605642, 0.97460808798178, 0.4976363011901914]
+
+MU = par[1]
+GAMMA = par[2]
+DELTA = par[3] 
+ALPHA = par[4]
 
 prices, fv, returns, demFund, demChart, expFund, expChart, exG = hlABM(timeEnd, 20, 20, MU, GAMMA, DELTA, ALPHA)
 
