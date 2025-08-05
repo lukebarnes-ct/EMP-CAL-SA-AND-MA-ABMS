@@ -304,7 +304,44 @@ end
 function f_HL(x, repetitions, index, timescale)
 
     simMom = getSimulatedMoments(x, repetitions, "H&L", index, timescale)
-    obj = getObjectiveFunction(momentsJSE_Daily, simMom, bootstrapMatrixJSE_Daily)
+
+    if index == "JSE"
+
+        if timescale == "Daily"
+    
+            obj = getObjectiveFunction(momentsJSE_Daily, simMom, bootstrapMatrixJSE_Daily)
+    
+        elseif timescale == "Weekly"
+    
+            obj = getObjectiveFunction(momentsJSE_Weekly, simMom, bootstrapMatrixJSE_Weekly)
+    
+        end
+    
+    elseif index == "SSE"
+    
+        if timescale == "Daily"
+    
+            obj = getObjectiveFunction(momentsSSE50_Daily, simMom, bootstrapMatrixSSE50_Daily)
+    
+        elseif timescale == "Weekly"
+    
+            obj = getObjectiveFunction(momentsSSE50_Weekly, simMom, bootstrapMatrixSSE50_Weekly)
+    
+        end
+    
+    elseif index == "BSE"
+    
+        if timescale == "Daily"
+    
+            obj = getObjectiveFunction(momentsBSESN_Daily, simMom, bootstrapMatrixBSESN_Daily)
+    
+        elseif timescale == "Weekly"
+    
+            obj = getObjectiveFunction(momentsBSESN_Weekly, simMom, bootstrapMatrixBSESN_Weekly)
+    
+        end
+    
+    end
 
     return obj[1]
 end
@@ -312,10 +349,49 @@ end
 function f_FW(x, repetitions, index, timescale)
 
     simMom = getSimulatedMoments(x, repetitions, "F&W", index, timescale)
-    obj = getObjectiveFunction(momentsJSE_Daily, simMom, bootstrapMatrixJSE_Daily)
+
+    if index == "JSE"
+
+        if timescale == "Daily"
+    
+            obj = getObjectiveFunction(momentsJSE_Daily, simMom, bootstrapMatrixJSE_Daily)
+    
+        elseif timescale == "Weekly"
+    
+            obj = getObjectiveFunction(momentsJSE_Weekly, simMom, bootstrapMatrixJSE_Weekly)
+    
+        end
+    
+    elseif index == "SSE"
+    
+        if timescale == "Daily"
+    
+            obj = getObjectiveFunction(momentsSSE50_Daily, simMom, bootstrapMatrixSSE50_Daily)
+    
+        elseif timescale == "Weekly"
+    
+            obj = getObjectiveFunction(momentsSSE50_Weekly, simMom, bootstrapMatrixSSE50_Weekly)
+    
+        end
+    
+    elseif index == "BSE"
+    
+        if timescale == "Daily"
+    
+            obj = getObjectiveFunction(momentsBSESN_Daily, simMom, bootstrapMatrixBSESN_Daily)
+    
+        elseif timescale == "Weekly"
+    
+            obj = getObjectiveFunction(momentsBSESN_Weekly, simMom, bootstrapMatrixBSESN_Weekly)
+    
+        end
+    
+    end
 
     return obj[1]
 end
+
+# Return Required Moments
 
 function getMoments(Returns, bt, et, type, index, timescale)
 
@@ -351,12 +427,12 @@ function getMoments(Returns, bt, et, type, index, timescale)
     
             if timescale == "Daily"
     
-                ks_test = ApproximateTwoSampleKSTest(Returns[t], returnsSSE_Daily)
+                ks_test = ApproximateTwoSampleKSTest(Returns[t], returnsSSE50_Daily)
                 U[5] = round(teststatistic(ks_test), digits = 4)
     
             elseif timescale == "Weekly"
     
-                ks_test = ApproximateTwoSampleKSTest(Returns[t], returnsSSE_Weekly)
+                ks_test = ApproximateTwoSampleKSTest(Returns[t], returnsSSE50_Weekly)
                 U[5] = round(teststatistic(ks_test), digits = 4)
     
             end
@@ -365,12 +441,12 @@ function getMoments(Returns, bt, et, type, index, timescale)
     
             if timescale == "Daily"
     
-                ks_test = ApproximateTwoSampleKSTest(Returns[t], returnsBSE_Daily)
+                ks_test = ApproximateTwoSampleKSTest(Returns[t], returnsBSESN_Daily)
                 U[5] = round(teststatistic(ks_test), digits = 4)
     
             elseif timescale == "Weekly"
     
-                ks_test = ApproximateTwoSampleKSTest(Returns[t], returnsBSE_Weekly)
+                ks_test = ApproximateTwoSampleKSTest(Returns[t], returnsBSESN_Weekly)
                 U[5] = round(teststatistic(ks_test), digits = 4)
     
             end
@@ -531,7 +607,7 @@ function nelderMeadSimulation(ABM, threshold)
 
         minThreshold = opt.xtol_rel
 
-        perturb = 0.05
+        perturb = 0.1
 
         counter = 1
 
@@ -550,6 +626,8 @@ function nelderMeadSimulation(ABM, threshold)
 
             (currentValue, currentParameters, ret) = NLopt.optimize(optCurrent, newParameters)
 
+            println(currentValue)
+
             if (currentValue < bestValue) || (currentValue - bestValue < threshold)
 
                 println("NEW BEST PARAMETERS: $currentParameters")
@@ -565,8 +643,8 @@ function nelderMeadSimulation(ABM, threshold)
 
     elseif ABM == "F&W"
 
-        lowerBounds = [0, 0, 0, 0, 0, 0, -100, 0, 0.01]
-        upperBounds = [0.1, 1, 10, 1000, 1000, 1000, 100, 100, 100]
+        lowerBounds = [0, 0, 0, 0, 0, -1000, 0.01, 0.01]
+        upperBounds = [0.1, 1, 10, 10, 10, 1000, 100, 100]
 
         initialParameters = [rand() * (x - l) + l for (l, x) in zip(lowerBounds, upperBounds)]
 
@@ -585,7 +663,7 @@ function nelderMeadSimulation(ABM, threshold)
 
         minThreshold = opt.xtol_rel
 
-        perturb = 0.05
+        perturb = 0.1
 
         counter = 1
 
@@ -631,14 +709,18 @@ end
 
 #####################################################################
 
+# Find the Required Moments for each of the Empirical Time Series 
+
 momentsJSE_Daily = getMoments(returnsJSE_Daily, 1, lengthJSE_Daily, "Real", "JSE", "Daily")
 momentsJSE_Weekly = getMoments(returnsJSE_Weekly, 1, lengthJSE_Weekly, "Real", "JSE", "Weekly")
 
-momentsSSE50_Daily = getMoments(returnsJSE_Daily, 1, lengthSSE50_Daily, "Real", "SSE50", "Daily")
-momentsSSE50_Weekly = getMoments(returnsJSE_Weekly, 1, lengthSSE50_Weekly, "Real", "SSE50", "Weekly")
+momentsSSE50_Daily = getMoments(returnsSSE50_Daily, 1, lengthSSE50_Daily, "Real", "SSE50", "Daily")
+momentsSSE50_Weekly = getMoments(returnsSSE50_Weekly, 1, lengthSSE50_Weekly, "Real", "SSE50", "Weekly")
 
-momentsBSESN_Daily = getMoments(returnsJSE_Daily, 1, lengthBSESN_Daily, "Real", "BSESN", "Daily")
-momentsBSESN_Weekly = getMoments(returnsJSE_Weekly, 1, lengthBSESN_Weekly, "Real", "BSESN", "Weekly")
+momentsBSESN_Daily = getMoments(returnsBSESN_Daily, 1, lengthBSESN_Daily, "Real", "BSESN", "Daily")
+momentsBSESN_Weekly = getMoments(returnsBSESN_Weekly, 1, lengthBSESN_Weekly, "Real", "BSESN", "Weekly")
+
+# Find the Moving Block Bootstrap Matrix for each of the Empirical Log Return Time Series
 
 blockWindow = 100
 blockSamples = 1000
@@ -652,32 +734,65 @@ bootstrapMatrixSSE50_Weekly = getMovingBlockBootstrapMatrix(2004, returnsSSE50_W
 bootstrapMatrixBSESN_Daily = getMovingBlockBootstrapMatrix(2005, returnsBSESN_Daily, blockWindow, blockSamples)
 bootstrapMatrixBSESN_Weekly = getMovingBlockBootstrapMatrix(2006, returnsBSESN_Weekly, blockWindow, blockSamples)
 
-simMomentsJSE_Daily = getSimulatedMoments([2.1652601173749995, 0.14593493917215378, 1.0, 0.9372527766928516], 100, "H&L", "JSE", "Daily")
-objJSE_Daily = getObjectiveFunction(momentsJSE_Daily, simMomentsJSE_Daily, bootstrapMatrixJSE_Daily)
+# Run the MSM Nelder Mead Optimisation for each Empirical Log Return Time Series
+
+tol_HL = 0.00001
+tol_FW = 0.00001
 
 repetitions = 10
+
+# JSE
+
 index = "JSE"
+
+# JSE Daily Log Returns 
+
 timescale = "Daily"
 
-optParam_HL_JSE_Daily, optValue_HL_JSE_Daily = nelderMeadSimulation("H&L", 1)
+optParam_HL_JSE_Daily, optValue_HL_JSE_Daily = nelderMeadSimulation("H&L", tol_HL)
+optParam_FW_JSE_Daily, optValue_FW_JSE_Daily = nelderMeadSimulation("F&W", tol_FW)
 
-optParam_FW_JSE_Daily, optValue_FW_JSE_Daily = nelderMeadSimulation("F&W", 0.00001)
+# JSE Weekly Log Returns 
 
-### Simulation works for H&L - implement for other ABMs
-### Implemented for F&W - simulating gets stuck on Counter 19
+timescale = "Weekly"
 
-par = [0.09624890809011971, 0.45302257644532445, 9.707580471090601, 0.5508945869462822, 6.4414006371501245, 758.1136841678771, 29.113874289932546, 88.86763965754545]
+optParam_HL_JSE_Weekly, optValue_HL_JSE_Weekly = nelderMeadSimulation("H&L", tol_HL)
+optParam_FW_JSE_Weekly, optValue_FW_JSE_Weekly = nelderMeadSimulation("F&W", tol_FW)
 
-bestOBJ_JSE = f_FW(par, repetitions, index, timescale)
+# SSE50
 
-simMom_FW = getSimulatedMoments(par, repetitions, "F&W", index, timescale)
+index = "SSE"
 
-prices, fv, returns, demFund, demChart, 
-            expFund, expChart, exG = fwABM(10000, repetitions, 0.09624890809011971, 0.45302257644532445, 9.707580471090601, 0.5508945869462822, 6.4414006371501245, 758.1136841678771, 29.113874289932546, 88.86763965754545)
+# SSE50 Daily Log Returns 
 
-any(isnan, prices)
+timescale = "Daily"
 
-### There is seemingly an issue with the output of this model using these Parameters
-### Probably need to further constrain parameters, experiment with this.
+optParam_HL_SSE50_Daily, optValue_HL_SSE50_Daily = nelderMeadSimulation("H&L", tol_HL)
+optParam_FW_SSE50_Daily, optValue_FW_SSE50_Daily = nelderMeadSimulation("F&W", tol_FW)
 
-### Seemingly stumbled upon results that work F&W and calibrating to the Daily JSE Returns
+# SSE50 Weekly Log Returns 
+
+timescale = "Weekly"
+
+optParam_HL_SSE50_Weekly, optValue_HL_SSE50_Weekly = nelderMeadSimulation("H&L", tol_HL)
+optParam_FW_SSE50_Weekly, optValue_FW_SSE50_Weekly = nelderMeadSimulation("F&W", tol_FW)
+
+# BSESN
+
+index = "BSE"
+
+# BSESN Daily Log Returns 
+
+timescale = "Daily"
+
+optParam_HL_BSESN_Daily, optValue_HL_BSESN_Daily = nelderMeadSimulation("H&L", tol_HL)
+optParam_FW_BSESN_Daily, optValue_FW_BSESN_Daily = nelderMeadSimulation("F&W", tol_FW)
+
+# BSESN Weekly Log Returns 
+
+timescale = "Weekly"
+
+optParam_HL_BSESN_Weekly, optValue_HL_BSESN_Weekly = nelderMeadSimulation("H&L", tol_HL)
+optParam_FW_BSESN_Weekly, optValue_FW_BSESN_Weekly = nelderMeadSimulation("F&W", tol_FW)
+
+# Work on incorporating for the Multi-Asset model! 
