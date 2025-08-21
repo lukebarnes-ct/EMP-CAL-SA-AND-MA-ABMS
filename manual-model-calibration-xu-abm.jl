@@ -16,6 +16,7 @@ using StatsPlots
 using Subscripts
 using HypothesisTests
 using Hurst
+using DataFrames
 
 # Load JSE Top 40 Index and Log Returns from .jld2 file
 @load "Data/jsetop40_weekly.jld2" weekly_JSETOP40_Data
@@ -446,7 +447,10 @@ function xuABM(Time, n, N,
     for t in 2:T
 
         TT = t
-        println("Time is: ", TT)
+        
+        if TT % 50 == 0
+            println("Time is: ", TT)
+        end
 
         err = rand(Normal(0, 1), N)                                             # Standard Normal Error Term
         dividends[:, t] = (1 + phi .+ phi_sd * err) .* dividends[:, t-1]        # Expected Dividends for Next Time Period
@@ -664,15 +668,6 @@ function xuIndex(N, prices)
     return indexPrice, indexReturns
 end
 
-xuPrices, xuReturns = xuIndex(5, prices)
-
-avgXuReturns = sum((1/5) * returns, dims = 1)
-plot(1:100, avgXuReturns[1, :], color = "red")
-plot!(1:100, xuReturns[:, 1], color = "blue")
-
-### we get index returns and prices, now incorporate the formulated model index 
-### into the calibration process
-
 #####################################################################
 
 function teststatistic(x)
@@ -751,9 +746,10 @@ function getMoments(Returns, bt, et, type, index, timescale)
 
 end
 
-function getSimulatedMoments(par, N, ABM, index, timescale)
+function getSimulatedMoments(par, N, index, timescale)
 
-    timeEnd = 750
+    timeBegin = 101
+    timeEnd = 600
 
     sMoments = zeros(6, N)
 
@@ -768,9 +764,10 @@ function getSimulatedMoments(par, N, ABM, index, timescale)
 
     for n in 1:N
 
-        prices, returns = xuABM(timeEnd, n, NumAssets, KC, KF, WMAX_F, WMIN_F, WMAX_C, WMIN_C)
+        priceMatrix, returnMatrix = xuABM(timeEnd, n, NumAssets, KC, KF, WMAX_F, WMIN_F, WMAX_C, WMIN_C)
+        xuIndexPrice, xuIndexReturn = xuIndex(NumAssets, priceMatrix)
 
-        moments = getMoments(returns, timeBegin, timeEnd, "Simulated", index, timescale)
+        moments = getMoments(xuIndexReturn, timeBegin, timeEnd, "Simulated", index, timescale)
 
         sMoments[:, n] = moments
 
@@ -843,7 +840,7 @@ end
 
 function f_XU(par, repetitions, index, timescale)
 
-    simMom = getSimulatedMoments(par, repetitions, "XU", index, timescale)
+    simMom = getSimulatedMoments(par, repetitions, index, timescale)
 
     if index == "JSE"
 
@@ -915,58 +912,78 @@ bootstrapMatrixBSESN_Weekly = getMovingBlockBootstrapMatrix(2006, returnsBSESN_W
 
 #####################################################################
 
-# JSE Daily Log Returns 
+function calibrateABM(index, timescale)
 
-index = "JSE"
-timescale = "Daily"
+    maxWindFund = [100, 125, 150]
+    minWindFund = [25, 50, 75]
+    maxWindChart = [75, 100, 125]
+    minWindChart = [15, 25, 35]
+
+    param = [20, 20, 100, 25, 75, 15]
+
+    bestOBJ = 1e8
+    bestParam = param 
+
+    output = DataFrame(MaxWindFund = Int[], MinWindFund = Int[], MaxWindChart = Int[], MinWindChart = Int[], Objective = Float64[])
+
+    @time for a in maxWindFund
+
+        param[3] = a
+
+        @time for b in minWindFund
+
+            param[4] = b
+
+            @time for c in maxWindChart
+
+                param[5] = c
+
+                @time for d in minWindChart
+
+                    param[6] = d
+
+                    println("Maximum Window Fundamentalists: ", a, " Minimum Window Fundamentalists: ", b)
+                    println("Maximum Window Chartists: ", c, " Minimum Window Chartists: ", d)
+
+                    objFuncVal = f_XU(param, 2, index, timescale)
+
+                    push!(output, (a, b, c, d, objFuncVal))
+                    println(output)
+
+                    if objFuncVal < bestOBJ
+
+                        println("NEW BEST PARAMETERS: $param")
+                        println("NEW BEST VALUE: $objFuncVal")
+
+                        bestOBJ = objFuncVal
+                        bestParam = param
+
+                    end
+
+                end
+            end
+
+        end
+
+    end
+
+    return bestOBJ, bestParam, output
+end
 
 #####################################################################
 
-chartistsRange = [5, 10, 15, 20]
-fundamentalistsRange = [5, 10, 15, 20]
+# Weekly 
 
-param = [5, 5, 100, 50, 75, 15]
+# JSE
 
-counter = 0
+bestObjective_JSE_Weekly, bestParameters_JSE_Weekly, output__JSE_Weekly = calibrateABM("JSE", "Weekly")
 
-@time for a in chartistsRange
+# SSE
 
-    param[1] = a
+bestObjective_SSE50_Weekly, bestParameters_SSE50_Weekly, output__SSE50_Weekly = calibrateABM("SSE", "Weekly")
 
-    for b in fundamentalistsRange
+# BSESN 
 
-        param[2] = b
+bestObjective_BSESN_Weekly, bestParameters_BSESN_Weekly, output__BSESN_Weekly = calibrateABM("BSE", "Weekly")
 
-        println("Number of Chartists: ", a, " Number of Fundamentalists: ", b)
-
-        objFuncVal = f_XU(param, 2, index, timescale)
-
-        counter = counter + 1
-
-        if counter == 1
-
-            println("INITIAL PARAMETERS: $param")
-            println("INITIAL VALUE: $objFuncVal")
-
-            bestOBJ = objFuncVal
-            bestParam = param
-
-        elseif counter > 1
-
-            if objFuncVal < bestOBJ
-
-                println("NEW BEST PARAMETERS: $param")
-                println("NEW BEST VALUE: $objFuncVal")
-
-                bestOBJ = objFuncVal
-                bestParam = param
-
-            end
-        end
-    end
-end
-
-prices, returns = xuABM(100, 1, 5, 10, 20, 100, 50, 75, 15)
-
-sum((1/5) * prices, dims = 1)
-
+#####################################################################
