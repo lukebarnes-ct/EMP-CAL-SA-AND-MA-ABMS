@@ -1270,6 +1270,8 @@ f_XU_MBB(x, grad) = f_XU(x, 2, index, timescale)
 
 function nelderMeadSimulation(ABM, threshold)
     
+    perturb = 0.25
+
     if ABM == "H&L"
 
         lowerBounds = [0, 0, 0, 0]
@@ -1289,8 +1291,6 @@ function nelderMeadSimulation(ABM, threshold)
         bestValue = currentValue
 
         minThreshold = opt.xtol_rel
-
-        perturb = 0.1
 
         counter = 1
 
@@ -1346,8 +1346,6 @@ function nelderMeadSimulation(ABM, threshold)
 
         minThreshold = opt.xtol_rel
 
-        perturb = 0.1
-
         counter = 1
 
         while threshold > minThreshold
@@ -1401,9 +1399,7 @@ function nelderMeadSimulation(ABM, threshold)
         println("Best Value is: ", bestValue)
 
         minThreshold = opt.xtol_rel
-
-        perturb = 0.1
-
+        
         counter = 1
 
         while threshold > minThreshold

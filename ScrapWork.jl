@@ -1415,7 +1415,7 @@ function decay_iterations(x0::Float64, decay_rate::Float64, threshold::Float64):
     return n
 end
 
-decay_iterations(0.00001, 0.95, 1e-6)
+decay_iterations(0.000005, 0.95, 1e-6)
 
 ##########################################################################################
 
@@ -1444,3 +1444,176 @@ objJSE_Daily = getObjectiveFunction(momentsJSE_Daily, simMomentsJSE_Daily, boots
 returnStatisticsJSE_Weekly = descriptiveStatistics(returns, 1, timeEnd, returnsJSE_Weekly)
 
 returnStatisticsSSE50_Weekly = descriptiveStatistics(returns, 1, timeEnd, returnsSSE50_Weekly)
+
+prices, returns = xuABM(600, 1, 5, 20, 20, 125, 25, 125, 35)
+xuPrices, xuReturns = xuIndex(5, prices[:, 101:600])
+avgXuReturns = sum((1/5) * returns, dims = 1)
+
+xuMoments = getMoments(xuReturns, 1, 500, "Simulated", "JSE", "Weekly")
+momentsJSE_Weekly
+
+plot(1:100, avgXuReturns[1, :], color = "red")
+plot!(1:100, xuReturns[:, 1], color = "blue")
+
+plot(101:600, xuReturns, color = "blue")
+plot(101:600, xuPrices[1, :], color = "blue")
+
+getObjectiveFunction(momentsJSE_Weekly, xuMoments, bootstrapMatrixJSE_Weekly)
+
+output = DataFrame(MaxWindFund = Int[], MinWindFund = Int[], MaxWindChart = Int[], MinWindChart = Int[], Objective = Float64[])
+
+push!(output, (5, 5, 10, 20, 100.64))
+
+##########################################################################################
+#####################################################################
+
+chartistsRange = [5, 10, 15, 20]
+fundamentalistsRange = [5, 10, 15, 20]
+
+param = [5, 5, 100, 50, 75, 15]
+
+counter = 0
+bestOBJAgents = 0
+bestParamAgents = param 
+
+@time for a in chartistsRange
+
+    param[1] = a
+
+    for b in fundamentalistsRange
+
+        param[2] = b
+
+        println("Number of Chartists: ", a, " Number of Fundamentalists: ", b)
+
+        objFuncVal = f_XU(param, 2, index, timescale)
+
+        counter = counter + 1
+
+        if counter == 1
+
+            println("INITIAL PARAMETERS: $param")
+            println("INITIAL VALUE: $objFuncVal")
+
+            bestOBJAgents = objFuncVal
+            bestParamAgents = param
+
+        elseif counter > 1
+
+            if objFuncVal < bestOBJAgents
+
+                println("NEW BEST PARAMETERS: $param")
+                println("NEW BEST VALUE: $objFuncVal")
+
+                bestOBJAgents = objFuncVal
+                bestParamAgents = param
+
+            end
+        end
+    end
+end
+
+bestOBJAgents
+bestParamAgents
+
+#####################################################################
+
+maxWindFund = [100, 125, 150]
+minWindFund = [25, 50, 75]
+
+param = [20, 20, 100, 25, 75, 15]
+
+counter = 0
+bestOBJWindFund = 0
+bestParamWindFund = param 
+
+@time for a in maxWindFund
+
+    param[3] = a
+
+    for b in minWindFund
+
+        param[4] = b
+
+        println("Maximum Window Fundamentalists: ", a, " Minimum Window Fundamentalists: ", b)
+
+        objFuncVal = f_XU(param, 2, index, timescale)
+
+        counter = counter + 1
+
+        if counter == 1
+
+            println("INITIAL PARAMETERS: $param")
+            println("INITIAL VALUE: $objFuncVal")
+
+            bestOBJWindFund = objFuncVal
+            bestParamWindFund = param
+
+        elseif counter > 1
+
+            if objFuncVal < bestOBJWindFund
+
+                println("NEW BEST PARAMETERS: $param")
+                println("NEW BEST VALUE: $objFuncVal")
+
+                bestOBJWindFund = objFuncVal
+                bestParamWindFund = param
+
+            end
+        end
+    end
+end
+
+bestOBJWindFund
+bestParamWindFund
+
+#####################################################################
+
+maxWindChart = [100, 125, 150]
+minWindChart = [25, 50, 75]
+
+param = [20, 20, 100, 25, 75, 15]
+
+counter = 0
+bestOBJWindChart = 0
+bestParamWindChart = param 
+
+@time for a in maxWindChart
+
+    param[5] = a
+
+    for b in minWindChart
+
+        param[6] = b
+
+        println("Maximum Window Chartists: ", a, " Minimum Window Chartists: ", b)
+
+        objFuncVal = f_XU(param, 2, index, timescale)
+
+        counter = counter + 1
+
+        if counter == 1
+
+            println("INITIAL PARAMETERS: $param")
+            println("INITIAL VALUE: $objFuncVal")
+
+            bestOBJWindChart = objFuncVal
+            bestParamWindChart = param
+
+        elseif counter > 1
+
+            if objFuncVal < bestOBJWindChart
+
+                println("NEW BEST PARAMETERS: $param")
+                println("NEW BEST VALUE: $objFuncVal")
+
+                bestOBJWindChart = objFuncVal
+                bestParamWindChart = param
+
+            end
+        end
+    end
+end
+
+bestOBJWindChart
+bestParamWindChart

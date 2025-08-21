@@ -758,7 +758,7 @@ printOutput(plotStart, plotEnd, 5, "Price")
 
 # Descriptive Statistics of Asset Returns
 
-function descriptiveStatistics(Returns, bt, et)
+function descriptiveStatistics(Returns, empReturns, bt, et)
 
     t = bt:et
     a1Returns = Returns[1, t]
@@ -779,28 +779,28 @@ function descriptiveStatistics(Returns, bt, et)
     a3Median = round(median(a3Returns), digits = 4)
     a4Median = round(median(a4Returns), digits = 4)
     a5Median = round(median(a5Returns), digits = 4)
-    jseMedian = round(median(returnsJSE), digits = 4)
+    jseMedian = round(median(empReturns), digits = 4)
 
     a1SD = round(std(a1Returns), digits = 4)
     a2SD = round(std(a2Returns), digits = 4)
     a3SD = round(std(a3Returns), digits = 4)
     a4SD = round(std(a4Returns), digits = 4)
     a5SD = round(std(a5Returns), digits = 4)
-    jseSD = round(std(returnsJSE), digits = 4)
+    jseSD = round(std(empReturns), digits = 4)
 
     a1Skewness = round(skewness(a1Returns), digits = 4)
     a2Skewness = round(skewness(a2Returns), digits = 4)
     a3Skewness = round(skewness(a3Returns), digits = 4)
     a4Skewness = round(skewness(a4Returns), digits = 4)
     a5Skewness = round(skewness(a5Returns), digits = 4)
-    jseSkewness = round(skewness(returnsJSE), digits = 4)
+    jseSkewness = round(skewness(empReturns), digits = 4)
 
     a1Kurtosis = round(kurtosis(a1Returns), digits = 4)
     a2Kurtosis = round(kurtosis(a2Returns), digits = 4)
     a3Kurtosis = round(kurtosis(a3Returns), digits = 4)
     a4Kurtosis = round(kurtosis(a4Returns), digits = 4)
     a5Kurtosis = round(kurtosis(a5Returns), digits = 4)
-    jseKurtosis = round(kurtosis(returnsJSE), digits = 4)
+    jseKurtosis = round(kurtosis(empReturns), digits = 4)
 
     descStat = Table(Asset = ["1", "2", "3", "4", "5", "JSE"], 
                      Mean = [a1Mean, a2Mean, a3Mean, a4Mean, a5Mean, jseMean],
