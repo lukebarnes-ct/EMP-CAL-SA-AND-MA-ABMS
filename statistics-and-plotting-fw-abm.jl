@@ -1,5 +1,5 @@
 
-##### He and Li 2008 Agent Based Model 
+##### Franke & Westerhoff 2012 Agent Based Model 
 
 using Random
 using Plots
@@ -46,31 +46,31 @@ lengthBSESN_Weekly = length(weekly_BSESN_Data)
 #################################################################################
 
 # Load ABM Results calibrated to the JSE Top 40 Index from .jld2 file
-@load "Data/hl-calibration/prices-jse-daily.jld2" prices_HL_JSE_Daily
-@load "Data/hl-calibration/log-returns-jse-daily.jld2" logReturns_HL_JSE_Daily
-@load "Data/hl-calibration/prices-jse-weekly.jld2" prices_HL_JSE_Weekly
-@load "Data/hl-calibration/log-returns-jse-weekly.jld2" logReturns_HL_JSE_Weekly
+@load "Data/fw-calibration/prices-jse-daily.jld2" prices_FW_JSE_Daily
+@load "Data/fw-calibration/log-returns-jse-daily.jld2" logReturns_FW_JSE_Daily
+@load "Data/fw-calibration/prices-jse-weekly.jld2" prices_FW_JSE_Weekly
+@load "Data/fw-calibration/log-returns-jse-weekly.jld2" logReturns_FW_JSE_Weekly
 
 # Load ABM Results calibrated to the SSE 50 Index from .jld2 file
-@load "Data/hl-calibration/prices-sse50-daily.jld2" prices_HL_SSE50_Daily
-@load "Data/hl-calibration/log-returns-sse50-daily.jld2" logReturns_HL_SSE50_Daily
-@load "Data/hl-calibration/prices-sse50-weekly.jld2" prices_HL_SSE50_Weekly
-@load "Data/hl-calibration/log-returns-sse50-weekly.jld2" logReturns_HL_SSE50_Weekly
+@load "Data/fw-calibration/prices-sse50-daily.jld2" prices_FW_SSE50_Daily
+@load "Data/fw-calibration/log-returns-sse50-daily.jld2" logReturns_FW_SSE50_Daily
+@load "Data/fw-calibration/prices-sse50-weekly.jld2" prices_FW_SSE50_Weekly
+@load "Data/fw-calibration/log-returns-sse50-weekly.jld2" logReturns_FW_SSE50_Weekly
 
 # Load ABM Results calibrated to the BSE Sensex Index from .jld2 file
-@load "Data/hl-calibration/prices-bsesn-daily.jld2" prices_HL_BSESN_Daily
-@load "Data/hl-calibration/log-returns-bsesn-daily.jld2" logReturns_HL_BSESN_Daily
-@load "Data/hl-calibration/prices-bsesn-weekly.jld2" prices_HL_BSESN_Weekly
-@load "Data/hl-calibration/log-returns-bsesn-weekly.jld2" logReturns_HL_BSESN_Weekly
+@load "Data/fw-calibration/prices-bsesn-daily.jld2" prices_FW_BSESN_Daily
+@load "Data/fw-calibration/log-returns-bsesn-daily.jld2" logReturns_FW_BSESN_Daily
+@load "Data/fw-calibration/prices-bsesn-weekly.jld2" prices_FW_BSESN_Weekly
+@load "Data/fw-calibration/log-returns-bsesn-weekly.jld2" logReturns_FW_BSESN_Weekly
 
-lengthJSE_Daily_HL = length(prices_HL_JSE_Daily)
-lengthJSE_Weekly_HL = length(prices_HL_JSE_Weekly)
+lengthJSE_Daily_FW = length(prices_FW_JSE_Daily)
+lengthJSE_Weekly_FW = length(prices_FW_JSE_Weekly)
 
-lengthSSE50_Daily_HL = length(prices_HL_SSE50_Daily)
-lengthSSE50_Weekly_HL = length(prices_HL_SSE50_Weekly)
+lengthSSE50_Daily_FW = length(prices_FW_SSE50_Daily)
+lengthSSE50_Weekly_FW = length(prices_FW_SSE50_Weekly)
 
-lengthBSESN_Daily_HL = length(prices_HL_BSESN_Daily)
-lengthBSESN_Weekly_HL = length(prices_HL_BSESN_Weekly)
+lengthBSESN_Daily_FW = length(prices_FW_BSESN_Daily)
+lengthBSESN_Weekly_FW = length(prices_FW_BSESN_Weekly)
 
 #################################################################################
 
@@ -86,12 +86,12 @@ plotEnd_Weekly_BSESN = plotStart_Weekly - 1 + lengthBSESN_Weekly
 
 ###############################################################################
 
-# Descriptive Statistics of Asset Returns
-
 function teststatistic(x)
     n = x.n_x*x.n_y/(x.n_x+x.n_y)
     sqrt(n)*x.δ
 end
+
+# Descriptive Statistics of Asset Returns
 
 function descriptiveStatistics(Returns, bt, et, indexReturns)
 
@@ -119,7 +119,7 @@ function descriptiveStatistics(Returns, bt, et, indexReturns)
     abmU[6] = round(hurst_exponent(Returns[t], 1:19)[1], digits = 4)
     indexU[6] = round(hurst_exponent(indexReturns, 1:19)[1], digits = 4)
 
-    descStat = Table(Asset = ["HL ABM", "Index"], 
+    descStat = Table(Asset = ["FW ABM", "Index"], 
     Mean = [abmU[1], indexU[1]],
     SD = [abmU[2], indexU[2]],
     Skewness = [abmU[3], indexU[3]],
@@ -130,13 +130,13 @@ function descriptiveStatistics(Returns, bt, et, indexReturns)
     return descStat
 end
 
-returnStatisticsJSE_Daily = descriptiveStatistics(logReturns_HL_JSE_Daily, plotStart_Daily, plotEnd_Daily_JSE, returnsJSE_Daily)
-returnStatisticsSSE_Daily = descriptiveStatistics(logReturns_HL_SSE50_Daily, plotStart_Daily, plotEnd_Daily_SSE50, returnsSSE50_Daily)
-returnStatisticsBSE_Daily = descriptiveStatistics(logReturns_HL_BSESN_Daily, plotStart_Daily, plotEnd_Daily_BSESN, returnsBSESN_Daily)
+returnStatisticsJSE_Daily = descriptiveStatistics(logReturns_FW_JSE_Daily, plotStart_Daily, plotEnd_Daily_JSE, returnsJSE_Daily)
+returnStatisticsSSE_Daily = descriptiveStatistics(logReturns_FW_SSE50_Daily, plotStart_Daily, plotEnd_Daily_SSE50, returnsSSE50_Daily)
+returnStatisticsBSE_Daily = descriptiveStatistics(logReturns_FW_BSESN_Daily, plotStart_Daily, plotEnd_Daily_BSESN, returnsBSESN_Daily)
 
-returnStatisticsJSE_Weekly = descriptiveStatistics(logReturns_HL_JSE_Weekly, plotStart_Weekly, plotEnd_Weekly_JSE, returnsJSE_Weekly)
-returnStatisticsSSE_Weekly = descriptiveStatistics(logReturns_HL_SSE50_Weekly, plotStart_Weekly, plotEnd_Weekly_SSE50, returnsSSE50_Weekly)
-returnStatisticsBSE_Weekly = descriptiveStatistics(logReturns_HL_BSESN_Weekly, plotStart_Weekly, plotEnd_Weekly_BSESN, returnsBSESN_Weekly)
+returnStatisticsJSE_Weekly = descriptiveStatistics(logReturns_FW_JSE_Weekly, plotStart_Weekly, plotEnd_Weekly_JSE, returnsJSE_Weekly)
+returnStatisticsSSE_Weekly = descriptiveStatistics(logReturns_FW_SSE50_Weekly, plotStart_Weekly, plotEnd_Weekly_SSE50, returnsSSE50_Weekly)
+returnStatisticsBSE_Weekly = descriptiveStatistics(logReturns_FW_BSESN_Weekly, plotStart_Weekly, plotEnd_Weekly_BSESN, returnsBSESN_Weekly)
 
 ###############################################################################
 
@@ -228,19 +228,19 @@ function plotPrices(Prices, bt, et, index, timescale)
          margin = 2mm)
 end
 
-display(plotPrices(prices_HL_JSE_Daily, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily"))
-savefig("Plots/hl-calibration/prices/jse_daily.pdf")
-display(plotPrices(prices_HL_SSE50_Daily, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily"))
-savefig("Plots/hl-calibration/prices/sse50_daily.pdf")
-display(plotPrices(prices_HL_BSESN_Daily, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily"))
-savefig("Plots/hl-calibration/prices/bsesn_daily.pdf")
+display(plotPrices(prices_FW_JSE_Daily, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily"))
+savefig("Plots/fw-calibration/prices/jse_daily.pdf")
+display(plotPrices(prices_FW_SSE50_Daily, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily"))
+savefig("Plots/fw-calibration/prices/sse50_daily.pdf")
+display(plotPrices(prices_FW_BSESN_Daily, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily"))
+savefig("Plots/fw-calibration/prices/bsesn_daily.pdf")
 
-display(plotPrices(prices_HL_JSE_Weekly, plotStart_Weekly, plotEnd_Weekly_JSE, "JSE", "Weekly"))
-savefig("Plots/hl-calibration/prices/jse_weekly.pdf")
-display(plotPrices(prices_HL_SSE50_Weekly, plotStart_Weekly, plotEnd_Weekly_SSE50, "SSE", "Weekly"))
-savefig("Plots/hl-calibration/prices/sse50_weekly.pdf")
-display(plotPrices(prices_HL_BSESN_Weekly, plotStart_Weekly, plotEnd_Weekly_BSESN, "BSE", "Weekly"))
-savefig("Plots/hl-calibration/prices/bsesn_weekly.pdf")
+display(plotPrices(prices_FW_JSE_Weekly, plotStart_Weekly, plotEnd_Weekly_JSE, "JSE", "Weekly"))
+savefig("Plots/fw-calibration/prices/jse_weekly.pdf")
+display(plotPrices(prices_FW_SSE50_Weekly, plotStart_Weekly, plotEnd_Weekly_SSE50, "SSE", "Weekly"))
+savefig("Plots/fw-calibration/prices/sse50_weekly.pdf")
+display(plotPrices(prices_FW_BSESN_Weekly, plotStart_Weekly, plotEnd_Weekly_BSESN, "BSE", "Weekly"))
+savefig("Plots/fw-calibration/prices/bsesn_weekly.pdf")
 
 ###############################################################################
 
@@ -351,19 +351,19 @@ function plotReturns(Returns, bt, et, index, timescale)
 
 end
 
-display(plotReturns(logReturns_HL_JSE_Daily, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily"))
-savefig("Plots/hl-calibration/returns/jse_daily.pdf")
-display(plotReturns(logReturns_HL_SSE50_Daily, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily"))
-savefig("Plots/hl-calibration/returns/sse50_daily.pdf")
-display(plotReturns(logReturns_HL_BSESN_Daily, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily"))
-savefig("Plots/hl-calibration/returns/bsesn_daily.pdf")
+display(plotReturns(logReturns_FW_JSE_Daily, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily"))
+savefig("Plots/fw-calibration/returns/jse_daily.pdf")
+display(plotReturns(logReturns_FW_SSE50_Daily, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily"))
+savefig("Plots/fw-calibration/returns/sse50_daily.pdf")
+display(plotReturns(logReturns_FW_BSESN_Daily, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily"))
+savefig("Plots/fw-calibration/returns/bsesn_daily.pdf")
 
-display(plotReturns(logReturns_HL_JSE_Weekly, plotStart_Weekly, plotEnd_Weekly_JSE, "JSE", "Weekly"))
-savefig("Plots/hl-calibration/returns/jse_weekly.pdf")
-display(plotReturns(logReturns_HL_SSE50_Weekly, plotStart_Weekly, plotEnd_Weekly_SSE50, "SSE", "Weekly"))
-savefig("Plots/hl-calibration/returns/sse50_weekly.pdf")
-display(plotReturns(logReturns_HL_BSESN_Weekly, plotStart_Weekly, plotEnd_Weekly_BSESN, "BSE", "Weekly"))
-savefig("Plots/hl-calibration/returns/bsesn_weekly.pdf")
+display(plotReturns(logReturns_FW_JSE_Weekly, plotStart_Weekly, plotEnd_Weekly_JSE, "JSE", "Weekly"))
+savefig("Plots/fw-calibration/returns/jse_weekly.pdf")
+display(plotReturns(logReturns_FW_SSE50_Weekly, plotStart_Weekly, plotEnd_Weekly_SSE50, "SSE", "Weekly"))
+savefig("Plots/fw-calibration/returns/sse50_weekly.pdf")
+display(plotReturns(logReturns_FW_BSESN_Weekly, plotStart_Weekly, plotEnd_Weekly_BSESN, "BSE", "Weekly"))
+savefig("Plots/fw-calibration/returns/bsesn_weekly.pdf")
 
 ###############################################################################
 
@@ -475,19 +475,19 @@ function plotReturnDistribution(Returns, bt, et, index, timescale)
 
 end
 
-display(plotReturnDistribution(logReturns_HL_JSE_Daily, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily"))
-savefig("Plots/hl-calibration/return-distribution/jse_daily.pdf")
-display(plotReturnDistribution(logReturns_HL_SSE50_Daily, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily"))
-savefig("Plots/hl-calibration/return-distribution/sse50_daily.pdf")
-display(plotReturnDistribution(logReturns_HL_BSESN_Daily, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily"))
-savefig("Plots/hl-calibration/return-distribution/bsesn_daily.pdf")
+display(plotReturnDistribution(logReturns_FW_JSE_Daily, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily"))
+savefig("Plots/fw-calibration/return-distribution/jse_daily.pdf")
+display(plotReturnDistribution(logReturns_FW_SSE50_Daily, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily"))
+savefig("Plots/fw-calibration/return-distribution/sse50_daily.pdf")
+display(plotReturnDistribution(logReturns_FW_BSESN_Daily, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily"))
+savefig("Plots/fw-calibration/return-distribution/bsesn_daily.pdf")
 
-display(plotReturnDistribution(logReturns_HL_JSE_Weekly, plotStart_Weekly, plotEnd_Weekly_JSE, "JSE", "Weekly"))
-savefig("Plots/hl-calibration/return-distribution/jse_weekly.pdf")
-display(plotReturnDistribution(logReturns_HL_SSE50_Weekly, plotStart_Weekly, plotEnd_Weekly_SSE50, "SSE", "Weekly"))
-savefig("Plots/hl-calibration/return-distribution/sse50_weekly.pdf")
-display(plotReturnDistribution(logReturns_HL_BSESN_Weekly, plotStart_Weekly, plotEnd_Weekly_BSESN, "BSE", "Weekly"))
-savefig("Plots/hl-calibration/return-distribution/bsesn_weekly.pdf")
+display(plotReturnDistribution(logReturns_FW_JSE_Weekly, plotStart_Weekly, plotEnd_Weekly_JSE, "JSE", "Weekly"))
+savefig("Plots/fw-calibration/return-distribution/jse_weekly.pdf")
+display(plotReturnDistribution(logReturns_FW_SSE50_Weekly, plotStart_Weekly, plotEnd_Weekly_SSE50, "SSE", "Weekly"))
+savefig("Plots/fw-calibration/return-distribution/sse50_weekly.pdf")
+display(plotReturnDistribution(logReturns_FW_BSESN_Weekly, plotStart_Weekly, plotEnd_Weekly_BSESN, "BSE", "Weekly"))
+savefig("Plots/fw-calibration/return-distribution/bsesn_weekly.pdf")
 
 ###############################################################################
 
@@ -715,18 +715,18 @@ function plotAutoCorrelations(Returns, bt, et, index, timescale)
 
 end
 
-display(plotAutoCorrelations(logReturns_HL_JSE_Daily, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily"))
-savefig("Plots/hl-calibration/autocorrelations/jse_daily.pdf")
-display(plotAutoCorrelations(logReturns_HL_SSE50_Daily, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily"))
-savefig("Plots/hl-calibration/autocorrelations/sse50_daily.pdf")
-display(plotAutoCorrelations(logReturns_HL_BSESN_Daily, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily"))
-savefig("Plots/hl-calibration/autocorrelations/bsesn_daily.pdf")
+display(plotAutoCorrelations(logReturns_FW_JSE_Daily, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily"))
+savefig("Plots/fw-calibration/autocorrelations/jse_daily.pdf")
+display(plotAutoCorrelations(logReturns_FW_SSE50_Daily, plotStart_Daily, plotEnd_Daily_SSE50, "SSE", "Daily"))
+savefig("Plots/fw-calibration/autocorrelations/sse50_daily.pdf")
+display(plotAutoCorrelations(logReturns_FW_BSESN_Daily, plotStart_Daily, plotEnd_Daily_BSESN, "BSE", "Daily"))
+savefig("Plots/fw-calibration/autocorrelations/bsesn_daily.pdf")
 
-display(plotAutoCorrelations(logReturns_HL_JSE_Weekly, plotStart_Weekly, plotEnd_Weekly_JSE, "JSE", "Weekly"))
-savefig("Plots/hl-calibration/autocorrelations/jse_weekly.pdf")
-display(plotAutoCorrelations(logReturns_HL_SSE50_Weekly, plotStart_Weekly, plotEnd_Weekly_SSE50, "SSE", "Weekly"))
-savefig("Plots/hl-calibration/autocorrelations/sse50_weekly.pdf")
-display(plotAutoCorrelations(logReturns_HL_BSESN_Weekly, plotStart_Weekly, plotEnd_Weekly_BSESN, "BSE", "Weekly"))
-savefig("Plots/hl-calibration/autocorrelations/bsesn_weekly.pdf")
+display(plotAutoCorrelations(logReturns_FW_JSE_Weekly, plotStart_Weekly, plotEnd_Weekly_JSE, "JSE", "Weekly"))
+savefig("Plots/fw-calibration/autocorrelations/jse_weekly.pdf")
+display(plotAutoCorrelations(logReturns_FW_SSE50_Weekly, plotStart_Weekly, plotEnd_Weekly_SSE50, "SSE", "Weekly"))
+savefig("Plots/fw-calibration/autocorrelations/sse50_weekly.pdf")
+display(plotAutoCorrelations(logReturns_FW_BSESN_Weekly, plotStart_Weekly, plotEnd_Weekly_BSESN, "BSE", "Weekly"))
+savefig("Plots/fw-calibration/autocorrelations/bsesn_weekly.pdf")
 
 ###############################################################################
