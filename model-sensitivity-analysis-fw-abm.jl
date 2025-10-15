@@ -386,12 +386,13 @@ function fwSensitivityAnalysis(index, timeframe, combo, params)
 
     beta_range = collect(0:0.0025:0.1)
     chi_range = collect(0:0.02:1)
-    phi_range = collect(0:0.5:15)
-    sigma_c_range = collect(0.5:0.5:15)
-    sigma_f_range = collect(0:0.5:10)
-    alpha_0_range = collect(-1000:100:1000)
-    alpha_n_range = collect(0.01:5:100)
-    alpha_p__range = collect(0.01:5:100)
+    phi_range = collect(5:0.5:15)
+    sigma_c_range = collect(5:0.5:14)
+    sigma_f_range = collect(0.5:0.5:15)
+    alpha_0_range = collect(500:25:1250)
+    # alpha_0_range = collect(0:100:1000)
+    alpha_n_range = collect(0.01:5:125.01)
+    alpha_p_range = collect(0.01:5:125.01)
 
     fwResults = DataFrame(beta = Float64[], 
                           chi = Float64[], 
@@ -502,12 +503,12 @@ save("Plots/fw-calibration/sensitivity-analysis/jse_daily_phi_sigma_c.png",
 results_sigma_f_alpha_0 = fwSensitivityAnalysis("JSE", "Daily", "sigma_f_alpha_0", optParam_FW_JSE_Daily)
 
 fig = Figure()
-axis = Axis3(fig[1, 1], xlabel = "β", ylabel = "χ", zlabel = "Objective Value")
+axis = Axis3(fig[1, 1], xlabel = L"σ^2_F", ylabel = L"α_p", zlabel = "Objective Value")
 surf = GLMakie.surface!(axis, results_sigma_f_alpha_0.sigma_f, 
                         results_sigma_f_alpha_0.alpha_0, results_sigma_f_alpha_0.value, 
                         colormap =:plasma, label = "f(0)")
 Colorbar(fig[1, 2], surf)
-GLMakie.scatter!(axis, [optParam_FW_JSE_Daily[5]], [optParam_FW_JSE_Daily[6]], [optVal_FW_JSE_Daily + 5], 
+GLMakie.scatter!(axis, [optParam_FW_JSE_Daily[5]], [optParam_FW_JSE_Daily[6]], [optVal_FW_JSE_Daily + 1], 
                  color =:red, markersize = 10, strokewidth = 2, strokecolor =:black)
 fig
 
@@ -519,7 +520,7 @@ save("Plots/fw-calibration/sensitivity-analysis/jse_daily_sigma_f_alpha_0.png",
 results_alpha_n_alpha_p = fwSensitivityAnalysis("JSE", "Daily", "alpha_n_alpha_p", optParam_FW_JSE_Daily)
 
 fig = Figure()
-axis = Axis3(fig[1, 1], xlabel = "β", ylabel = "χ", zlabel = "Objective Value")
+axis = Axis3(fig[1, 1], xlabel = L"α_h", ylabel = L"α_m", zlabel = "Objective Value")
 surf = GLMakie.surface!(axis, results_alpha_n_alpha_p.alpha_n, 
                         results_alpha_n_alpha_p.alpha_p, results_alpha_n_alpha_p.value, 
                         colormap =:plasma, label = "f(0)")
