@@ -18,6 +18,8 @@ using Subscripts
 using HypothesisTests
 using Hurst
 using DataFrames
+using GLMakie
+using LaTeXStrings
 
 # Load JSE Top 40 Index and Log Returns from .jld2 file
 @load "Data/jsetop40_weekly.jld2" weekly_JSETOP40_Data
@@ -430,8 +432,6 @@ function f_HL(x, repetitions, index, timescale)
     return obj[1]
 end
 
-f_HL_MBB(x, grad) = f_HL(x, repetitions, index, timescale)
-
 #####################################################################
 
 # Find the Required Moments for each of the Empirical Time Series 
@@ -465,12 +465,14 @@ bootstrapMatrixBSESN_Weekly = getMovingBlockBootstrapMatrix(2006, returnsBSESN_W
 
 @load "Data/hl-calibration/parameters-sse50-daily.jld2" optParam_HL_SSE50_Daily
 
+optVal_HL_SSE50_Daily = f_HL(optParam_HL_SSE50_Daily, 10, "SSE", "Daily")
+
 function hlSensitivityAnalysis(index, timeframe, combo, params)
 
-    mu_range = collect(0.5:0.5:10)
+    mu_range = collect(0.5:0.5:15)
     gamma_range = collect(0:0.5:8)
-    delta_range = collect(0:0.005:1)
-    alpha_range = collect(0:0.005:1)
+    delta_range = collect(0.01:0.02:0.99)
+    alpha_range = collect(0.2:0.02:0.5)
 
     hlResults = DataFrame(mu = Float64[], 
                           gamma = Float64[], 
@@ -511,15 +513,55 @@ function hlSensitivityAnalysis(index, timeframe, combo, params)
                 push!(hlResults, (mu, params[2], params[3], alpha, optVal))
             end
         end
+    
+    elseif combo == "delta_alpha"
+
+        for delta in delta_range
+
+            println(delta)
+            for alpha in alpha_range
+
+                optVal = f_HL([params[1], params[2], delta, alpha], 10, index, timeframe)
+                push!(hlResults, (params[1], params[2], delta, alpha, optVal))
+            end
+        end
     end
 
     return hlResults
 end
 
-results = hlSensitivityAnalysis("SSE", "Daily", "mu_gamma", optParam_HL_SSE50_Daily)
-heatmap(results.mu, results.gamma, results.value, xlabel = "Mu", ylabel = "Gamma", 
-        title = "Mu vs Gamma")
+#####################################################################
 
-plot(results.mu, results.gamma, results.value, 
-     xlabel="mu", ylabel="gamma", zlabel="OBJ",
-     seriestype =:surface, c=:plasma)
+results_mu_gamma = hlSensitivityAnalysis("SSE", "Daily", "mu_gamma", optParam_HL_SSE50_Daily)
+
+fig = Figure()
+axis = Axis3(fig[1, 1], xlabel = "μ", ylabel = "γ", zlabel = "Objective Value")
+surf = GLMakie.surface!(axis, results_mu_gamma.mu, 
+                        results_mu_gamma.gamma, results_mu_gamma.value, 
+                        colormap =:plasma, label = "f(0)")
+Colorbar(fig[1, 2], surf)
+GLMakie.scatter!(axis, [optParam_HL_SSE50_Daily[1]], [optParam_HL_SSE50_Daily[2]], [optVal_HL_SSE50_Daily + 5], 
+                 color =:red, markersize = 10, strokewidth = 2, strokecolor =:black)
+fig
+
+save("Plots/hl-calibration/sensitivity-analysis/sse50_daily_mu_gamma.png", 
+     fig, px_per_unit = 4)
+
+#####################################################################
+
+results_delta_alpha = hlSensitivityAnalysis("SSE", "Daily", "delta_alpha", optParam_HL_SSE50_Daily)
+
+fig = Figure()
+axis = Axis3(fig[1, 1], xlabel = "δ", ylabel = "α", zlabel = "Objective Value")
+surf = GLMakie.surface!(axis, results_delta_alpha.delta, 
+                        results_delta_alpha.alpha, results_delta_alpha.value, 
+                        colormap =:plasma, label = "f(0)")
+Colorbar(fig[1, 2], surf)
+GLMakie.scatter!(axis, [optParam_HL_SSE50_Daily[3]], [optParam_HL_SSE50_Daily[4]], [optVal_HL_SSE50_Daily + 5], 
+                 color =:red, markersize = 10, strokewidth = 2, strokecolor =:black)
+fig
+
+save("Plots/hl-calibration/sensitivity-analysis/sse50_daily_delta_alpha.png", 
+     fig, px_per_unit = 4)
+
+
