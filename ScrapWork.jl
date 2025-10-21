@@ -1415,7 +1415,7 @@ function decay_iterations(x0::Float64, decay_rate::Float64, threshold::Float64):
     return n
 end
 
-decay_iterations(0.000005, 0.95, 1e-6)
+decay_iterations(100.00, 0.95, 1e-6)
 
 ##########################################################################################
 
@@ -1617,3 +1617,289 @@ end
 
 bestOBJWindChart
 bestParamWindChart
+
+safeLog(x) = x > 0 ? log(x) : 1
+safeLog(-0.01)
+
+#####################################################################
+
+# Weekly 
+
+# JSE
+
+bestObjective_JSE_Weekly, bestParameters_JSE_Weekly, output__JSE_Weekly = calibrateABM("JSE", "Weekly")
+
+# SSE
+
+bestObjective_SSE50_Weekly, bestParameters_SSE50_Weekly, output__SSE50_Weekly = calibrateABM("SSE", "Weekly")
+
+# BSESN 
+
+bestObjective_BSESN_Weekly, bestParameters_BSESN_Weekly, output__BSESN_Weekly = calibrateABM("BSE", "Weekly")
+
+
+descriptiveStatistics(logReturns_HL_JSE_Daily, 1, 10000, returnsJSE_Daily)
+display(plotReturns(logReturns_HL_JSE_Daily, plotStart_Daily, 10000, "JSE", "Daily"))
+
+round.(optParam_HL_JSE_Daily, digits = 3)
+round.(optParam_HL_JSE_Weekly, digits = 3)
+round.(optParam_HL_SSE50_Daily, digits = 3)
+round.(optParam_HL_SSE50_Weekly, digits = 3)
+round.(optParam_HL_BSESN_Daily, digits = 3)
+round.(optParam_HL_BSESN_Weekly, digits = 3)
+mu, gamma, delta, alpha
+
+round.(optParam_FW_JSE_Daily, digits = 3)
+round.(optParam_FW_JSE_Weekly, digits = 3)
+round.(optParam_FW_SSE50_Daily, digits = 3)
+round.(optParam_FW_SSE50_Weekly, digits = 3)
+round.(optParam_FW_BSESN_Daily, digits = 3)
+round.(optParam_FW_BSESN_Weekly, digits = 3)
+beta, chi, phi, sigma_C, sigma_F, alpha_0, alpha_N, alpha_P
+
+descriptiveStatistics(logReturns_HL_JSE_Daily, 5000, 10000, returnsJSE_Daily)
+
+descriptiveStatistics(logReturns_FW_JSE_Daily, 7000, 10000, returnsJSE_Daily)
+display(plotPrices(prices_FW_JSE_Daily, 1, 10000, "JSE", "Daily"))
+display(plotReturns(logReturns_FW_JSE_Daily, plotStart_Daily, plotEnd_Daily_JSE, "JSE", "Daily"))
+
+function HL_nelderMeadSimulation(threshold)
+    
+    perturb = 0.10
+
+    lowerBounds = [0, 0, 0, 0]
+    upperBounds = [15, 10, 1, 1]
+
+    initialParameters = optParam_HL_SSE50_Daily
+
+    opt = Opt(:LN_NELDERMEAD, length(initialParameters))
+    opt.xtol_rel = 1e-6
+    opt.lower_bounds = lowerBounds
+    opt.upper_bounds = upperBounds
+    opt.min_objective = f_HL_MBB
+
+    (currentValue, currentParameters, ret) = NLopt.optimize(opt, initialParameters)
+
+    bestParameters = currentParameters
+    bestValue = currentValue
+
+    minThreshold = opt.xtol_rel
+
+    counter = 1
+
+    while threshold > minThreshold
+
+        println("Counter: $counter")
+
+        newParameters = [x * (1 + rand(MersenneTwister(counter), Uniform(-perturb, perturb))) for x in bestParameters]
+        newParameters = [clamp(x, lower, upper) for (x, lower, upper) in zip(newParameters, lowerBounds, upperBounds)]
+
+        optCurrent = Opt(:LN_NELDERMEAD, length(newParameters))
+        maxtime!(optCurrent, 5.0)
+        optCurrent.xtol_rel = 1e-6
+        optCurrent.lower_bounds = lowerBounds
+        optCurrent.upper_bounds = upperBounds
+        optCurrent.min_objective = f_HL_MBB
+
+        (currentValue, currentParameters, ret) = NLopt.optimize(optCurrent, newParameters)
+
+        println(currentValue)
+
+        if (currentValue < bestValue) || (currentValue - bestValue < threshold)
+
+            println("NEW BEST PARAMETERS: $currentParameters")
+            println("NEW BEST VALUE: $currentValue")
+
+            bestValue = currentValue
+            bestParameters = currentParameters
+        end
+
+        threshold = threshold * 0.95
+        counter = counter + 1
+    end
+
+    return bestParameters, bestValue
+end
+
+optParam_HL_JSE_Daily, optValue_HL_JSE_Daily = HL_nelderMeadSimulation(0.00001)
+
+f_HL(optParam_HL_SSE50_Daily, repetitions, "SSE", "Daily")
+
+function f_HL(x, repetitions, index, timescale)
+
+    simMom = getSimulatedMoments(x, repetitions, index, timescale)
+    print(simMom)
+    if index == "JSE"
+
+        if timescale == "Daily"
+    
+            obj = getObjectiveFunction(momentsJSE_Daily, simMom, bootstrapMatrixJSE_Daily)
+    
+        elseif timescale == "Weekly"
+    
+            obj = getObjectiveFunction(momentsJSE_Weekly, simMom, bootstrapMatrixJSE_Weekly)
+    
+        end
+    
+    elseif index == "SSE"
+    
+        if timescale == "Daily"
+    
+            obj = getObjectiveFunction(momentsSSE50_Daily, simMom, bootstrapMatrixSSE50_Daily)
+    
+        elseif timescale == "Weekly"
+    
+            obj = getObjectiveFunction(momentsSSE50_Weekly, simMom, bootstrapMatrixSSE50_Weekly)
+    
+        end
+    
+    elseif index == "BSE"
+    
+        if timescale == "Daily"
+    
+            obj = getObjectiveFunction(momentsBSESN_Daily, simMom, bootstrapMatrixBSESN_Daily)
+    
+        elseif timescale == "Weekly"
+    
+            obj = getObjectiveFunction(momentsBSESN_Weekly, simMom, bootstrapMatrixBSESN_Weekly)
+    
+        end
+    
+    end
+
+    return obj[1]
+end
+
+hlABM(10000, 1, 20, 20, 9.993, 0.245, 5.506, 0.994)
+
+@load "Data/hl-calibration/parameters-sse50-daily.jld2" optParam_HL_SSE50_Daily
+
+optParam_HL_SSE50_Daily
+
+using GLMakie
+
+GLMakie.surface(results.mu, results.gamma, results.value, 
+                colormap =:viridis, axis=(type=Axis3,))
+
+plot(results.mu, results.gamma, results.value, 
+     xlabel = "mu", ylabel = "gamma", zlabel = "OBJ",
+     seriestype =:surface, c=:plasma, 
+     yformatter = x -> @sprintf("%.0f", x), framestyle = :box, 
+     tick_direction = :none, camera = (15, 30),
+     gridlinewidth = 1.5, gridstyle = :dash)
+
+#####################################################################
+
+results_mu_delta = hlSensitivityAnalysis("SSE", "Daily", "mu_delta", optParam_HL_SSE50_Daily)
+
+fig = Figure()
+axis = Axis3(fig[1, 1], xlabel = "μ", ylabel = "δ", zlabel = "Objective Value")
+surf = GLMakie.surface!(axis, results_mu_delta.mu, 
+                        results_mu_delta.delta, results_mu_delta.value, 
+                        colormap =:plasma, label = "f(0)")
+Colorbar(fig[1, 2], surf)
+GLMakie.scatter!(axis, [optParam_HL_SSE50_Daily[1]], [optParam_HL_SSE50_Daily[3]], [optVal_HL_SSE50_Daily + 5], 
+                 color =:red, markersize = 10, strokewidth = 2, strokecolor =:black)
+fig
+
+save("Plots/hl-calibration/sensitivity-analysis/sse50_daily_mu_delta.png", 
+     fig, px_per_unit = 4)
+
+results_delta_alpha[results_delta_alpha.value .< 150, :]
+
+results_phi_sigma_c[results_phi_sigma_c.value .< 100, :]
+
+#####################################################################
+
+@load "Data/xu-calibration/parameters-jse-weekly.jld2" bestParameters_JSE_Weekly
+@load "Data/xu-calibration/objective-results-jse-weekly.jld2" output__JSE_Weekly
+
+minWF_fix = bestParameters_JSE_Weekly[2]
+minWC_fix = bestParameters_JSE_Weekly[4]
+
+output__JSE_Weekly_fixed = filter(row -> row.MinWindFund == minWF_fix && row.MinWindChart == minWC_fix, output__JSE_Weekly)
+
+xvals = unique(output__JSE_Weekly_fixed.MaxWindFund)
+yvals = unique(output__JSE_Weekly_fixed.MaxWindChart)
+
+results_Tau_FMax_Tau_CMax = [mean(output__JSE_Weekly_fixed.Objective[(output__JSE_Weekly_fixed.MaxWindFund .== x) .& (output__JSE_Weekly_fixed.MaxWindChart .== y)]) for y in yvals, x in xvals]
+
+figXu = Figure()
+axisXu = Axis3(figXu[1, 1], xlabel = L"τ^F_{max}", ylabel = L"τ^C_{max}", zlabel = "Objective Value")
+surfXu = GLMakie.surface!(axisXu, xvals, yvals, 
+                          results_Tau_FMax_Tau_CMax, 
+                          colormap =:plasma, label = "f(0)")
+Colorbar(figXu[1, 2], surfXu)
+figXu
+
+output__JSE_Weekly[output__JSE_Weekly.Objective .< 200, :] 
+output__BSESN_Weekly[output__BSESN_Weekly.Objective .< 250, :] 
+
+@load "Data/xu-calibration/objective-results-jse-weekly.jld2" output__JSE_Weekly
+@load "Data/xu-calibration/objective-results-sse50-weekly.jld2" output__SSE50_Weekly
+@load "Data/xu-calibration/objective-results-bsesn-weekly.jld2" output__BSESN_Weekly
+
+#####################################################################
+
+function xuSensitivityAnalysis(index, timeframe, combo, params)
+
+    maxWindFund_range = collect(80:10:150)
+    minWindFund_range = collect(25:10:75)
+    maxWindChart_range = collect(75:10:155)
+    minWindChart_range = collect(15:5:45)
+
+    xuResults = DataFrame(MaxWindFund = Int[], 
+                          MinWindFund = Int[], 
+                          MaxWindChart = Int[], 
+                          MinWindChart = Int[], 
+                          Objective = Float64[])
+
+    if combo == "MaxWindFund_MaxWindChart"
+
+        for maxWF in maxWindFund_range
+
+            println(maxWF)
+
+            for maxWC in maxWindChart_range
+
+                optVal = f_XU([20, 20, 
+                               maxWF, params[2],
+                               maxWC, params[4]], 1, index, timeframe)
+            
+                push!(xuResults, (maxWF, params[2], maxWC, params[4], optVal))
+            end
+        end
+
+    elseif combo == "MinWindFund_MinWindChart"
+
+        for minWF in minWindFund_range
+
+            println(minWF)
+
+            for minWC in minWindChart_range
+
+                optVal = f_XU([20, 20, 
+                               params[1], minWF,
+                               params[3], minWC], 1, index, timeframe)
+            
+                push!(xuResults, (params[1], minWF, params[3], minWC, optVal))
+            end
+        end
+    end
+
+    return xuResults
+end
+
+#####################################################################
+
+ooo = filter(row -> row.MaxWindChart == 125 && row.MinWindFund == 25, output__BSESN_Weekly)
+
+StatsPlots.heatmap(xvals_min, yvals_min, zvals_min, xlabel = L"τ^F_{min}", ylabel = L"τ^C_{min}", zlabel = "")
+
+figRandom = Figure(figure_padding = 30)
+axisRandom = Axis(figRandom[1, 1], xlabel = L"τ^F_{min}", ylabel = L"τ^C_{min}")
+surfRandom = GLMakie.contourf!(axisRandom, xvals_min, yvals_min, zvals_min, colormap =:plasma, levels = collect(200:10:1500))
+Colorbar(figRandom[1, 2], surfRandom)
+figRandom
+
+@load "Data/xu-calibration/parameters-sse50-weekly.jld2" bestParameters_SSE50_Weekly

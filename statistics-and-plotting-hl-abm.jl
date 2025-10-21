@@ -48,20 +48,29 @@ lengthBSESN_Weekly = length(weekly_BSESN_Data)
 # Load ABM Results calibrated to the JSE Top 40 Index from .jld2 file
 @load "Data/hl-calibration/prices-jse-daily.jld2" prices_HL_JSE_Daily
 @load "Data/hl-calibration/log-returns-jse-daily.jld2" logReturns_HL_JSE_Daily
+@load "Data/hl-calibration/parameters-jse-daily.jld2" optParam_HL_JSE_Daily
+
 @load "Data/hl-calibration/prices-jse-weekly.jld2" prices_HL_JSE_Weekly
 @load "Data/hl-calibration/log-returns-jse-weekly.jld2" logReturns_HL_JSE_Weekly
+@load "Data/hl-calibration/parameters-jse-weekly.jld2" optParam_HL_JSE_Weekly
 
 # Load ABM Results calibrated to the SSE 50 Index from .jld2 file
 @load "Data/hl-calibration/prices-sse50-daily.jld2" prices_HL_SSE50_Daily
 @load "Data/hl-calibration/log-returns-sse50-daily.jld2" logReturns_HL_SSE50_Daily
+@load "Data/hl-calibration/parameters-sse50-daily.jld2" optParam_HL_SSE50_Daily
+
 @load "Data/hl-calibration/prices-sse50-weekly.jld2" prices_HL_SSE50_Weekly
 @load "Data/hl-calibration/log-returns-sse50-weekly.jld2" logReturns_HL_SSE50_Weekly
+@load "Data/hl-calibration/parameters-sse50-weekly.jld2" optParam_HL_SSE50_Weekly
 
 # Load ABM Results calibrated to the BSE Sensex Index from .jld2 file
 @load "Data/hl-calibration/prices-bsesn-daily.jld2" prices_HL_BSESN_Daily
 @load "Data/hl-calibration/log-returns-bsesn-daily.jld2" logReturns_HL_BSESN_Daily
+@load "Data/hl-calibration/parameters-bsesn-daily.jld2" optParam_HL_BSESN_Daily
+
 @load "Data/hl-calibration/prices-bsesn-weekly.jld2" prices_HL_BSESN_Weekly
 @load "Data/hl-calibration/log-returns-bsesn-weekly.jld2" logReturns_HL_BSESN_Weekly
+@load "Data/hl-calibration/parameters-bsesn-weekly.jld2" optParam_HL_BSESN_Weekly
 
 lengthJSE_Daily_HL = length(prices_HL_JSE_Daily)
 lengthJSE_Weekly_HL = length(prices_HL_JSE_Weekly)
@@ -119,13 +128,13 @@ function descriptiveStatistics(Returns, bt, et, indexReturns)
     abmU[6] = round(hurst_exponent(Returns[t], 1:19)[1], digits = 4)
     indexU[6] = round(hurst_exponent(indexReturns, 1:19)[1], digits = 4)
 
-    descStat = Table(Asset = ["HL ABM", "Index"], 
-    Mean = [abmU[1], indexU[1]],
-    SD = [abmU[2], indexU[2]],
-    Skewness = [abmU[3], indexU[3]],
-    Kurtosis = [abmU[4], indexU[4]],
-    KS_Statistic = [abmU[5], indexU[5]],
-    Hurst = [abmU[6], indexU[6]])
+    descStat = Table(Asset = ["HL ABM", "Index", "Difference"], 
+    Mean = [abmU[1], indexU[1], abmU[1] - indexU[1]],
+    SD = [abmU[2], indexU[2], abmU[2] - indexU[2]],
+    Skewness = [abmU[3], indexU[3], abmU[3] - indexU[3]],
+    Kurtosis = [abmU[4], indexU[4], abmU[4] - indexU[4]],
+    KS_Statistic = [abmU[5], indexU[5], abmU[5] - indexU[5]],
+    Hurst = [abmU[6], indexU[6], abmU[6] - indexU[6]])
 
     return descStat
 end
