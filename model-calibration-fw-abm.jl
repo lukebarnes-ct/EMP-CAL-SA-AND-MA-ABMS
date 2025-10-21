@@ -65,9 +65,6 @@ function fwABM(Time, n, beta, chi, phi, sigma_C, sigma_F, alpha_0, alpha_N, alph
     fundValue[1] = 10
 
     ### Initialise Variables and Matrices
-
-    # Dividends of the Risky Asset
-    dividends = zeros(T)
     
     # Prices of the Risky Asset
     price = zeros(T)
@@ -99,7 +96,6 @@ function fwABM(Time, n, beta, chi, phi, sigma_C, sigma_F, alpha_0, alpha_N, alph
 
         price[t] = price[t-1] + mu * (n_Chart[t-1] * demand_Chart[t-1] + n_Fund[t-1] * demand_Fund[t-1])
 
-        # fundValue[t] =  (1 + phi + (phiSD * delta)) * fundValue[t-1]
         fundValue[t] =  10
 
         # Chartists Demand of the Risky Asset at time t
@@ -124,7 +120,10 @@ function fwABM(Time, n, beta, chi, phi, sigma_C, sigma_F, alpha_0, alpha_N, alph
         relFit[t] = alpha_0 + alpha_N * (n_Fund[t] - n_Chart[t]) + alpha_P * (price[t] - fundValue[t])^2
 
         returns[t] = ((price[t] - price[t-1]) / price[t-1]) * 20
-        log_returns[t] = log(price[t]/price[t-1])
+        
+        # Log Return at time t
+        safeLog(x) = x > 0 ? log(x) : log_returns[t-3]
+        log_returns[t] = safeLog(price[t] / price[t-1])
     end
     
     return price, log_returns
@@ -301,7 +300,7 @@ end
 
 function f_FW(x, repetitions, index, timescale)
 
-    simMom = getSimulatedMoments(x, repetitions, "F&W", index, timescale)
+    simMom = getSimulatedMoments(x, repetitions, index, timescale)
 
     if index == "JSE"
 
@@ -350,7 +349,7 @@ f_FW_MBB(x, grad) = f_FW(x, repetitions, index, timescale)
 
 function FW_nelderMeadSimulation(threshold)
     
-    perturb = 0.25
+    perturb = 0.15
 
     lowerBounds = [0, 0, 0, 0, 0, -1000, 0.01, 0.01]
     upperBounds = [0.1, 1, 10, 10, 10, 1000, 100, 100]
@@ -382,6 +381,7 @@ function FW_nelderMeadSimulation(threshold)
         newParameters = [clamp(x, lower, upper) for (x, lower, upper) in zip(newParameters, lowerBounds, upperBounds)]
 
         optCurrent = Opt(:LN_NELDERMEAD, length(newParameters))
+        maxtime!(optCurrent, 5.0)
         optCurrent.xtol_rel = 1e-6
         optCurrent.lower_bounds = lowerBounds
         optCurrent.upper_bounds = upperBounds
@@ -438,9 +438,11 @@ bootstrapMatrixBSESN_Weekly = getMovingBlockBootstrapMatrix(2006, returnsBSESN_W
 
 # Run the MSM Nelder Mead Optimisation for each Empirical Log Return Time Series
 
-tol_FW = 0.00001
+tol_FW = 10
 
 repetitions = 10
+modelSims = 10000
+id = 1
 
 # JSE
 
@@ -459,6 +461,7 @@ prices_FW_JSE_Daily, logReturns_FW_JSE_Daily = fwABM(modelSims, id,
 
 @save "Data/fw-calibration/prices-jse-daily.jld2" prices_FW_JSE_Daily
 @save "Data/fw-calibration/log-returns-jse-daily.jld2" logReturns_FW_JSE_Daily
+@save "Data/fw-calibration/parameters-jse-daily.jld2" optParam_FW_JSE_Daily
 
 # JSE Weekly Log Returns 
 
@@ -473,6 +476,7 @@ prices_FW_JSE_Weekly, logReturns_FW_JSE_Weekly = fwABM(modelSims, id,
 
 @save "Data/fw-calibration/prices-jse-weekly.jld2" prices_FW_JSE_Weekly
 @save "Data/fw-calibration/log-returns-jse-weekly.jld2" logReturns_FW_JSE_Weekly
+@save "Data/fw-calibration/parameters-jse-weekly.jld2" optParam_FW_JSE_Weekly
 
 # SSE50
 
@@ -491,6 +495,7 @@ prices_FW_SSE50_Daily, logReturns_FW_SSE50_Daily = fwABM(modelSims, id,
 
 @save "Data/fw-calibration/prices-sse50-daily.jld2" prices_FW_SSE50_Daily
 @save "Data/fw-calibration/log-returns-sse50-daily.jld2" logReturns_FW_SSE50_Daily
+@save "Data/fw-calibration/parameters-sse50-daily.jld2" optParam_FW_SSE50_Daily
 
 # SSE50 Weekly Log Returns 
 
@@ -505,6 +510,7 @@ prices_FW_SSE50_Weekly, logReturns_FW_SSE50_Weekly = fwABM(modelSims, id,
 
 @save "Data/fw-calibration/prices-sse50-weekly.jld2" prices_FW_SSE50_Weekly
 @save "Data/fw-calibration/log-returns-sse50-weekly.jld2" logReturns_FW_SSE50_Weekly
+@save "Data/fw-calibration/parameters-sse50-weekly.jld2" optParam_FW_SSE50_Weekly
 
 # BSESN
 
@@ -523,6 +529,7 @@ prices_FW_BSESN_Daily, logReturns_FW_BSESN_Daily = fwABM(modelSims, id,
 
 @save "Data/fw-calibration/prices-bsesn-daily.jld2" prices_FW_BSESN_Daily
 @save "Data/fw-calibration/log-returns-bsesn-daily.jld2" logReturns_FW_BSESN_Daily
+@save "Data/fw-calibration/parameters-bsesn-daily.jld2" optParam_FW_BSESN_Daily
 
 # BSESN Weekly Log Returns 
 
@@ -537,5 +544,6 @@ prices_FW_BSESN_Weekly, logReturns_FW_BSESN_Weekly = fwABM(modelSims, id,
 
 @save "Data/fw-calibration/prices-bsesn-weekly.jld2" prices_FW_BSESN_Weekly
 @save "Data/fw-calibration/log-returns-bsesn-weekly.jld2" logReturns_FW_BSESN_Weekly
+@save "Data/fw-calibration/parameters-bsesn-weekly.jld2" optParam_FW_BSESN_Weekly
 
 #####################################################################

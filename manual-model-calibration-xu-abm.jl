@@ -458,8 +458,7 @@ function xuABM(Time, n, N,
         
         resPrice = price[:, t-1]
 
-        resOpt = optimize(optDemand, resPrice, NelderMead())
-        # resOpt = optimize(optDemand, resPrice, LBFGS())
+        resOpt = Optim.optimize(optDemand, resPrice, NelderMead())
 
         # Determine the price that will Clear each market of Risky Assets
         price[:, t] = Optim.minimizer(resOpt)
@@ -945,7 +944,7 @@ function calibrateABM(index, timescale)
                     println("Maximum Window Fundamentalists: ", a, " Minimum Window Fundamentalists: ", b)
                     println("Maximum Window Chartists: ", c, " Minimum Window Chartists: ", d)
 
-                    objFuncVal = f_XU(param, 2, index, timescale)
+                    objFuncVal = f_XU(param, 3, index, timescale)
 
                     push!(output, (a, b, c, d, objFuncVal))
                     println(output)
@@ -972,18 +971,66 @@ end
 
 #####################################################################
 
-# Weekly 
+# Run the MSM Nelder Mead Optimisation for each Empirical Log Return Time Series
 
-# JSE
+NumAssets = 5 
+jseTime = 100 + lengthJSE_Weekly
+sseTime = 100 + lengthSSE50_Weekly
+bseTime = 100 + lengthBSESN_Weekly
+id = 1
+
+# JSE Weekly Log Returns 
 
 bestObjective_JSE_Weekly, bestParameters_JSE_Weekly, output__JSE_Weekly = calibrateABM("JSE", "Weekly")
+priceMatrix_XU_JSE_Weekly, logReturnsMatrix_XU_JSE_Weekly = xuABM(jseTime, id, NumAssets, 
+                                                                  bestParameters_JSE_Weekly[1], bestParameters_JSE_Weekly[2], 
+                                                                  bestParameters_JSE_Weekly[3], bestParameters_JSE_Weekly[4], 
+                                                                  bestParameters_JSE_Weekly[5], bestParameters_JSE_Weekly[6])
+xuIndexPrice_JSE_Weekly, xuIndexReturn_JSE_Weekly = xuIndex(NumAssets, priceMatrix_XU_JSE_Weekly[:, 101:jseTime])
 
-# SSE
+bestParameters_JSE_Weekly = collect(output__JSE_Weekly[argmin(output__JSE_Weekly.Objective), 1:4])
+
+@save "Data/xu-calibration/prices-jse-weekly.jld2" priceMatrix_XU_JSE_Weekly
+@save "Data/xu-calibration/log-returns-jse-weekly.jld2" logReturnsMatrix_XU_JSE_Weekly
+@save "Data/xu-calibration/parameters-jse-weekly.jld2" bestParameters_JSE_Weekly
+@save "Data/xu-calibration/objective-results-jse-weekly.jld2" output__JSE_Weekly
+@save "Data/xu-calibration/xu-index-price-jse-weekly.jld2" xuIndexPrice_JSE_Weekly
+@save "Data/xu-calibration/xu-index-log-returns-jse-weekly.jld2" xuIndexReturn_JSE_Weekly
+
+# SSE50 Weekly Log Returns 
 
 bestObjective_SSE50_Weekly, bestParameters_SSE50_Weekly, output__SSE50_Weekly = calibrateABM("SSE", "Weekly")
+priceMatrix_XU_SSE50_Weekly, logReturnsMatrix_XU_SSE50_Weekly = xuABM(sseTime, id, NumAssets, 
+                                                                  bestParameters_SSE50_Weekly[1], bestParameters_SSE50_Weekly[2], 
+                                                                  bestParameters_SSE50_Weekly[3], bestParameters_SSE50_Weekly[4], 
+                                                                  bestParameters_SSE50_Weekly[5], bestParameters_SSE50_Weekly[6])
+xuIndexPrice_SSE50_Weekly, xuIndexReturn_SSE50_Weekly = xuIndex(NumAssets, priceMatrix_XU_SSE50_Weekly[:, 101:sseTime])
 
-# BSESN 
+bestParameters_SSE50_Weekly = collect(output__SSE50_Weekly[argmin(output__SSE50_Weekly.Objective), 1:4])
+
+@save "Data/xu-calibration/prices-sse50-weekly.jld2" priceMatrix_XU_SSE50_Weekly
+@save "Data/xu-calibration/log-returns-sse50-weekly.jld2" logReturnsMatrix_XU_SSE50_Weekly
+@save "Data/xu-calibration/parameters-sse50-weekly.jld2" bestParameters_SSE50_Weekly
+@save "Data/xu-calibration/objective-results-sse50-weekly.jld2" output__SSE50_Weekly
+@save "Data/xu-calibration/xu-index-price-sse50-weekly.jld2" xuIndexPrice_SSE50_Weekly
+@save "Data/xu-calibration/xu-index-log-returns-sse50-weekly.jld2" xuIndexReturn_SSE50_Weekly
+
+# BSESN Weekly Log Returns 
 
 bestObjective_BSESN_Weekly, bestParameters_BSESN_Weekly, output__BSESN_Weekly = calibrateABM("BSE", "Weekly")
+priceMatrix_XU_BSESN_Weekly, logReturnsMatrix_XU_BSESN_Weekly = xuABM(bseTime, id, NumAssets, 
+                                                                  bestParameters_BSESN_Weekly[1], bestParameters_BSESN_Weekly[2], 
+                                                                  bestParameters_BSESN_Weekly[3], bestParameters_BSESN_Weekly[4], 
+                                                                  bestParameters_BSESN_Weekly[5], bestParameters_BSESN_Weekly[6])
+xuIndexPrice_BSESN_Weekly, xuIndexReturn_BSESN_Weekly = xuIndex(NumAssets, priceMatrix_XU_BSESN_Weekly[:, 101:bseTime])
+
+bestParameters_BSESN_Weekly = collect(output__BSESN_Weekly[argmin(output__BSESN_Weekly.Objective), 1:4])
+
+@save "Data/xu-calibration/prices-bsesn-weekly.jld2" priceMatrix_XU_BSESN_Weekly
+@save "Data/xu-calibration/log-returns-bsesn-weekly.jld2" logReturnsMatrix_XU_BSESN_Weekly
+@save "Data/xu-calibration/parameters-bsesn-weekly.jld2" bestParameters_BSESN_Weekly
+@save "Data/xu-calibration/objective-results-bsesn-weekly.jld2" output__BSESN_Weekly
+@save "Data/xu-calibration/xu-index-price-bsesn-weekly.jld2" xuIndexPrice_BSESN_Weekly
+@save "Data/xu-calibration/xu-index-log-returns-bsesn-weekly.jld2" xuIndexReturn_BSESN_Weekly
 
 #####################################################################

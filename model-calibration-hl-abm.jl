@@ -177,7 +177,8 @@ function hlABM(Time, n,  n1, n2, mu, gamma, delta, alpha)
         returns[t] = (price[t] + dividends[t] - price[t-1]) / price[t-1]
 
         # Log Return at time t
-        log_returns[t] = log(price[t] / price[t-1])
+        safeLog(x) = x > 0 ? log(x) : price[t-3]
+        log_returns[t] = safeLog(price[t] / price[t-1])
 
         # Excess Capital Gain at time t
         excGain[t] = price[t] + dividends[t] - (R * price[t-1])
@@ -433,7 +434,7 @@ f_HL_MBB(x, grad) = f_HL(x, repetitions, index, timescale)
 
 function HL_nelderMeadSimulation(threshold)
     
-    perturb = 0.25
+    perturb = 0.50
 
     lowerBounds = [0, 0, 0, 0]
     upperBounds = [10, 10, 1, 1]
@@ -463,6 +464,7 @@ function HL_nelderMeadSimulation(threshold)
         newParameters = [clamp(x, lower, upper) for (x, lower, upper) in zip(newParameters, lowerBounds, upperBounds)]
 
         optCurrent = Opt(:LN_NELDERMEAD, length(newParameters))
+        maxtime!(optCurrent, 5.0)
         optCurrent.xtol_rel = 1e-6
         optCurrent.lower_bounds = lowerBounds
         optCurrent.upper_bounds = upperBounds
@@ -519,7 +521,7 @@ bootstrapMatrixBSESN_Weekly = getMovingBlockBootstrapMatrix(2006, returnsBSESN_W
 
 # Run the MSM Nelder Mead Optimisation for each Empirical Log Return Time Series
 
-tol_HL = 0.00001
+tol_HL = 10
 
 repetitions = 10
 modelSims = 10000
@@ -540,6 +542,7 @@ prices_HL_JSE_Daily, logReturns_HL_JSE_Daily = hlABM(modelSims, id, 20, 20,
 
 @save "Data/hl-calibration/prices-jse-daily.jld2" prices_HL_JSE_Daily
 @save "Data/hl-calibration/log-returns-jse-daily.jld2" logReturns_HL_JSE_Daily
+@save "Data/hl-calibration/parameters-jse-daily.jld2" optParam_HL_JSE_Daily
 
 # JSE Weekly Log Returns 
 
@@ -552,6 +555,7 @@ prices_HL_JSE_Weekly, logReturns_HL_JSE_Weekly = hlABM(modelSims, id, 20, 20,
 
 @save "Data/hl-calibration/prices-jse-weekly.jld2" prices_HL_JSE_Weekly
 @save "Data/hl-calibration/log-returns-jse-weekly.jld2" logReturns_HL_JSE_Weekly
+@save "Data/hl-calibration/parameters-jse-weekly.jld2" optParam_HL_JSE_Weekly
 
 # SSE50
 
@@ -568,6 +572,7 @@ prices_HL_SSE50_Daily, logReturns_HL_SSE50_Daily = hlABM(modelSims, id, 20, 20,
 
 @save "Data/hl-calibration/prices-sse50-daily.jld2" prices_HL_SSE50_Daily
 @save "Data/hl-calibration/log-returns-sse50-daily.jld2" logReturns_HL_SSE50_Daily
+@save "Data/hl-calibration/parameters-sse50-daily.jld2" optParam_HL_SSE50_Daily
 
 # SSE50 Weekly Log Returns 
 
@@ -580,6 +585,7 @@ prices_HL_SSE50_Weekly, logReturns_HL_SSE50_Weekly = hlABM(modelSims, id, 20, 20
 
 @save "Data/hl-calibration/prices-sse50-weekly.jld2" prices_HL_SSE50_Weekly
 @save "Data/hl-calibration/log-returns-sse50-weekly.jld2" logReturns_HL_SSE50_Weekly
+@save "Data/hl-calibration/parameters-sse50-weekly.jld2" optParam_HL_SSE50_Weekly
 
 # BSESN
 
@@ -596,6 +602,7 @@ prices_HL_BSESN_Daily, logReturns_HL_BSESN_Daily = hlABM(modelSims, id, 20, 20,
 
 @save "Data/hl-calibration/prices-bsesn-daily.jld2" prices_HL_BSESN_Daily
 @save "Data/hl-calibration/log-returns-bsesn-daily.jld2" logReturns_HL_BSESN_Daily
+@save "Data/hl-calibration/parameters-bsesn-daily.jld2" optParam_HL_BSESN_Daily
 
 # BSESN Weekly Log Returns 
 
@@ -608,6 +615,7 @@ prices_HL_BSESN_Weekly, logReturns_HL_BSESN_Weekly = hlABM(modelSims, id, 20, 20
 
 @save "Data/hl-calibration/prices-bsesn-weekly.jld2" prices_HL_BSESN_Weekly
 @save "Data/hl-calibration/log-returns-bsesn-weekly.jld2" logReturns_HL_BSESN_Weekly
+@save "Data/hl-calibration/parameters-bsesn-weekly.jld2" optParam_HL_BSESN_Weekly
 
 #####################################################################
 
