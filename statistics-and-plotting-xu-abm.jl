@@ -492,7 +492,7 @@ function plotAutoCorrelations(Returns, bt, et, index)
     a1AbsRetAuto = (autocor(abs.(Returns[t]))[1:(maxLags+1)])
     a1SqRetAuto = autocor(Returns[t].^2)[1:(maxLags+1)]
 
-    p1 = plot(xVals, a1RetAuto, seriestype = :line, title = "Risky Asset",
+    p1 = plot(xVals, a1RetAuto, seriestype = :line, title = "Simulated Index",
     xlabel = "Lag", ylabel = "Autocorrelation", framestyle = :box, 
     tick_direction = :none, color = "darkorange2", lw = 1.5, 
     gridlinewidth = 1.5, gridstyle = :dash, gridalpha = 0.125, label = false)
@@ -527,3 +527,49 @@ display(plotAutoCorrelations(xuIndexReturn_BSESN_Weekly, plotStart_Weekly, plotE
 savefig("Plots/xu-calibration/autocorrelations/bsesn_weekly.pdf")
 
 ###############################################################################
+
+# Assets + Index Price Plots
+
+function plotAllAssetPrices(Prices, bt, et, xuIndex)
+
+    t = bt:et
+    print(size(xuIndex))
+    p1 = plot(t, Prices[1, t], label = "Price", title = "Asset 1", 
+        xlabel = "Week", ylabel = "Price", legend = false, framestyle = :box, 
+        tick_direction = :none, color = "salmon1", lw = 1.5, 
+        gridlinewidth = 1.5, gridstyle = :dash)
+
+    p2 = plot(t, Prices[2, t], label = "Price", title = "Asset 2", 
+        xlabel = "Week", ylabel = "Price", legend = false, framestyle = :box, 
+        tick_direction = :none, color = "yellow2", lw = 1.5, 
+        gridlinewidth = 1.5, gridstyle = :dash)
+
+    p3 = plot(t, Prices[3, t], label = "Price", title = "Asset 3", 
+        xlabel = "Week", ylabel = "Price", legend = false, framestyle = :box, 
+        tick_direction = :none, color = "goldenrod2", lw = 1.5, 
+        gridlinewidth = 1.5, gridstyle = :dash)
+
+    p4 = plot(t, Prices[4, t], label = "Price", title = "Asset 4", 
+        xlabel = "Week", ylabel = "Price", legend = false, framestyle = :box, 
+        tick_direction = :none, color = "palegreen2", lw = 1.5, 
+        gridlinewidth = 1.5, gridstyle = :dash)
+
+    p5 = plot(t, Prices[5, t], label = "Price", title = "Asset 5", 
+        xlabel = "Week", ylabel = "Price", legend = false, framestyle = :box, 
+        tick_direction = :none, color = "navajowhite2", lw = 1.5, 
+        gridlinewidth = 1.5, gridstyle = :dash)
+
+    pIndex = plot(t, xuIndex[1, :], label = "Price", title = "Simulated Index", 
+        xlabel = "Week", ylabel = "Price", legend = false, framestyle = :box, 
+        tick_direction = :none, color = "darkorange2", lw = 1.5, 
+        gridlinewidth = 1.5, gridstyle = :dash)
+
+    plot(p1, p2, p3, p4, p5, pIndex, layout = (3, 2), size = (900, 900), 
+         margin = 2mm)
+
+end
+
+display(plotAllAssetPrices(priceMatrix_XU_JSE_Weekly, plotStart_Weekly + 100, plotEnd_Weekly_JSE + 100, xuIndexPrice_JSE_Weekly))
+savefig("Plots/xu-calibration/prices/all_asset_and_index_jse_weekly.pdf")
+
+
