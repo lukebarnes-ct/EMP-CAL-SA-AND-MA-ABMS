@@ -619,3 +619,122 @@ prices_HL_BSESN_Weekly, logReturns_HL_BSESN_Weekly = hlABM(modelSims, id, 20, 20
 
 #####################################################################
 
+# Moment Confidence Intervals
+
+using LinearAlgebra
+using DataFrames
+using PrettyTables
+
+function getConfidenceInterval(moments, InvBootMatrix)
+
+    sd = sqrt.(diag(inv(InvBootMatrix)))
+    band = 1.96 .* sd
+    lower = moments .- band
+    upper = moments .+ band
+
+    return lower, upper
+end
+
+function empiricalConfidenceInterval(empMom, empMBBM)
+
+    lowerCI, upperCI = getConfidenceInterval(empMom, empMBBM)
+
+    return lowerCI, upperCI
+end
+
+function calibratedConfidenceInterval(id, calRet, index, timescale)
+
+    calMom = getMoments(calRet, 1, 10000, "Simulated", index, timescale)
+    
+    blockWindow = 100
+    blockSamples = 1000
+    calMBBM = getMovingBlockBootstrapMatrix(id, calRet, blockWindow, blockSamples)
+
+    lowerCI, upperCI = getConfidenceInterval(calMom, calMBBM)
+
+    return lowerCI, upperCI
+end
+
+function getSimulatedMomentsAndReturns(par, N, index, timescale)
+    
+    timeBegin = 1
+    timeEnd = 10000
+
+    sMoments = zeros(6, N)
+    sReturns = zeros(timeEnd, N)
+
+    MU = par[1]
+    GAMMA = par[2]
+    DELTA = par[3] 
+    ALPHA = par[4]
+
+    for n in 1:N
+
+        prices, returns = hlABM(timeEnd, n, 20, 20, MU, GAMMA, DELTA, ALPHA)
+
+        moments = getMoments(returns, timeBegin, timeEnd, "Simulated", index, timescale)
+
+        sMoments[:, n] = moments
+        sReturns[:, n] = returns
+    end
+
+    simMoments = mean(sMoments, dims = 2)
+
+    simReturns = mean(sReturns, dims = 2)
+
+    return simMoments, simReturns
+
+end
+
+function simulatedConfidenceInterval(id, par, reps, index, timescale)
+
+    simMom, simRet = getSimulatedMomentsAndReturns(par, reps, index, timescale)
+
+    blockWindow = 100
+    blockSamples = 1000
+    simMBBM = getMovingBlockBootstrapMatrix(id, simRet, blockWindow, blockSamples)
+
+    lowerCI, upperCI = getConfidenceInterval(simMom, simMBBM)
+
+    return lowerCI, upperCI
+end
+
+#####################################################################
+
+emp_lowerCI_JSE_Daily, emp_upperCI_JSE_Daily = empiricalConfidenceInterval(momentsJSE_Daily, bootstrapMatrixJSE_Daily)
+
+latexRow_JSE_Daily = vec(hcat(round.(emp_lowerCI_JSE_Daily, digits = 4), momentsJSE_Daily, round.(emp_upperCI_JSE_Daily, digits = 4))')
+latex_df_JSE_Daily = DataFrame(latexRow_JSE_Daily', :auto)
+latex_output_JSE_Daily = pretty_table(latex_df_JSE_Daily, backend = :latex)
+
+emp_lowerCI_JSE_Weekly, emp_upperCI_JSE_Weekly = empiricalConfidenceInterval(momentsJSE_Weekly, bootstrapMatrixJSE_Weekly)
+
+latexRow_JSE_Weekly = vec(hcat(round.(emp_lowerCI_JSE_Weekly, digits = 4), momentsJSE_Weekly, round.(emp_upperCI_JSE_Weekly, digits = 4))')
+latex_df_JSE_Weekly = DataFrame(latexRow_JSE_Weekly', :auto)
+latex_output_JSE_Weekly = pretty_table(latex_df_JSE_Weekly, backend = :latex)
+
+emp_lowerCI_SSE50_Daily, emp_upperCI_SSE50_Daily = empiricalConfidenceInterval(momentsSSE50_Daily, bootstrapMatrixSSE50_Daily)
+
+latexRow_SSE50_Daily = vec(hcat(round.(emp_lowerCI_SSE50_Daily, digits = 4), momentsSSE50_Daily, round.(emp_upperCI_SSE50_Daily, digits = 4))')
+latex_df_SSE50_Daily = DataFrame(latexRow_SSE50_Daily', :auto)
+latex_output_SSE50_Daily = pretty_table(latex_df_SSE50_Daily, backend = :latex)
+
+emp_lowerCI_SSE50_Weekly, emp_upperCI_SSE50_Weekly = empiricalConfidenceInterval(momentsSSE50_Weekly, bootstrapMatrixSSE50_Weekly)
+
+latexRow_SSE50_Weekly = vec(hcat(round.(emp_lowerCI_SSE50_Weekly, digits = 4), momentsSSE50_Weekly, round.(emp_upperCI_SSE50_Weekly, digits = 4))')
+latex_df_SSE50_Weekly = DataFrame(latexRow_SSE50_Weekly', :auto)
+latex_output_SSE50_Weekly = pretty_table(latex_df_SSE50_Weekly, backend = :latex)
+
+emp_lowerCI_BSESN_Daily, emp_upperCI_BSESN_Daily = empiricalConfidenceInterval(momentsBSESN_Daily, bootstrapMatrixBSESN_Daily)
+
+latexRow_BSESN_Daily = vec(hcat(round.(emp_lowerCI_BSESN_Daily, digits = 4), momentsBSESN_Daily, round.(emp_upperCI_BSESN_Daily, digits = 4))')
+latex_df_BSESN_Daily = DataFrame(latexRow_BSESN_Daily', :auto)
+latex_output_BSESN_Daily = pretty_table(latex_df_BSESN_Daily, backend = :latex)
+
+emp_lowerCI_BSESN_Weekly, emp_upperCI_BSESN_Weekly = empiricalConfidenceInterval(momentsBSESN_Weekly, bootstrapMatrixBSESN_Weekly)
+
+latexRow_BSESN_Weekly = vec(hcat(round.(emp_lowerCI_BSESN_Weekly, digits = 4), momentsBSESN_Weekly, round.(emp_upperCI_BSESN_Weekly, digits = 4))')
+latex_df_BSESN_Weekly = DataFrame(latexRow_BSESN_Weekly', :auto)
+latex_output_BSESN_Weekly = pretty_table(latex_df_BSESN_Weekly, backend = :latex)
+
+#####################################################################
