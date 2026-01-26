@@ -642,9 +642,9 @@ function empiricalConfidenceInterval(empMom, empMBBM)
     return lowerCI, upperCI
 end
 
-function calibratedConfidenceInterval(id, calRet, index, timescale)
+function calibratedConfidenceInterval(id, tEnd, calRet, index, timescale)
 
-    calMom = getMoments(calRet, 1, 10000, "Simulated", index, timescale)
+    calMom = getMoments(calRet, 1001, tEnd, "Simulated", index, timescale)
     
     blockWindow = 100
     blockSamples = 1000
@@ -652,7 +652,7 @@ function calibratedConfidenceInterval(id, calRet, index, timescale)
 
     lowerCI, upperCI = getConfidenceInterval(calMom, calMBBM)
 
-    return lowerCI, upperCI
+    return lowerCI, upperCI, calMom
 end
 
 function getSimulatedMomentsAndReturns(par, N, index, timescale)
@@ -701,6 +701,8 @@ end
 
 #####################################################################
 
+# Empirical Confidence Intervals
+
 emp_lowerCI_JSE_Daily, emp_upperCI_JSE_Daily = empiricalConfidenceInterval(momentsJSE_Daily, bootstrapMatrixJSE_Daily)
 
 latexRow_JSE_Daily = vec(hcat(round.(emp_lowerCI_JSE_Daily, digits = 4), momentsJSE_Daily, round.(emp_upperCI_JSE_Daily, digits = 4))')
@@ -738,3 +740,56 @@ latex_df_BSESN_Weekly = DataFrame(latexRow_BSESN_Weekly', :auto)
 latex_output_BSESN_Weekly = pretty_table(latex_df_BSESN_Weekly, backend = :latex)
 
 #####################################################################
+
+plotStart_Daily = 1001
+plotEnd_Daily_JSE = plotStart_Daily - 1 + lengthJSE_Daily 
+plotEnd_Daily_SSE50 = plotStart_Daily - 1 + lengthSSE50_Daily
+plotEnd_Daily_BSESN = plotStart_Daily - 1 + lengthBSESN_Daily
+
+plotStart_Weekly = 1001
+plotEnd_Weekly_JSE = plotStart_Weekly - 1 + lengthJSE_Weekly 
+plotEnd_Weekly_SSE50 = plotStart_Weekly - 1 + lengthSSE50_Weekly
+plotEnd_Weekly_BSESN = plotStart_Weekly - 1 + lengthBSESN_Weekly
+
+#####################################################################
+
+# Calibrated Confidence Intervals
+
+cal_lowerCI_JSE_Daily, cal_upperCI_JSE_Daily, calMom_JSE_Daily = calibratedConfidenceInterval(id, plotEnd_Daily_JSE, logReturns_HL_JSE_Daily, "JSE", "Daily")
+
+cal_latexRow_JSE_Daily = vec(hcat(round.(cal_lowerCI_JSE_Daily, digits = 4), calMom_JSE_Daily, round.(cal_upperCI_JSE_Daily, digits = 4))')
+cal_latex_df_JSE_Daily = DataFrame(cal_latexRow_JSE_Daily', :auto)
+cal_latex_output_JSE_Daily = pretty_table(cal_latex_df_JSE_Daily, backend = :latex)
+
+cal_lowerCI_JSE_Weekly, cal_upperCI_JSE_Weekly, calMom_JSE_Weekly = calibratedConfidenceInterval(id, plotEnd_Weekly_JSE, logReturns_HL_JSE_Weekly, "JSE", "Weekly")
+
+cal_latexRow_JSE_Weekly = vec(hcat(round.(cal_lowerCI_JSE_Weekly, digits = 4), calMom_JSE_Weekly, round.(cal_upperCI_JSE_Weekly, digits = 4))')
+cal_latex_df_JSE_Weekly = DataFrame(cal_latexRow_JSE_Weekly', :auto)
+cal_latex_output_JSE_Weekly = pretty_table(cal_latex_df_JSE_Weekly, backend = :latex)
+
+cal_lowerCI_SSE50_Daily, cal_upperCI_SSE50_Daily, calMom_SSE50_Daily = calibratedConfidenceInterval(id, plotEnd_Daily_SSE50, logReturns_HL_SSE50_Daily, "SSE", "Daily")
+
+cal_latexRow_SSE50_Daily = vec(hcat(round.(cal_lowerCI_SSE50_Daily, digits = 4), calMom_SSE50_Daily, round.(cal_upperCI_SSE50_Daily, digits = 4))')
+cal_latex_df_SSE50_Daily = DataFrame(cal_latexRow_SSE50_Daily', :auto)
+cal_latex_output_SSE50_Daily = pretty_table(cal_latex_df_SSE50_Daily, backend = :latex)
+
+cal_lowerCI_SSE50_Weekly, cal_upperCI_SSE50_Weekly, calMom_SSE50_Weekly = calibratedConfidenceInterval(id, plotEnd_Weekly_SSE50, logReturns_HL_SSE50_Weekly, "SSE", "Weekly")
+
+cal_latexRow_SSE50_Weekly = vec(hcat(round.(cal_lowerCI_SSE50_Weekly, digits = 4), calMom_SSE50_Weekly, round.(cal_upperCI_SSE50_Weekly, digits = 4))')
+cal_latex_df_SSE50_Weekly = DataFrame(cal_latexRow_SSE50_Weekly', :auto)
+cal_latex_output_SSE50_Weekly = pretty_table(cal_latex_df_SSE50_Weekly, backend = :latex)
+
+cal_lowerCI_BSESN_Daily, cal_upperCI_BSESN_Daily, calMom_BSESN_Daily = calibratedConfidenceInterval(id, plotEnd_Daily_BSESN, logReturns_HL_BSESN_Daily, "BSE", "Daily")
+
+cal_latexRow_BSESN_Daily = vec(hcat(round.(cal_lowerCI_BSESN_Daily, digits = 4), calMom_BSESN_Daily, round.(cal_upperCI_BSESN_Daily, digits = 4))')
+cal_latex_df_BSESN_Daily = DataFrame(cal_latexRow_BSESN_Daily', :auto)
+cal_latex_output_BSESN_Daily = pretty_table(cal_latex_df_BSESN_Daily, backend = :latex)
+
+cal_lowerCI_BSESN_Weekly, cal_upperCI_BSESN_Weekly, calMom_BSESN_Weekly = calibratedConfidenceInterval(id, plotEnd_Weekly_BSESN, logReturns_HL_BSESN_Weekly, "BSE", "Weekly")
+
+cal_latexRow_BSESN_Weekly = vec(hcat(round.(cal_lowerCI_BSESN_Weekly, digits = 4), calMom_BSESN_Weekly, round.(cal_upperCI_BSESN_Weekly, digits = 4))')
+cal_latex_df_BSESN_Weekly = DataFrame(cal_latexRow_BSESN_Weekly', :auto)
+cal_latex_output_BSESN_Weekly = pretty_table(cal_latex_df_BSESN_Weekly, backend = :latex)
+
+#####################################################################
+
