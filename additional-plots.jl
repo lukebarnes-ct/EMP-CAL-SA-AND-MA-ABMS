@@ -1,3 +1,4 @@
+
 ##### Plotting Additional Plots of Interest for Empirical and Simulated Data
 ##### Lagged Variance, Zunbach Effect and Pareto Distribution over Tail Events
 
@@ -5,14 +6,10 @@ using Random
 using Plots
 using Distributions
 using Printf
-using Plots.PlotMeasures
 using StatsBase
-using TypedTables
 using StatsPlots
 using Subscripts
 using JLD2
-using HypothesisTests
-using Hurst
 
 #################################################################################
 
@@ -141,3 +138,10 @@ me_sim = mean_excess(x_sim, us)
 
 plot(us, me_emp, label="Empirical")
 plot!(us, me_sim, label="Simulated")
+
+upperObs = logReturns_HL_JSE_Daily[findall(x -> x >= quantile(logReturns_HL_JSE_Daily, 0.95), logReturns_HL_JSE_Daily)]
+sort!(upperObs)
+
+density(upperObs, seriestype = [:scatter, :line], marker = (color, stroke(color), :utriangle), linecolor = color, title = "", xlabel = string("Log return extreme percentiles"), ylabel = "Density", legend = :topright)
+
+density(upperObs)
