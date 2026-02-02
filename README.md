@@ -1,6 +1,6 @@
-# Empirical Calibration of Single-Asset and Multi-Asset Agent-Based Models
+# Empirical Calibration of Single-Asset and Multi-Asset Agent-Based Models for Financial Markets
 
-The Julia code used to implement the ABMs, in conjunction with the calibration and simulation methodology, for the Empirical Calibration of Single-Asset and Multi-Asset Agent-Based Models dissertation by Luke Barnes is available in this Github repository. The repository contains all the Julia code used to process and clean the empirical data, calibrate and simulate each of the ABMs, perform a sensitivity analysis on each model variation's parameters, and generate and plot key model outputs.
+The Julia code used to implement the ABMs, in conjunction with the calibration and simulation methodology, for the Empirical Calibration of Single-Asset and Multi-Asset Agent-Based Models for Financial Markets dissertation by Luke Barnes is available in this Github repository. The repository contains all the Julia code used to process and clean the empirical data, calibrate and simulate each of the ABMs, perform a sensitivity analysis on each model variation's parameters, and generate and plot key model outputs.
 
 ## Repository Structure:
 
