@@ -572,4 +572,70 @@ end
 display(plotAllAssetPrices(priceMatrix_XU_JSE_Weekly, plotStart_Weekly + 100, plotEnd_Weekly_JSE + 100, xuIndexPrice_JSE_Weekly))
 savefig("Plots/xu-calibration/prices/all_asset_and_index_jse_weekly.pdf")
 
+#################################################################################
+
+# Cross Correlations over Time
+
+window = 100
+R = logReturnsMatrix_XU_JSE_Weekly
+N = size(R, 2)
+T = N - window + 1
+
+rollingCorr = zeros(T, 5, 5)
+
+for t in 1:T
+    windowData = R[:, t:t+window-1]'
+    rollingCorr[t, :, :] = cor(windowData)
+end
+
+assetColours = [
+    :salmon1,
+    :yellow2,
+    :goldenrod2,
+    :palegreen2,
+    :navajowhite2]
+
+function plotAssetCorrelations(i, rollingCorr, assetColours)
+
+    T = size(rollingCorr, 1)
+
+    p = plot(
+        title = "Asset $i",
+        xlabel = "Week",
+        ylabel = "ρ",
+        legend = :topleft,
+        framestyle = :box,
+        tick_direction = :none,
+        gridlinewidth = 1.5, 
+        gridstyle = :dash,
+        ylim = (-1, 1))
+
+    for j in 1:5
+        if j != i
+            plot!(
+                p,
+                rollingCorr[:, i, j],
+                label = "Asset $j",
+                color = assetColours[j],
+                linewidth = 2)
+        end
+    end
+
+    return p
+end
+
+function plotAllAssetCorrelations(rollingCorr, assetColours)
+
+    p1 = plotAssetCorrelations(1, rollingCorr, assetColours)
+    p2 = plotAssetCorrelations(2, rollingCorr, assetColours)
+    p3 = plotAssetCorrelations(3, rollingCorr, assetColours)
+    p4 = plotAssetCorrelations(4, rollingCorr, assetColours)
+    p5 = plotAssetCorrelations(5, rollingCorr, assetColours)
+
+    plot(p1, p2, p3, p4, p5, layout = (3, 2), size = (900, 900), 
+         margin = 2mm)
+end
+
+display(plotAllAssetCorrelations(rollingCorr, assetColours))
+savefig("Plots/xu-calibration/prices/all_asset_correlations_jse_weekly.pdf")
 
